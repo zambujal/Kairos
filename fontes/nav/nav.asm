@@ -909,7 +909,7 @@ TxtGo1024           db "go1024",0
 TxtGo256            db "go256",0
 TxtGo2068           db "go2068",0
 TxtGoReset          db "go128 -reset",0
-TxtGoMenu           db "go128 -divmenu",0   ; v38: sem o -ts (com os tempos do 128K o menu nao aparece; por ver porque)
+TxtGoMenu           db "go128 -divmenu -ts",0  ; v39: com os tempos do 128K (com o GO128 69g o menu aparece)
 ; v24d: como o .gs: /BIN/GS105B.ROM (32K) para o GS pelos registos ZXUNO A0h (1 = parado e
 ; ponteiro a 0, 0 = arranca) e A1h (byte seguinte). No clone nao ha' GS (os registos nao existem).
 CarregaGS           ld hl,TxtGSrom
@@ -1233,18 +1233,17 @@ SoftMrst            ld bc,0FC3Bh
                     in a,(c)
                     and 80h
                     ret
-TMmesma             ld a,(NovaMaq)      ; mesma classe: so' o F3
+TMmesma             ld a,(Esta128)      ; v34: no 48 (TIMEX 2048 <-> ZX 48K) tambem com reset, como o Ctrl+Alt+Del:
+                    or a                ; so' o F3 deixava a RAM e a DivTIESUS como estavam e ha' jogos que so'
+                    jr nz,TMm128        ; correm numa maquina acabada de arrancar (o Commando ULAplus encravava)
+                    ld a,(NovaMaq)
+                    ld (Filtro),a
+                    call GuardaFiltro
+                    call GravaCfg
+                    jp TMr48
+TMm128              ld a,(NovaMaq)      ; mesma classe (128): so' o F3
                     call PoeF3
                     call Poe1024
-                    ld a,(Esta128)      ; v30: no 48 (TIMEX 2048 <-> ZX 48K, sem reset) o buffer da impressora
-                    or a                ; limpo, como depois do arranque da ROM: o NAV usa-o (5B00h) e o lixo
-                    jr nz,TMmb          ; no BANKM (23388) mandava o Commando ULAplus pelo caminho do 128
-                    ld hl,5B00h
-                    ld de,5B01h
-                    ld bc,0FFh
-                    ld (hl),a
-                    ldir
-TMmb
                     IF HIRES
                     ld a,(NovaMaq)
                     ld (Filtro),a
@@ -2313,7 +2312,18 @@ COefim              xor a
                     ld (ix+4),a
                     ld a,(Esta128)      ; no TC2068: /BIN/PLUG2068/EXT se existir (plugins so' do 2068)
                     cp 2
+                    jr z,COp68
+                    dec a               ; v40: no 128 so' o TAP (o stub ve' o BASIC 128 pelo FLAGS bit 4:
+                    jr nz,COplug        ; no menu do 128 so' abre o TAP, o auto-load ia para o BASIC 48)
+                    ld hl,(TPlugin+14)
+                    ld de,"AT"          ; "TA" (little-endian)
+                    or a
+                    sbc hl,de
                     jr nz,COplug
+                    ld a,(TPlugin+16)
+                    cp 'P'
+                    jr nz,COplug
+COp68
                     ld hl,TxtP68
                     call COcopia
                     ld hl,TPlugin
