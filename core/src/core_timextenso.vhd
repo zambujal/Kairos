@@ -50,6 +50,7 @@ entity core_timextenso is
     ear_in   : in  std_logic := '0';               -- (2026-10-24) cassete do ESP: EAR (porta FE bit 6 e som)
     ce_t     : out std_logic;                      -- um T do Z80 sem espera (relogio da cassete)
     dv_lento : out std_logic;
+    dv_mapa  : out std_logic;                      -- (69j) DivMMC mapeado (a 8 x o Z80 desce a 4 x, como antes)
     -- (esp46) som do ESP (MP3): amostras de 32 bits (esquerda nos bits 15-0, direita 31-16, com sinal) num anel de
     -- 64K na SDRAM em 7C0000h; tocadas a mp_rate amostras por segundo; mp_idx = a amostra seguinte a tocar
     mp_on    : in  std_logic := '0';
@@ -239,6 +240,7 @@ architecture rtl of core_timextenso is
   signal rnmi_p : std_logic := '0';
   signal m1024, alto, big, big_l : std_logic := '0';
   signal rom7, nmi66_l : std_logic := '0';   -- (69i) 7FFD bit 4 (ROM); NMI na ROM 0 do 128 (le-se F5 em 0066h)
+  signal cart_t : unsigned(12 downto 0) := (others => '0');   -- (69j) 8191 ciclos de 54 MHz depois de E7h/EBh
   signal banco6 : std_logic_vector(5 downto 0);
   signal idle    : unsigned(10 downto 0) := (others => '0');
   signal home, vram, vram128, bnk, interna : std_logic;
@@ -679,7 +681,20 @@ begin
   -- liberta); antes ia para o q_m um ciclo depois e, num T de 3 ciclos, o Z80 lia o byte anterior
   q_mz <= z_byte_r when z_ler = '1' else q_m;
   ce_t <= ce and cpu_wait_n;
-  dv_lento <= dv_romcs;
+  -- (69j) 1 x so' perto dos acessos ao cartao (portas E7h e EBh do DivMMC): ~150 us depois de cada um.
+  -- No 69h era com o DivMMC mapeado, e o navegador (que corre com ele mapeado) ficava lento no turbo.
+  process(clk)
+  begin
+    if rising_edge(clk) then
+      if iorq_n = '0' and m1_n = '1' and (a(7 downto 0) = x"EB" or a(7 downto 0) = x"E7") then
+        cart_t <= (others => '1');
+      elsif cart_t /= 0 then
+        cart_t <= cart_t - 1;
+      end if;
+    end if;
+  end process;
+  dv_lento <= '1' when cart_t /= 0 else '0';
+  dv_mapa <= dv_romcs;
   eb_io <= '1' when iorq_n = '0' and m1_n = '1' and a(7 downto 0) = x"EB" else '0';
   e7_io <= '1' when iorq_n = '0' and m1_n = '1' and a(7 downto 0) = x"E7" else '0';
   process(clk)

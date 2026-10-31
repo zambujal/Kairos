@@ -226,7 +226,7 @@ architecture rtl of top is
   signal at_d : std_logic_vector(1 downto 0) := "00";
   signal vel_cod : std_logic_vector(3 downto 0);
   -- cassete (2026-10-24)
-  signal cs_wr, cs_limpa, cs_ativa, cs_ear, ce_t, dv_lento : std_logic := '0';
+  signal cs_wr, cs_limpa, cs_ativa, cs_ear, ce_t, dv_lento, dv_mapa : std_logic := '0';
   signal ay_vis : std_logic_vector(191 downto 0) := (others => '0');
   signal cs_d : std_logic_vector(15 downto 0);
   signal cs_livres : std_logic_vector(7 downto 0);
@@ -360,10 +360,10 @@ begin
       c2 := (acc35 < DEN / 4 and a35 >= DEN / 4) or (acc35 < 3 * DEN / 4 and a35 >= 3 * DEN / 4);
       c4 := (acc35 < DEN / 8 and a35 >= DEN / 8) or (acc35 < 3 * DEN / 8 and a35 >= 3 * DEN / 8) or
             (acc35 < 5 * DEN / 8 and a35 >= 5 * DEN / 8) or (acc35 < 7 * DEN / 8 and a35 >= 7 * DEN / 8);
-      -- (69h) com o DivMMC mapeado (esxDOS: leituras e escritas no cartao) sempre a 1 x, mesmo em turbo,
-      -- no arranque rapido e nas mudancas de maquina do ESP (suspeita: escritas a 14 MHz estragavam o cartao)
+      -- (69h/69j) perto dos acessos ao cartao (dv_lento) sempre a 1 x, mesmo em turbo, no arranque rapido e nas
+      -- mudancas de maquina do ESP (suspeita: escritas a 14 MHz estragavam o cartao)
       if dv_lento = '1' then ce <= to_std(c1);
-      elsif k_turbo = '1' or arr_rap = '1' or vel_r = 4 then ce <= to_std(c4);
+      elsif k_turbo = '1' or arr_rap = '1' or vel_r = 4 or (vel_r = 8 and dv_mapa = '1') then ce <= to_std(c4);
       elsif vel_r = 8 then ce <= not ce;
       elsif vel_r = 2 then ce <= to_std(c2);
       else ce <= to_std(c1); end if;
@@ -431,7 +431,7 @@ begin
       port map (clk => clk54, clk_div => I_clk, vclk => pclk, ce => ce, ce35 => ce35, reset_n => cpu_rst_n,
                 nmi_n => nmi_core, mat => mat,
                 border => border_c, modo => modo_c, hcor => hcor_c, ecra7 => ecra7_c,
-                vid_a => ecra7_v & va, vid_q => vq, vid_a2 => va2, vid_q2 => vq2, m16c => m16c_c, turbo => turbo_c, sd_esp => sd_dado, sem_fita => fita_on, ear_in => cs_ear, mp_on => '0', mp_rate => mp_rate, mp_idx => mp_idx, mp_l => open, mp_r => open, ce_t => ce_t, dv_lento => dv_lento, ay_vis => ay_vis, rato_x => rato_x, rato_y => rato_y, rato_b => rato_b, joy => joy_k, pede_rnmi => pede_rnmi, arr_auto => arr_auto, arr_rapido => arr_rap, halt_n => halt_n,
+                vid_a => ecra7_v & va, vid_q => vq, vid_a2 => va2, vid_q2 => vq2, m16c => m16c_c, turbo => turbo_c, sd_esp => sd_dado, sem_fita => fita_on, ear_in => cs_ear, mp_on => '0', mp_rate => mp_rate, mp_idx => mp_idx, mp_l => open, mp_r => open, ce_t => ce_t, dv_lento => dv_lento, dv_mapa => dv_mapa, ay_vis => ay_vis, rato_x => rato_x, rato_y => rato_y, rato_b => rato_b, joy => joy_k, pede_rnmi => pede_rnmi, arr_auto => arr_auto, arr_rapido => arr_rap, halt_n => halt_n,
                 pronta => sd_pronta, sd_teste => sd_teste, sd_teste2 => sd_teste2,
                 sd_clk => open, sd_cke => O_sdram_cke, sd_cs_n => O_sdram_cs_n,
                 sd_ras_n => O_sdram_ras_n, sd_cas_n => O_sdram_cas_n, sd_we_n => O_sdram_wen_n,
