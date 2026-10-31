@@ -181,8 +181,10 @@ architecture rtl of top is
   signal auto_ini : std_logic := '0';
   signal auto_t : integer range 0 to 216000000 := 0;
   signal ce, ce35 : std_logic := '0';
-  signal acc35 : integer range 0 to 8191 := 0;
-  signal acc : integer range 0 to 8191 := 0;
+  signal acc35 : integer range 0 to 524287 := 0;   -- (66) denominador comum 270000 (ver o processo do ce)
+  signal acc : integer range 0 to 524287 := 0;
+  signal n1_r  : integer range 0 to 32767 := 17500;  -- (66) T-states por 270000 ciclos de 54 MHz (a maquina)
+  signal num_r : integer range 0 to 131071 := 17500; -- (66) o do Z80 (n1_r x velocidade), um ciclo depois
   signal vel_r : integer range 1 to 8 := VEL;          -- Timextenso: muda com a escolha 15 dos botoes
   signal arr_turbo, turbo_c : std_logic := '0';
   signal pisca_t : unsigned(24 downto 0) := (others => '0');
@@ -323,15 +325,23 @@ begin
     -- 3,5 MHz certos. Com PENTA50: Pentagon a 3,584 MHz = 54 x 224/3375 -> quadro de
     -- 71680 T = 20 ms, preso ao HDMI de 50 Hz e em fase (video_timex "sinc").
     -- (O salto que se via no Scroller era da TV.)
-    constant N1  : integer := sel(PENTA and PENTA50, 224, 7);
-    variable NUM : integer range 0 to 1023;
-    constant DEN : integer := sel(PENTA and PENTA50, 3375, 108);
+    -- (66) Timextenso: o quadro do 128K (70908 T) e do Pentagon (71680 T) a 3,5 MHz da' 49,36 / 48,83 Hz e o
+    -- HDMI vai a 50: um quadro repetido a cada ~1,6 s / ~0,85 s (o salto nos scrolls). Agora o Z80 dessas
+    -- maquinas anda mais depressa para o quadro ter 20 ms certos: 128K 3,5454 MHz (+1,3 %), Pentagon 3,584 MHz
+    -- (+2,4 %; o AY e o beeper sobem com ele). 48K / TC2048 ficam a 3,5 MHz (69888 T = 50,08 Hz).
+    -- Denominador comum 270000: 3,5 = 54 x 17500/270000; 3,5454 = 54 x 17727/270000; 3,584 = 54 x 17920/270000
+    -- (o mesmo para todas: mudar de maquina nao estraga o acumulador).
+    constant DEN : integer := 270000;
   begin
     if rising_edge(clk54) then
+      if (PENTA and PENTA50) or (maq_st(8) = '1' and maq_st(7) = '1') then n1_r <= 17920;   -- Pentagon (modo 128 + F3 bit 7)
+      elsif maq_st(8) = '1' and maq_st(2) = '1' then n1_r <= 17727;                            -- tempos do 128K (F3 bit 2)
+      else n1_r <= 17500; end if;
       -- (2026-10-24) a 27 MHz, com a DivMMC mapeada (esxDOS, NAV, cargas do cartao) vai a 14 MHz: o SPI e as
       -- traps da DivMMC foram feitos para 3,5 MHz; o programa, depois de arrancar, corre a 27
       -- (65) no arranque (carga das ROMs e 3 s depois) a 14 MHz, depois volta a' velocidade escolhida
-      if k_turbo = '1' or arr_rap = '1' or (vel_r = 8 and dv_lento = '1') then NUM := N1 * 4; elsif vel_r = 8 then NUM := 0; else NUM := N1 * vel_r; end if;
+      if k_turbo = '1' or arr_rap = '1' or (vel_r = 8 and dv_lento = '1') or vel_r = 4 then num_r <= n1_r * 4;
+      elsif vel_r = 2 then num_r <= n1_r * 2; elsif vel_r = 8 then num_r <= 0; else num_r <= n1_r; end if;
       if arr_turbo = '1' then
         if vel_r = 8 then vel_r <= 1; else vel_r <= vel_r * 2; end if;
       end if;
@@ -342,10 +352,10 @@ begin
       if atalho(19) = '1' and at_d(1) = '0' and vel_r /= 1 then vel_r <= vel_r / 2; end if;
       -- (2026-10-24) 8 x = 27 MHz: um ce de 2 em 2 ciclos certos (nunca dois seguidos: o .sdc da' 2 ciclos ao Z80)
       if vel_r = 8 and k_turbo = '0' and arr_rap = '0' and dv_lento = '0' then ce <= not ce;
-      elsif acc + NUM >= DEN and ce = '0' then acc <= acc + NUM - DEN; ce <= '1';   -- nunca dois ce seguidos
-      else acc <= acc + NUM; ce <= '0'; end if;
-      if acc35 + N1 >= DEN then acc35 <= acc35 + N1 - DEN; ce35 <= '1';
-      else acc35 <= acc35 + N1; ce35 <= '0'; end if;
+      elsif acc + num_r >= DEN and ce = '0' then acc <= acc + num_r - DEN; ce <= '1';   -- nunca dois ce seguidos
+      else acc <= acc + num_r; ce <= '0'; end if;
+      if acc35 + n1_r >= DEN then acc35 <= acc35 + n1_r - DEN; ce35 <= '1';
+      else acc35 <= acc35 + n1_r; ce35 <= '0'; end if;
     end if;
   end process;
 
