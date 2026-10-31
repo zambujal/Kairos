@@ -181,10 +181,10 @@ architecture rtl of top is
   signal auto_ini : std_logic := '0';
   signal auto_t : integer range 0 to 216000000 := 0;
   signal ce, ce35 : std_logic := '0';
-  signal acc35 : integer range 0 to 524287 := 0;   -- (66) denominador comum 270000 (ver o processo do ce)
-  signal acc : integer range 0 to 524287 := 0;
-  signal n1_r  : integer range 0 to 32767 := 17500;  -- (66) T-states por 270000 ciclos de 54 MHz (a maquina)
-  signal num_r : integer range 0 to 131071 := 17500; -- (66) o do Z80 (n1_r x velocidade), um ciclo depois
+  signal acc35 : integer range 0 to 65535 := 0;    -- (66) denominador 54000 (ver o processo do ce)
+  signal acc : integer range 0 to 131071 := 0;
+  signal n1_r  : integer range 0 to 4095 := 3500;    -- (66) T-states por 54000 ciclos de 54 MHz (a maquina)
+  signal num_r : integer range 0 to 16383 := 3500;   -- (66) o do Z80 (n1_r x velocidade), um ciclo depois
   signal vel_r : integer range 1 to 8 := VEL;          -- Timextenso: muda com a escolha 15 dos botoes
   signal arr_turbo, turbo_c : std_logic := '0';
   signal pisca_t : unsigned(24 downto 0) := (others => '0');
@@ -329,14 +329,16 @@ begin
     -- HDMI vai a 50: um quadro repetido a cada ~1,6 s / ~0,85 s (o salto nos scrolls). Agora o Z80 dessas
     -- maquinas anda mais depressa para o quadro ter 20 ms certos: 128K 3,5454 MHz (+1,3 %), Pentagon 3,584 MHz
     -- (+2,4 %; o AY e o beeper sobem com ele). 48K / TC2048 ficam a 3,5 MHz (69888 T = 50,08 Hz).
-    -- Denominador comum 270000: 3,5 = 54 x 17500/270000; 3,5454 = 54 x 17727/270000; 3,584 = 54 x 17920/270000
-    -- (o mesmo para todas: mudar de maquina nao estraga o acumulador).
-    constant DEN : integer := 270000;
+    -- Denominador comum 54000 (o mesmo para todas: mudar de maquina nao estraga o acumulador):
+    -- 3,5 = 54 x 3500/54000; Pentagon 3,584 = 54 x 3584/54000 (certo); 128K 3,545 = 54 x 3545/54000
+    -- (o certo era 3545,4: o quadro fica com 20,002 ms, um quadro a mais a cada ~7 min).
+    -- (O 270000 com tudo certo nao cabia: o Gowin ficou com 2167 ligacoes por fazer.)
+    constant DEN : integer := 54000;
   begin
     if rising_edge(clk54) then
-      if (PENTA and PENTA50) or (maq_st(8) = '1' and maq_st(7) = '1') then n1_r <= 17920;   -- Pentagon (modo 128 + F3 bit 7)
-      elsif maq_st(8) = '1' and maq_st(2) = '1' then n1_r <= 17727;                            -- tempos do 128K (F3 bit 2)
-      else n1_r <= 17500; end if;
+      if (PENTA and PENTA50) or (maq_st(8) = '1' and maq_st(7) = '1') then n1_r <= 3584;   -- Pentagon (modo 128 + F3 bit 7)
+      elsif maq_st(8) = '1' and maq_st(2) = '1' then n1_r <= 3545;                            -- tempos do 128K (F3 bit 2)
+      else n1_r <= 3500; end if;
       -- (2026-10-24) a 27 MHz, com a DivMMC mapeada (esxDOS, NAV, cargas do cartao) vai a 14 MHz: o SPI e as
       -- traps da DivMMC foram feitos para 3,5 MHz; o programa, depois de arrancar, corre a 27
       -- (65) no arranque (carga das ROMs e 3 s depois) a 14 MHz, depois volta a' velocidade escolhida
