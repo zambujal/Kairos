@@ -1179,7 +1179,7 @@ TMoutra             ld a,(NovaPenta)    ; v24: as mudancas fazem-se pelos .go (G
                     jr nz,TMemRAM
                     ld a,c              ; estamos no 48: para o 48 o F3, para o resto o .go
                     or a
-                    jr z,TMmesma
+                    jp z,TMmesma
                     jp Reinicia
 TMemRAM             cp 2                ; no 128 ou no 2068 (ROM em RAM ligado)
                     jr z,TMde2068
@@ -2375,6 +2375,7 @@ COsemmsg            call SaiNav         ; o plugin abre o ficheiro pelo nome: pa
                     IF HIRES
                     call EcraPlugin     ; ecra normal e o F3 da maquina para o plugin
                     ENDIF
+                    call LimpaLivre     ; v33: a RAM livre do topo a zero, como depois de ligar
                     call TLanca
                     ld (RetPlugin),a
                     ld a,(EspModo)      ; v25: pedido pelo ESP: volta logo ao programa
@@ -4602,6 +4603,38 @@ NPastas             equ PLab+72
 
 ; v28: D no menu: /SYS/ARRANQUE.CFG = "AR",0,linha (0 = TIMEX 2048). O programa de arranque le'-o e, sem o
 ; ESP, o core faz um NMI uns segundos depois de ligar: o NAV muda para essa maquina como o ENTER (AutoOrdem)
+; v33: apaga a RAM livre entre o STKEND (pelo menos BC00h, acima do codigo do NAV) e 128 bytes abaixo da
+; pilha do programa. O NAV deixa la' os registos, o buffer de leitura e a tabela do IM 2; depois de ligar
+; essa RAM esta' a zero e ha' jogos que contam com isso (o Commando ULAplus rebentava a seguir ao navegador).
+LimpaLivre          ld hl,(5C65h)       ; STKEND
+                    ld de,0BC00h
+                    or a
+                    sbc hl,de
+                    add hl,de
+                    jr nc,LLini
+                    ex de,hl            ; abaixo de BC00h: comeca em BC00h
+LLini               ex de,hl            ; DE = inicio
+                    ld hl,(SPguardado)
+                    ld bc,80h
+                    or a
+                    sbc hl,bc           ; HL = pilha - 128
+                    ret c
+                    or a
+                    sbc hl,de           ; HL = tamanho
+                    ret c
+                    ret z
+                    ld b,h
+                    ld c,l
+                    ld h,d
+                    ld l,e
+                    ld (hl),0
+                    dec bc
+                    ld a,b
+                    or c
+                    ret z
+                    inc de
+                    ldir
+                    ret
 MNdef               ld a,(MenuSel)
                     cp MNESQ            ; o GS nao e' maquina
                     jp nc,MNtecla
