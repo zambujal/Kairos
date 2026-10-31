@@ -104,7 +104,7 @@ module divtiesus_tang (
   );
 
   bancos128 bancos_128k (
-    .clk(clk), .mrst_n(mrst_n), .a(a), .din(din), .mreq_n(mreq_n), .iorq_n(iorq_n), .rd_n(rd_n), .wr_n(wr_n),
+    .clk(clk), .mrst_n(mrst_n), .rst_n(rst_n), .a(a), .din(din), .mreq_n(mreq_n), .iorq_n(iorq_n), .rd_n(rd_n), .wr_n(wr_n),
     .zxuno_addr(zxuno_addr), .zxuno_regwr(zxuno_regwr), .banco_ram(banco_ram), .banco_ext(banco_ext),
     .modo128(modo128), .sel(bancos_sel), .sel_sram(bancos_sel_sram),
     .sram_oe_n(bancos_oe_n), .sram_we_n(bancos_we_n), .sram_hiaddr(bancos_hiaddr),

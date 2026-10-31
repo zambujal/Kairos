@@ -106,7 +106,7 @@ module divmmc_mcleod (
           divmmc_autopage_status_after_m1 <= 1'b1;
         end
         else if (a==16'h0000 && menu128 == 1'b1) begin  // (69d) menu do 128: o 0000h desmapeia logo (o .go128 -divmenu
-          divmmc_is_autopaged <= 1'b0;                  // salta para 0 ainda com o esxDOS mapeado; o reset tambem cai aqui)
+          divmmc_is_autopaged <= 1'b0;                  // salta para 0 ainda com o esxDOS mapeado; o reset limpa o menu128)
           divmmc_autopage_status_after_m1 <= 1'b0;
         end
         else if (a[15:8]==8'h3D && (inrom48k || modo2068)) begin  // Non deferred automapping (Current CPU clock cycle)

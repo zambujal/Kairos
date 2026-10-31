@@ -59,6 +59,7 @@
 module bancos128 (
   input wire clk,
   input wire mrst_n,              // not used any more
+  input wire rst_n,               // (69f) reset do Z80: tambem limpa o menu128
   input wire [15:0] a,
   input wire [7:0] din,
   input wire mreq_n,
@@ -124,10 +125,10 @@ module bancos128 (
   end
   assign modo2068 = r2068;
   // (69) DDh bit 3: the 128K starts its ROM menu (no automap at 0000h) and keeps the other traps.
-  // Cleared by a master reset, like the TC2068 mode.
+  // Cleared by a master reset, like the TC2068 mode, and (69f) by any reset.
   reg rmenu = 1'b0;
   always @(posedge clk) begin
-    if (mrst_n == 1'b0)
+    if (mrst_n == 1'b0 || rst_n == 1'b0)   // (69f) qualquer reset: sem isto o RESET+NMI da mudanca de maquina caia outra vez no menu do 128
       rmenu <= 1'b0;
     else if (zxuno_regwr == 1'b1 && zxuno_addr == 8'hDD)
       rmenu <= din[3];
