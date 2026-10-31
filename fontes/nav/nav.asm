@@ -1165,7 +1165,7 @@ TMcomum             ld (NovaMaq),a
                     cp (hl)
                     jr nz,TMoutra
                     ld a,(F3extra)      ; a mesma: so' se o Pentagon mudar
-                    and 80h
+                    and 8Ch             ; v29: bits 7, 3 e 2 (128 / 256 / 1024); so' o 7 dava o 1024 -> 128 por igual
                     ld hl,NovaPenta
                     cp (hl)
                     jp z,DesenhaFiltro
