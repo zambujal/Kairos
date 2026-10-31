@@ -909,7 +909,7 @@ TxtGo1024           db "go1024",0
 TxtGo256            db "go256",0
 TxtGo2068           db "go2068",0
 TxtGoReset          db "go128 -reset",0
-TxtGoMenu           db "go128 -divmenu -ts",0
+TxtGoMenu           db "go128 -divmenu",0   ; v38: sem o -ts (com os tempos do 128K o menu nao aparece; por ver porque)
 ; v24d: como o .gs: /BIN/GS105B.ROM (32K) para o GS pelos registos ZXUNO A0h (1 = parado e
 ; ponteiro a 0, 0 = arranca) e A1h (byte seguinte). No clone nao ha' GS (os registos nao existem).
 CarregaGS           ld hl,TxtGSrom
