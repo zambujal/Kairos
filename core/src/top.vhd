@@ -360,7 +360,10 @@ begin
       c2 := (acc35 < DEN / 4 and a35 >= DEN / 4) or (acc35 < 3 * DEN / 4 and a35 >= 3 * DEN / 4);
       c4 := (acc35 < DEN / 8 and a35 >= DEN / 8) or (acc35 < 3 * DEN / 8 and a35 >= 3 * DEN / 8) or
             (acc35 < 5 * DEN / 8 and a35 >= 5 * DEN / 8) or (acc35 < 7 * DEN / 8 and a35 >= 7 * DEN / 8);
-      if k_turbo = '1' or arr_rap = '1' or vel_r = 4 or (vel_r = 8 and dv_lento = '1') then ce <= to_std(c4);
+      -- (69h) com o DivMMC mapeado (esxDOS: leituras e escritas no cartao) sempre a 1 x, mesmo em turbo,
+      -- no arranque rapido e nas mudancas de maquina do ESP (suspeita: escritas a 14 MHz estragavam o cartao)
+      if dv_lento = '1' then ce <= to_std(c1);
+      elsif k_turbo = '1' or arr_rap = '1' or vel_r = 4 then ce <= to_std(c4);
       elsif vel_r = 8 then ce <= not ce;
       elsif vel_r = 2 then ce <= to_std(c2);
       else ce <= to_std(c1); end if;
