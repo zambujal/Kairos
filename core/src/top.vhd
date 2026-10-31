@@ -183,9 +183,7 @@ architecture rtl of top is
   signal auto_t : integer range 0 to 216000000 := 0;
   signal ce, ce35 : std_logic := '0';
   signal acc35 : integer range 0 to 65535 := 0;    -- (66) denominador 54000 (ver o processo do ce)
-  signal acc : integer range 0 to 131071 := 0;
   signal n1_r  : integer range 0 to 4095 := 3500;    -- (66) T-states por 54000 ciclos de 54 MHz (a maquina)
-  signal num_r : integer range 0 to 16383 := 3500;   -- (66) o do Z80 (n1_r x velocidade), um ciclo depois
   signal vel_r : integer range 1 to 8 := VEL;          -- Timextenso: muda com a escolha 15 dos botoes
   signal arr_turbo, turbo_c : std_logic := '0';
   signal pisca_t : unsigned(24 downto 0) := (others => '0');
@@ -335,6 +333,8 @@ begin
     -- (o certo era 3545,4: o quadro fica com 20,002 ms, um quadro a mais a cada ~7 min).
     -- (O 270000 com tudo certo nao cabia: o Gowin ficou com 2167 ligacoes por fazer.)
     constant DEN : integer := 54000;
+    variable a35 : integer range 0 to 65535;
+    variable embr, c2, c4 : boolean;
   begin
     if rising_edge(clk54) then
       if (PENTA and PENTA50) or (maq_st(8) = '1' and maq_st(7) = '1') then n1_r <= 3584;   -- Pentagon (modo 128 + F3 bit 7)
@@ -343,8 +343,6 @@ begin
       -- (2026-10-24) a 27 MHz, com a DivMMC mapeada (esxDOS, NAV, cargas do cartao) vai a 14 MHz: o SPI e as
       -- traps da DivMMC foram feitos para 3,5 MHz; o programa, depois de arrancar, corre a 27
       -- (65) no arranque (carga das ROMs e 3 s depois) a 14 MHz, depois volta a' velocidade escolhida
-      if k_turbo = '1' or arr_rap = '1' or (vel_r = 8 and dv_lento = '1') or vel_r = 4 then num_r <= n1_r * 4;
-      elsif vel_r = 2 then num_r <= n1_r * 2; elsif vel_r = 8 then num_r <= 0; else num_r <= n1_r; end if;
       if arr_turbo = '1' then
         if vel_r = 8 then vel_r <= 1; else vel_r <= vel_r * 2; end if;
       end if;
@@ -354,14 +352,17 @@ begin
       if atalho(20) = '1' and at_d(0) = '0' and vel_r /= 8 then vel_r <= vel_r * 2; end if;
       if atalho(19) = '1' and at_d(1) = '0' and vel_r /= 1 then vel_r <= vel_r / 2; end if;
       -- (2026-10-24) 8 x = 27 MHz: um ce de 2 em 2 ciclos certos (nunca dois seguidos: o .sdc da' 2 ciclos ao Z80)
-      -- (68) a velocidade normal: o ce do Z80 e' o proprio ce35 (o acumulador copia o do quadro). Antes, depois de
-      -- mexer no F9/F10 os dois acumuladores ficavam desfasados e os efeitos contados ao T-state davam soluços
-      if vel_r = 1 and k_turbo = '0' and arr_rap = '0' then
-        if acc35 + n1_r >= DEN then acc <= acc35 + n1_r - DEN; ce <= '1';
-        else acc <= acc35 + n1_r; ce <= '0'; end if;
-      elsif vel_r = 8 and k_turbo = '0' and arr_rap = '0' and dv_lento = '0' then ce <= not ce;
-      elsif acc + num_r >= DEN and ce = '0' then acc <= acc + num_r - DEN; ce <= '1';   -- nunca dois ce seguidos
-      else acc <= acc + num_r; ce <= '0'; end if;
+      -- (68) o ce do Z80 sai do acumulador do quadro (acc35): 1 x = o proprio ce35; 2 x e 4 x = o ce35 mais as
+      -- passagens por DEN/2 (e DEN/4, 3 DEN/4). Multiplos certos da velocidade da maquina e sempre em fase com o
+      -- quadro (antes eram dois acumuladores: depois do F9/F10 ficavam desfasados e havia solucos). 8 x = 27 MHz.
+      a35 := acc35 + n1_r;
+      embr := a35 >= DEN;
+      c2 := embr or (acc35 < DEN / 2 and a35 >= DEN / 2);
+      c4 := c2 or (acc35 < DEN / 4 and a35 >= DEN / 4) or (acc35 < 3 * DEN / 4 and a35 >= 3 * DEN / 4);
+      if k_turbo = '1' or arr_rap = '1' or vel_r = 4 or (vel_r = 8 and dv_lento = '1') then ce <= to_std(c4);
+      elsif vel_r = 8 then ce <= not ce;
+      elsif vel_r = 2 then ce <= to_std(c2);
+      else ce <= to_std(embr); end if;
       if acc35 + n1_r >= DEN then acc35 <= acc35 + n1_r - DEN; ce35 <= '1';
       else acc35 <= acc35 + n1_r; ce35 <= '0'; end if;
     end if;
