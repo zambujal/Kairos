@@ -149,6 +149,9 @@ TamanhoOk
 Rom32
                     ld a,(DivMMCOption)
                     ld (PatchDivMMCOption+1),a
+                    ld a,(MenuDiv)
+                    ld (PatchMenu+1),a
+                    ld (PatchApaga+1),a
                     ld a,(OpcaoF3)
                     bit 7,a             ; Timex 128 (-timex/-bus, sem Pentagon): so' o AY do
                     jr nz,F3pronto      ; Timex (F5/F6), o SCLD larga o FFFD/BFFD (bit 0 a 0)
@@ -210,6 +213,9 @@ CopiaPag            push bc
                     pop bc
                     djnz CopiaPag
 
+PatchApaga          ld a,0              ; (69) -divmenu: o esxDOS fica como estava (ja' arrancou no
+                    or a                ; Timex; sem a trap do 0000h nao se reinicia)
+                    jr nz,SemApagar
                     ld a,128+0          ; apaga a pagina 0, como o LOADROM
                     out (DIVCTRL),a
                     ld hl,8192
@@ -217,6 +223,7 @@ CopiaPag            push bc
                     ld (hl),l
                     ld bc,8191
                     ldir
+SemApagar
 
                     ; 7FFD = 0 (ROM0, banco 0) e 1FFD = 0, ainda com a
                     ; descodificacao do +2A, antes de ligar os bancos
@@ -315,6 +322,7 @@ ROMram
                     IFDEF GO1024
                     or 4
                     ENDIF
+PatchMenu           or 0                ; (69) bit 3 = -divmenu: a ROM 0 arranca o menu (sem trap no 0000h)
                     call PoeDD
                     IFDEF GO1024
                     xor a               ; EFF7 = 0: 1024K ligado
@@ -506,7 +514,7 @@ OpcaoBoa            ld a,(hl)
                     jp z,Opcao49
                     or 20h
                     cp "f"              ; -float: ja' e' o normal
-                    jr z,SaltaLetras
+                    jp z,SaltaLetras
                     cp "c"              ; -cc (ou -ct): contencao tambem nos bancos 1 e 3
                     jr z,OpcaoCT
                     cp "s"              ; -sc: sem contencao nos bancos 1 e 3 (ja' e' o normal)
@@ -525,6 +533,8 @@ OpcaoBoa            ld a,(hl)
                     jr z,OpcaoIO
                     cp "a"              ; -ayext: AY de fora (F3 bit 0 a 0: o SCLD larga o FFFD/BFFD)
                     jr z,OpcaoAY
+                    cp "d"              ; (69) -divmenu: o menu do 128 com as traps do DivMMC
+                    jr z,OpcaoDivMenu
                     cp "n"
                     jr nz,SaltaLetras
                     xor a
@@ -553,6 +563,9 @@ OpcaoAY             ld a,(OpcaoF3)
 OpcaoMenu           xor a               ; -menu = -n: sem traps, a ROM0 arranca no menu
                     ld (DivMMCOption),a
                     jr SaltaLetras
+OpcaoDivMenu        ld a,8
+                    ld (MenuDiv),a
+                    jp SaltaLetras
 OpcaoReset          ld a,1
                     ld (Reset),a
                     jr SaltaLetras
@@ -620,13 +633,13 @@ VSim                pop hl
 VNao                inc a               ; A=1: NZ
                     ret
 TabOpcoes           db "50",0,"49",0,"float",0,"cc",0,"ct",0,"sc",0,"menu",0,"n",0
-                    db "reset",0,"ts",0,"timex",0,"bus",0,"penta",0,"io",0,"ayext",0,0
+                    db "reset",0,"ts",0,"timex",0,"bus",0,"penta",0,"io",0,"ayext",0,"divmenu",0,0
 ErroOp              db 0
 ErroPtr             dw 0
 MsgOpcao            db "GO128: -",0
 MsgOpcao2           db " not available",13
                     db "Options: -penta -bus -io -ayext",13
-                    db "-cc -ts -timex -menu -reset",13,0
+                    db "-cc -ts -timex -menu -divmenu -reset",13,0
 
 NomeDefeito         db "/bin/128.rom",0
 LNomeDefeito        equ $-NomeDefeito
@@ -638,6 +651,7 @@ MsgReset            db "GO128: RESET com NMI",13,0
 FHandle             db 0
 Reset               db 0
 DivMMCOption        db 64
+MenuDiv             db 0                ; (69) -divmenu: 8 = DDh bit 3 (menu da ROM com as traps)
                     IFDEF GO256
 OpcaoF3             db 34+80h+8         ; .go256 = Pentagon 256 (F3 bit 7 + bit 3: 7FFD bit 6); bit 0 a 0: AY de fora
                     ELSE

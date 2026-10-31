@@ -42,6 +42,7 @@ module divmmc_mcleod (
   input wire modo128,   // 1 = modo 128K do Timextenso (F4 = F0): NMI tambem com a ROM0
   input wire modo2068,  // 1 = modo TC2068 do Timextenso: outras traps (ver em baixo)
   input wire exlo,      // 1 = modo TC2068 com a EXROM em 0000-1FFF
+  input wire menu128,   // (69) 1 = 128K com o menu da ROM: sem automap no 0000h (o resto das traps fica)
   input wire sem_fita,  // (67) Tang: 1 = a cassete do ESP esta' ligada: sem as traps da fita (04C6, 0562)
   output reg zxromcs,   // 1 to disable ZX ROM.
   // DivMMC onboard memory control
@@ -101,7 +102,7 @@ module divmmc_mcleod (
         armado <= (modo2068 == 1'b1 && exlo == 1'b1 && a == 16'h0108);
       if (m1_n == 1'b0) begin
         // No modo 128K o 0066h tambem mapeia com a ROM0 (menu/BASIC 128), para o NMI funcionar
-        if (a==16'h0000 || (a==16'h0066 && modo128) || trap2068 || modo2068 == 1'b0 && inrom48k && (a==16'h0008 || a==16'h0038 || a==16'h0066 || (sem_fita == 1'b0 && (a==16'h04C6 || a==16'h0562)) )) begin  // Deferred automapping (maps at the next CPU clock cycle)
+        if ((a==16'h0000 && menu128 == 1'b0) || (a==16'h0066 && modo128) || trap2068 || modo2068 == 1'b0 && inrom48k && (a==16'h0008 || a==16'h0038 || a==16'h0066 || (sem_fita == 1'b0 && (a==16'h04C6 || a==16'h0562)) )) begin  // Deferred automapping (maps at the next CPU clock cycle)
           divmmc_autopage_status_after_m1 <= 1'b1;
         end
         else if (a[15:8]==8'h3D && (inrom48k || modo2068)) begin  // Non deferred automapping (Current CPU clock cycle)

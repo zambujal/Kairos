@@ -56,7 +56,7 @@ module divtiesus_tang (
   wire [2:0] banco_ram;
   wire banco_ext;
   wire bancos_sel, bancos_sel_sram, bancos_oe_n, bancos_we_n;
-  wire exrom_sel, exlo;
+  wire exrom_sel, exlo, menu128;   // (69) menu128: DDh bit 3
   wire [5:0] bancos_hiaddr;
   wire inrom48k = (banco_rom[1] | notplus3) & banco_rom[0];
   wire [7:0] dout_div, dout_modo;
@@ -77,7 +77,7 @@ module divtiesus_tang (
     .a(a), .d(din), .dout(dout_div), .doe(doe_div),
     .mreq_n(mreq_n), .iorq_n(iorq_n), .rd_n(rd_n), .wr_n(wr_n), .m1_n(m1_n),
     .nmi_button_n(nmi_button_n), .nmi_to_cpu_n(nmi_to_cpu_n),
-    .inrom48k(inrom48k), .modo128(modo128), .modo2068(modo2068), .exlo(exlo), .sem_fita(sem_fita),
+    .inrom48k(inrom48k), .modo128(modo128), .modo2068(modo2068), .exlo(exlo), .sem_fita(sem_fita), .menu128(menu128),
     .zxromcs(divmmc_zxromcs),
     .eeprom_cs(divmmc_eeprom_cs), .eeprom_we_n(eeprom_we_n_nc),
     .sram_cs(divmmc_sram_cs), .sram_write_n(divmmc_sram_write_n), .sram_hiaddr(divmmc_sram_hiaddr),
@@ -108,7 +108,7 @@ module divtiesus_tang (
     .zxuno_addr(zxuno_addr), .zxuno_regwr(zxuno_regwr), .banco_ram(banco_ram), .banco_ext(banco_ext),
     .modo128(modo128), .sel(bancos_sel), .sel_sram(bancos_sel_sram),
     .sram_oe_n(bancos_oe_n), .sram_we_n(bancos_we_n), .sram_hiaddr(bancos_hiaddr),
-    .modo2068(modo2068), .exrom_sel(exrom_sel), .exlo(exlo)
+    .modo2068(modo2068), .exrom_sel(exrom_sel), .exlo(exlo), .menu128(menu128)
   );
 
   zxunoregs el_zxuno_esta_por_aqui (

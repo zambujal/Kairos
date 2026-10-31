@@ -77,7 +77,8 @@ module bancos128 (
   output wire [5:0] sram_hiaddr,  // SRAM A18-A13
   output wire modo2068,           // 1 = TC2068 mode (register DDh bit 0)
   output wire exrom_sel,          // 1 = this address reads the EXROM (page 36)
-  output wire exlo                // 1 = TC2068 mode and the EXROM is at 0000-1FFF
+  output wire exlo,               // 1 = TC2068 mode and the EXROM is at 0000-1FFF
+  output wire menu128             // (69) DDh bit 3: 128K with its own menu (the DivMMC does not trap 0000h)
   );
 
   // Copy of Timex port F4.
@@ -122,6 +123,16 @@ module bancos128 (
       copia <= din[1];
   end
   assign modo2068 = r2068;
+  // (69) DDh bit 3: the 128K starts its ROM menu (no automap at 0000h) and keeps the other traps.
+  // Cleared by a master reset, like the TC2068 mode.
+  reg rmenu = 1'b0;
+  always @(posedge clk) begin
+    if (mrst_n == 1'b0)
+      rmenu <= 1'b0;
+    else if (zxuno_regwr == 1'b1 && zxuno_addr == 8'hDD)
+      rmenu <= din[3];
+  end
+  assign menu128 = rmenu;
 
   wire activo = (hsr == 8'hF0);
   assign modo128 = activo;
