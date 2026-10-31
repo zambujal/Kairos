@@ -354,7 +354,12 @@ begin
       if atalho(20) = '1' and at_d(0) = '0' and vel_r /= 8 then vel_r <= vel_r * 2; end if;
       if atalho(19) = '1' and at_d(1) = '0' and vel_r /= 1 then vel_r <= vel_r / 2; end if;
       -- (2026-10-24) 8 x = 27 MHz: um ce de 2 em 2 ciclos certos (nunca dois seguidos: o .sdc da' 2 ciclos ao Z80)
-      if vel_r = 8 and k_turbo = '0' and arr_rap = '0' and dv_lento = '0' then ce <= not ce;
+      -- (68) a velocidade normal: o ce do Z80 e' o proprio ce35 (o acumulador copia o do quadro). Antes, depois de
+      -- mexer no F9/F10 os dois acumuladores ficavam desfasados e os efeitos contados ao T-state davam soluços
+      if vel_r = 1 and k_turbo = '0' and arr_rap = '0' then
+        if acc35 + n1_r >= DEN then acc <= acc35 + n1_r - DEN; ce <= '1';
+        else acc <= acc35 + n1_r; ce <= '0'; end if;
+      elsif vel_r = 8 and k_turbo = '0' and arr_rap = '0' and dv_lento = '0' then ce <= not ce;
       elsif acc + num_r >= DEN and ce = '0' then acc <= acc + num_r - DEN; ce <= '1';   -- nunca dois ce seguidos
       else acc <= acc + num_r; ce <= '0'; end if;
       if acc35 + n1_r >= DEN then acc35 <= acc35 + n1_r - DEN; ce35 <= '1';
