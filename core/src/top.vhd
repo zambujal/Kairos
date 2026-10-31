@@ -334,7 +334,7 @@ begin
     -- (O 270000 com tudo certo nao cabia: o Gowin ficou com 2167 ligacoes por fazer.)
     constant DEN : integer := 54000;
     variable a35 : integer range 0 to 65535;
-    variable embr, c2, c4 : boolean;
+    variable c1, c2, c4 : boolean;
   begin
     if rising_edge(clk54) then
       if (PENTA and PENTA50) or (maq_st(8) = '1' and maq_st(7) = '1') then n1_r <= 3584;   -- Pentagon (modo 128 + F3 bit 7)
@@ -352,17 +352,18 @@ begin
       if atalho(20) = '1' and at_d(0) = '0' and vel_r /= 8 then vel_r <= vel_r * 2; end if;
       if atalho(19) = '1' and at_d(1) = '0' and vel_r /= 1 then vel_r <= vel_r / 2; end if;
       -- (2026-10-24) 8 x = 27 MHz: um ce de 2 em 2 ciclos certos (nunca dois seguidos: o .sdc da' 2 ciclos ao Z80)
-      -- (68) o ce do Z80 sai do acumulador do quadro (acc35): 1 x = o proprio ce35; 2 x e 4 x = o ce35 mais as
-      -- passagens por DEN/2 (e DEN/4, 3 DEN/4). Multiplos certos da velocidade da maquina e sempre em fase com o
-      -- quadro (antes eram dois acumuladores: depois do F9/F10 ficavam desfasados e havia solucos). 8 x = 27 MHz.
+      -- (68c) o ce do Z80 sai do acumulador do quadro (acc35), sempre desfasado do ce35: 1 x na passagem por DEN/2,
+      -- 2 x em DEN/4 e 3 DEN/4, 4 x nos oitavos impares. Multiplos certos da velocidade da maquina, em fase fixa com o
+      -- quadro e nunca no mesmo ciclo que o ce35 (no 68 coincidiam: o Z80 e a captura do ecra chocavam). 8 x = 27 MHz.
       a35 := acc35 + n1_r;
-      embr := a35 >= DEN;
-      c2 := embr or (acc35 < DEN / 2 and a35 >= DEN / 2);
-      c4 := c2 or (acc35 < DEN / 4 and a35 >= DEN / 4) or (acc35 < 3 * DEN / 4 and a35 >= 3 * DEN / 4);
+      c1 := acc35 < DEN / 2 and a35 >= DEN / 2;
+      c2 := (acc35 < DEN / 4 and a35 >= DEN / 4) or (acc35 < 3 * DEN / 4 and a35 >= 3 * DEN / 4);
+      c4 := (acc35 < DEN / 8 and a35 >= DEN / 8) or (acc35 < 3 * DEN / 8 and a35 >= 3 * DEN / 8) or
+            (acc35 < 5 * DEN / 8 and a35 >= 5 * DEN / 8) or (acc35 < 7 * DEN / 8 and a35 >= 7 * DEN / 8);
       if k_turbo = '1' or arr_rap = '1' or vel_r = 4 or (vel_r = 8 and dv_lento = '1') then ce <= to_std(c4);
       elsif vel_r = 8 then ce <= not ce;
       elsif vel_r = 2 then ce <= to_std(c2);
-      else ce <= to_std(embr); end if;
+      else ce <= to_std(c1); end if;
       if acc35 + n1_r >= DEN then acc35 <= acc35 + n1_r - DEN; ce35 <= '1';
       else acc35 <= acc35 + n1_r; ce35 <= '0'; end if;
     end if;
