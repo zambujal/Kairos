@@ -1228,6 +1228,15 @@ SoftMrst            ld bc,0FC3Bh
 TMmesma             ld a,(NovaMaq)      ; mesma classe: so' o F3
                     call PoeF3
                     call Poe1024
+                    ld a,(Esta128)      ; v30: no 48 (TIMEX 2048 <-> ZX 48K, sem reset) o buffer da impressora
+                    or a                ; limpo, como depois do arranque da ROM: o NAV usa-o (5B00h) e o lixo
+                    jr nz,TMmb          ; no BANKM (23388) mandava o Commando ULAplus pelo caminho do 128
+                    ld hl,5B00h
+                    ld de,5B01h
+                    ld bc,0FFh
+                    ld (hl),a
+                    ldir
+TMmb
                     IF HIRES
                     ld a,(NovaMaq)
                     ld (Filtro),a
