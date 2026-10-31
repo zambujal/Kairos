@@ -1,6 +1,7 @@
 ; Acrescento ao plugin TAP do Bob Fossil (entra em 8071h no lugar de XOR A / RST 8 / DB 90h).
 ; Spectrum: o auto-load do esxDOS, como no original.
-; BASIC 128 (FLAGS bit 4: o menu do 128, .go128 -divmenu): so' abre o TAP (o auto-load ia para o BASIC 48).
+; BASIC 128 (FLAGS bit 4: o menu do 128, .go128 -divmenu): abre o TAP e deixa um ENTER pendente (no menu: o Tape
+;   Loader, se for a opcao marcada); o auto-load do esxDOS ia para o BASIC 48.
 ; TC2068 (CHANS = 6840h): o auto-load do esxDOS nao serve (reinicia com o ROM do 48K).
 ;   O NMI guardou a RAM 4000h-FFFFh nas paginas 5-10 do DivMMC e repoe-na a' saida:
 ;   escreve-se LOAD "" na linha de edicao dessa copia e deixa-se um ENTER pendente
@@ -105,7 +106,16 @@ SoAbre      xor a
             ld a,11h            ; OK + mensagem
             ld bc,TxtAberto
             ret
-So128       ld a,11h            ; OK + mensagem (o navegador volta ao menu / BASIC 128)
+So128       ld hl,LASTK         ; ENTER a' espera (na copia da RAM): no menu do 128 escolhe a opcao
+            ld a,0Dh            ; marcada (ao arrancar e' o Tape Loader); no BASIC 128 corre a linha
+            call PoeByte
+            ld hl,FLAGS
+            call LeByte
+            or 20h              ; KEYHIT
+            call PoeByte
+            xor a
+            out (0E3h),a
+            ld a,31h            ; OK + mensagem + 20h: sair do navegador
             ld bc,TxtAb128
             ret
 
@@ -159,4 +169,4 @@ VELine      dw 0
 VStkend     dw 0
 TxtAberto   db ".TAP aberto: LOAD \"\"",0
 TxtLoad     db "LOAD \"\"",0
-TxtAb128    db ".TAP aberto: Tape Loader",0
+TxtAb128    db "Tape Loader",0
