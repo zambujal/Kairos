@@ -36,17 +36,11 @@ entity ponte_rapida is
 end entity;
 
 architecture rtl of ponte_rapida is
-  function f(x : std_logic_vector(7 downto 0)) return std_logic_vector is
-  begin
-    if x(0) = '1' then return ('0' & x(7 downto 1)) xor x"B8"; else return '0' & x(7 downto 1); end if;
-  end function;
+  -- (69) so' o 07h (escrita em bloco) e o 05h: os testes 03h/04h/06h/08h e os contadores sairam (o ESP nao os usa;
+  -- faltava lugar na FPGA). Os portos wb/we/rb ficam a 0 e a FPGA nunca conduz (oe = 0).
   signal k : unsigned(2 downto 0) := (others => '0');
-  signal cmd, ant : std_logic_vector(7 downto 0) := (others => '0');
-  signal tem_ant, sair_r, oe_r : std_logic := '0';
-  signal wb_r, rb_r : unsigned(23 downto 0) := (others => '0');
-  signal we_r : unsigned(15 downto 0) := (others => '0');
-  signal lf, lf2 : std_logic_vector(7 downto 0) := x"01";
-  signal oe2 : std_logic := '0';
+  signal cmd : std_logic_vector(7 downto 0) := (others => '0');
+  signal sair_r : std_logic := '0';
   -- fila do 07h
   type fila_t is array (0 to 2047) of std_logic_vector(7 downto 0);
   signal fila : fila_t;
@@ -54,10 +48,6 @@ architecture rtl of ponte_rapida is
   signal bwg, bwg1, bwg2 : std_logic_vector(11 downto 0) := (others => '0');
   signal b_q_r : std_logic_vector(7 downto 0) := (others => '0');
   signal b_ok_r, vis_r : std_logic := '0';
-  -- 08h: escrita lida no flanco de descida
-  signal ant8 : std_logic_vector(7 downto 0) := (others => '0');
-  signal tem8 : std_logic := '0';
-  signal wb8, we8 : unsigned(15 downto 0) := (others => '0');
   function g2b(g : std_logic_vector(11 downto 0)) return unsigned is
     variable b : std_logic_vector(11 downto 0);
   begin
@@ -66,56 +56,19 @@ architecture rtl of ponte_rapida is
     return unsigned(b);
   end function;
 begin
-  -- os contadores do teste: 03h (subida) e 08h (descida) somados
-  sair_t <= sair_r; wb <= std_logic_vector(wb_r + wb8); we <= std_logic_vector(we_r + we8); rb <= std_logic_vector(rb_r);
-  oe <= oe_r or oe2;
+  sair_t <= sair_r; wb <= (others => '0'); we <= (others => '0'); rb <= (others => '0');
+  oe <= '0'; q <= (others => '0');
 
   process(sclk, cs)
   begin
     if cs = '1' then
-      k <= (others => '0'); tem_ant <= '0'; oe2 <= '0'; lf2 <= x"01";
+      k <= (others => '0');
     elsif rising_edge(sclk) then
-      if cmd = x"06" and k >= 2 then
-        oe2 <= '1';
-        if k >= 3 then lf2 <= f(lf2); rb_r <= rb_r + 1; end if;
-      end if;
       if k /= 7 then k <= k + 1; end if;
       if k = 0 then cmd <= d;
       elsif k = 1 then
         if cmd = x"05" then sair_r <= not sair_r; end if;
         if cmd = x"07" then vis_r <= not vis_r; end if;
-      elsif cmd = x"03" then
-        wb_r <= wb_r + 1;
-        if tem_ant = '1' and d /= f(ant) then we_r <= we_r + 1; end if;
-        ant <= d; tem_ant <= '1';
-      end if;
-    end if;
-  end process;
-
-  -- leitura: muda no flanco de descida (o ESP le' no de subida); liga a saida depois dos 2 de espera
-  process(sclk, cs)
-  begin
-    if cs = '1' then
-      oe_r <= '0'; lf <= x"01";
-    elsif falling_edge(sclk) then
-      if cmd = x"04" and k >= 3 then
-        oe_r <= '1';
-        if k >= 4 then lf <= f(lf); end if;
-      end if;
-    end if;
-  end process;
-  q <= lf2 when cmd = x"06" else lf;
-
-  -- 08h: os dados lidos no flanco de descida (o ESP muda-os na descida tambem, mas com atraso dos fios)
-  process(sclk, cs)
-  begin
-    if cs = '1' then
-      tem8 <= '0';
-    elsif falling_edge(sclk) then
-      if cmd = x"08" and k >= 2 then
-        wb8 <= wb8 + 1;
-        if tem8 = '1' and d /= f(ant8) then we8 <= we8 + 1; end if;
-        ant8 <= d; tem8 <= '1';
       end if;
     end if;
   end process;

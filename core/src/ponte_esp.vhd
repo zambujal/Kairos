@@ -6,7 +6,7 @@
 --   02h ler: 2 ciclos de espera (flancos 3 e 4); a FPGA prepara cada byte no flanco de subida anterior
 --        ao que o ESP usa para o ler (um periodo de folga), endereco + 1
 -- Registos:
---   00-0F memoria de teste (ler/escrever); 10-14 "TIMMY" (so' ler; o nome antigo do Timextenso, fica: e' o que o ESP procura)
+--   (69) sem a memoria de teste 00-0F; 10-14 "TIMMY" (so' ler; o nome antigo do Timextenso, fica: e' o que o ESP procura)
 --   20 bit 0 = linha IRQ; 21 contador que sobe a cada ~1,2 ms (so' ler)
 --   22 estado (so' ler): bit 0 = 1 fila vazia (tudo escrito), bit 1 = fila cheia,
 --      bit 2 = perdeu-se um byte (fila cheia); escrever qualquer coisa no 22 limpa o bit 2
@@ -171,8 +171,7 @@ architecture rtl of ponte_esp is
   signal c_s, s_s : std_logic_vector(2 downto 0) := (others => '1');
   signal dir_s : std_logic_vector(1 downto 0) := (others => '0');
   signal d_s1, d_s2 : std_logic_vector(7 downto 0) := (others => '0');
-  type reg_t is array (0 to 15) of std_logic_vector(7 downto 0);
-  signal mem : reg_t := (others => (others => '0'));
+  -- (69) a memoria de teste 00-0F saiu (o ESP nao a usa; faltava lugar na FPGA)
   signal n : integer range 0 to 7 := 0;
   signal cmd, ender, dout : std_logic_vector(7 downto 0) := (others => '0');
   signal oe, irq_r : std_logic := '0';
@@ -503,14 +502,6 @@ begin
                 when x"79" => v := maq_s(15 downto 8);
                 when x"7A" => v := "0000" & vel_s;
                 when x"6E" => v := "0000000" & cs_atv_s;
-                when x"58" => v := f_wb_s(7 downto 0);
-                when x"59" => v := f_wb_s(15 downto 8);
-                when x"5A" => v := f_wb_s(23 downto 16);
-                when x"5B" => v := f_we_s(7 downto 0);
-                when x"5C" => v := f_we_s(15 downto 8);
-                when x"5D" => v := f_rb_s(7 downto 0);
-                when x"5E" => v := f_rb_s(15 downto 8);
-                when x"5F" => v := f_rb_s(23 downto 16);
                 when x"6F" => v := cs_liv_s;
                 when x"74" => v := jcru_s(7 downto 0);
                 when x"75" => v := jcru_s(15 downto 8);
@@ -524,8 +515,7 @@ begin
                 when x"41" | x"42" | x"43" | x"44" | x"45" | x"46" | x"47" | x"48" | x"49" =>
                   v := cores(to_integer(unsigned(a)) - 16#41#);
                 when others =>
-                  if a(7 downto 4) = "0000" then v := mem(to_integer(unsigned(a(3 downto 0))));
-                  elsif a(7 downto 6) = "10" then v := req(to_integer(unsigned(a(5 downto 0))));
+                  if a(7 downto 6) = "10" then v := req(to_integer(unsigned(a(5 downto 0))));
                   else v := x"FF"; end if;
               end case;
           end if;
@@ -536,7 +526,6 @@ begin
           when 1 => ender <= d_s2;
           when others =>
             if cmd = x"01" then
-              if ender(7 downto 4) = "0000" then mem(to_integer(unsigned(ender(3 downto 0)))) <= d_s2; end if;
               if ender(7 downto 6) = "11" then rep(to_integer(unsigned(ender(5 downto 0)))) <= d_s2; end if;
               case ender is
                 when x"20" => irq_r <= d_s2(0);
