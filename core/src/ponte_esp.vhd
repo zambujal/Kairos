@@ -58,6 +58,8 @@
 --   58-5A bytes escritos na ponte rapida (03h), 5B-5C os fora da sequencia, 5D-5F bytes lidos (04h);
 --   5F escrita bit 0 = esta ponte fica surda (ate' ao comando 05h da ponte rapida, ou 1,2 s)
 --   6E escrita: impulsos da cassete (2 bytes cada); leitura bit 0 = a tocar. 6F escrita bit 0 = parar; leitura = livres
+--      (67) 6F escrita bit 1 = a cassete ligada (do F3 ate' parar): a DivMMC nao apanha o LOAD (04C6/0562),
+--      o Z80 le' a fita do ESP pelo EAR em vez da do esxDOS. O ESP antigo escreve so' 1 (bit 1 = 0: como antes)
 --   (v4, 2026-10-22) caixa de correio Z80 <-> ESP (portos do Z80 EE3Bh = 60987 e EF3Bh = 61243):
 --      Z80: OUT EF3B,b  -> b para o pedido (64 bytes, um a seguir ao outro)
 --           OUT EE3B,c  -> comando c: o pedido fica a' espera do ESP (linha IRQ a 1), e os indices do
@@ -150,6 +152,7 @@ entity ponte_esp is
     cs_limpa : out   std_logic;
     cs_livres: in    std_logic_vector(7 downto 0) := x"FF";
     cs_ativa : in    std_logic := '0';
+    fita_on  : out   std_logic;                       -- (67) 6F bit 1: a cassete do ESP ligada (sem as traps da fita)
     -- caixa de correio (lado do Z80, no mesmo relogio)
     z_wr    : in    std_logic := '0';
     z_rd    : in    std_logic := '0';
@@ -217,6 +220,7 @@ architecture rtl of ponte_esp is
   signal ay_s : std_logic_vector(191 downto 0) := (others => '0');
   signal ay_i : unsigned(4 downto 0) := (others => '0');
   signal cs_fase, cs_wr_r, cs_limpa_r : std_logic := '0';
+  signal fita_r : std_logic := '0';   -- (67)
   signal cs_d_r : std_logic_vector(15 downto 0) := (others => '0');
   signal cs_liv_s : std_logic_vector(7 downto 0) := x"FF";
   signal cs_atv_s : std_logic := '0';
@@ -298,6 +302,7 @@ begin
   -- leitura da RAM de video: so' com a fila de escrita vazia e lugar na fila de leitura
   p_rreq <= '1' when vr_n /= 0 and vazia = '1' and rx_n < 63 else '0';
   esp_vivo <= vivo;
+  fita_on  <= fita_r and vivo;   -- (67) sem o ESP vivo, as traps voltam
   sd_meu <= sd_ctl(0); sd_cs_n <= not sd_ctl(1); sd_sclk <= sclk_r; sd_mosi <= mosi_r;
   k_mat <= kmat_r; k_rst <= r65(0); k_nmi <= r65(1); k_cap <= r65(2); k_turbo <= r65(3); k_gspara <= r65(4); k_ay3 <= r65(6);
   -- o motor do cartao pega no byte da cabeca da fila (destino 10)
@@ -566,7 +571,7 @@ begin
                 when x"65" => r65 <= d_s2(6 downto 0);
                 when x"71" => if d_s2(0) = '1' then pedido <= '0'; pronto <= '1'; end if;
                 when x"73" => vivo <= d_s2(0);
-                when x"6F" => cs_limpa_r <= d_s2(0); cs_fase <= '0';
+                when x"6F" => cs_limpa_r <= d_s2(0); cs_fase <= '0'; fita_r <= d_s2(1);
                 when x"5F" => surdo <= d_s2(0); b_vis_g <= b_vis_s(2);
                 when x"39" => b_dest <= d_s2(1 downto 0);
                 when x"23" => ay_i <= (others => '0');

@@ -138,6 +138,7 @@ architecture rtl of top is
   signal rato_b : std_logic_vector(2 downto 0);
   signal joy_k, joy_usb : std_logic_vector(7 downto 0);
   signal pede_rnmi : std_logic := '0';
+  signal fita_on : std_logic := '0';   -- (67) a cassete do ESP ligada: sem as traps da fita na DivMMC
   signal arr_auto, esp_vivo, arr_rap : std_logic := '0';   -- (65) arr_rap: arranque a 14 MHz   -- (64) NMI da maquina por defeito; o ESP esta' presente
   signal vq : std_logic_vector(7 downto 0);
   signal modo, hcor : std_logic_vector(2 downto 0);
@@ -420,7 +421,7 @@ begin
       port map (clk => clk54, clk_div => I_clk, vclk => pclk, ce => ce, ce35 => ce35, reset_n => cpu_rst_n,
                 nmi_n => nmi_core, mat => mat,
                 border => border_c, modo => modo_c, hcor => hcor_c, ecra7 => ecra7_c,
-                vid_a => ecra7_v & va, vid_q => vq, vid_a2 => va2, vid_q2 => vq2, m16c => m16c_c, turbo => turbo_c, sd_esp => sd_dado, ear_in => cs_ear, mp_on => '0', mp_rate => mp_rate, mp_idx => mp_idx, mp_l => open, mp_r => open, ce_t => ce_t, dv_lento => dv_lento, ay_vis => ay_vis, rato_x => rato_x, rato_y => rato_y, rato_b => rato_b, joy => joy_k, pede_rnmi => pede_rnmi, arr_auto => arr_auto, arr_rapido => arr_rap, halt_n => halt_n,
+                vid_a => ecra7_v & va, vid_q => vq, vid_a2 => va2, vid_q2 => vq2, m16c => m16c_c, turbo => turbo_c, sd_esp => sd_dado, sem_fita => fita_on, ear_in => cs_ear, mp_on => '0', mp_rate => mp_rate, mp_idx => mp_idx, mp_l => open, mp_r => open, ce_t => ce_t, dv_lento => dv_lento, ay_vis => ay_vis, rato_x => rato_x, rato_y => rato_y, rato_b => rato_b, joy => joy_k, pede_rnmi => pede_rnmi, arr_auto => arr_auto, arr_rapido => arr_rap, halt_n => halt_n,
                 pronta => sd_pronta, sd_teste => sd_teste, sd_teste2 => sd_teste2,
                 sd_clk => open, sd_cke => O_sdram_cke, sd_cs_n => O_sdram_cs_n,
                 sd_ras_n => O_sdram_ras_n, sd_cas_n => O_sdram_cas_n, sd_we_n => O_sdram_wen_n,
@@ -686,7 +687,7 @@ begin
                                        p_wreq => esp_wreq, p_wa => esp_wa, p_wd => esp_wd, p_wbe => esp_wbe, p_wack => esp_wack,
                                        c_lig => c_lig, c_sel => c_sel, c_jan => c_jan, c_2x => c_2x, c_meio => c_meio, c_w16 => c_w16, c_wsep => c_wsep, c_widx => c_widx, c_wmostra => c_widxq, mp_on => mp_on, mp_alto => mp_alto, mp_rate => mp_rate, mp_idx => mp_idx, c_wx => c_wx, c_wy => c_wy, c_ativa => c_selq, c_cor1 => c_cor1, c_cor2 => c_cor2, c_cor3 => c_cor3,
                                        p_rreq => esp_rreq, p_rv => esp_rv, p_rd => esp_rd,
-                                       sd_meu => sd_meu, sd_dado => sd_dado, esp_vivo => esp_vivo, sd_cs_n => esp_cs_n, sd_sclk => esp_sclk, sd_mosi => esp_mosi, sd_miso => I_sd_miso,
+                                       sd_meu => sd_meu, sd_dado => sd_dado, fita_on => fita_on, esp_vivo => esp_vivo, sd_cs_n => esp_cs_n, sd_sclk => esp_sclk, sd_mosi => esp_mosi, sd_miso => I_sd_miso,
                                        k_mat => k_mat, k_rst => k_rst, k_nmi => k_nmi,
                                        z_wr => mb_wr, z_rd => mb_rd, z_sel => mb_sel, z_d => mb_d, z_q => mb_q, u_wr => ua_wr, u_rd => ua_rd, u_dat => ua_dat, u_q => ua_q,
                                        k_in => mat_fis, k_cap => k_cap, k_turbo => k_turbo, k_gspara => k_gspara, k_ay3 => k_ay3, k_vel => vel_cod, cs_wr => cs_wr, cs_d => cs_d, cs_limpa => cs_limpa, cs_livres => cs_livres, cs_ativa => cs_ativa, k_joy => joy_usb, k_atal => atalho, k_ay => ay_vis, k_jcru => jcru, k_maq => maq_st);

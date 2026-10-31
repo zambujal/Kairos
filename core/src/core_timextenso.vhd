@@ -45,6 +45,7 @@ entity core_timextenso is
     vid_q2   : out std_logic_vector(7 downto 0);
     m16c     : out std_logic;                     -- modo 16C do Pentagon (EFF7 bit 0)
     turbo    : in  std_logic := '0';               -- 1 = Z80 a 7/14/27 MHz: espera (WAIT) pela SDRAM
+    sem_fita : in  std_logic := '0';               -- (67) a cassete do ESP ligada: o LOAD le' o EAR (sem a fita do esxDOS)
     sd_esp   : in  std_logic := '0';               -- (63) 1 = o cartao e' do ESP: um IN/OUT a E7h/EBh espera (WAIT)
     ear_in   : in  std_logic := '0';               -- (2026-10-24) cassete do ESP: EAR (porta FE bit 6 e som)
     ce_t     : out std_logic;                      -- um T do Z80 sem espera (relogio da cassete)
@@ -174,7 +175,7 @@ architecture rtl of core_timextenso is
           sclk, mosi : out std_logic; miso : in std_logic; sd_cs0 : out std_logic;
           eeprom_oe_n, sram_oe_n, sram_we_n : out std_logic;
           sram_hiaddr : out std_logic_vector(5 downto 0);
-          modo128, modo2068 : out std_logic; p1024 : in std_logic);
+          modo128, modo2068 : out std_logic; p1024 : in std_logic; sem_fita : in std_logic);
   end component;
 
   signal a, a_l : std_logic_vector(15 downto 0);
@@ -388,7 +389,7 @@ begin
               zxromcs => dv_romcs, be_n => dv_be_n, nmi_n => cpu_nmi_n, nmi_button_n => nmi_n,
               sclk => mmc_sclk, mosi => mmc_mosi, miso => mmc_miso, sd_cs0 => mmc_cs_n,
               eeprom_oe_n => dv_ee_n, sram_oe_n => dv_oe_n, sram_we_n => dv_we_n,
-              sram_hiaddr => dv_hi, modo128 => dv_m128, modo2068 => dv_m2068, p1024 => m1024);
+              sram_hiaddr => dv_hi, modo128 => dv_m128, modo2068 => dv_m2068, p1024 => m1024, sem_fita => sem_fita);
 
   ---------------------------------------------------------------------------
   -- SCLD: portas (amostradas como no scld_regs: escrita do Z80 a meio do ciclo de E/S)
