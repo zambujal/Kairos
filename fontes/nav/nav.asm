@@ -2279,7 +2279,17 @@ LPfim               ld a,(Handle)
 ; ---------------------------------------------------------------------------
 ; Correr um ficheiro com o plugin da extensao
 
-Corre               ld de,TNome         ; copia o nome 8.3 para o trampolim
+Corre               ld bc,0BF3Bh        ; v30: o ULAplus desligado antes de correr um ficheiro (o modo ficava
+                    ld a,40h            ; ligado do jogo anterior: sem reset o jogo seguinte arrancava com a
+                    out (c),a           ; paleta do outro e o ecra estragado). Sem ULAplus nao faz nada.
+                    ld b,0FFh
+                    xor a
+                    out (c),a
+                    ld a,(Esta128)      ; v30: no 48 (TIMEX 2048 / ZX 48K) o BANKM (5B5Ch, 23388) a 0, como
+                    or a                ; depois do arranque da ROM. O NAV usa o buffer da impressora e la'
+                    jr nz,COb128        ; ficava lixo: os carregadores com IF PEEK 23388 (o Commando ULAplus)
+                    ld (5B5Ch),a        ; iam pelo caminho do 128 num 48 e o jogo parava (com a musica AY)
+COb128              ld de,TNome         ; copia o nome 8.3 para o trampolim
                     ld bc,13
                     push hl
                     ldir
