@@ -575,7 +575,7 @@ begin
   -- (esp59) o grupo k le' as colunas 2k (lt = 8k-1) e 2k+1 (lt = 8k+3); de 8k+4 a 8k+7 a FF da' o atributo da 2k+1
   fl_byte <= fl_at when cap_zx_l = '1' and cap_on = '1' and lt < 128 and (lt mod 8) >= 4 else x"FF";
   pede_rnmi <= rnmi_p;
-  arr_auto <= '1' when auto_on = '1' and auto_t >= 81000000 and auto_t < 82080000 else '0';
+  arr_auto <= '0';   -- (69e) sem a maquina de arranque: nunca ha' NMI automatico (era a 14 MHz, a escrever no cartao)
   arr_rapido <= carga or rap_on;
   cap: ram_dp generic map (AW => 14)
     port map (clk => clk, a => cw_a, we => cw_we, d => cw_d, q => open,
