@@ -238,6 +238,7 @@ architecture rtl of core_timextenso is
   signal home_we, esx_we : std_logic;
   signal rnmi_p : std_logic := '0';
   signal m1024, alto, big, big_l : std_logic := '0';
+  signal rom7, nmi66_l : std_logic := '0';   -- (69i) 7FFD bit 4 (ROM); NMI na ROM 0 do 128 (le-se F5 em 0066h)
   signal banco6 : std_logic_vector(5 downto 0);
   signal idle    : unsigned(10 downto 0) := (others => '0');
   signal home, vram, vram128, bnk, interna : std_logic;
@@ -464,10 +465,10 @@ begin
       if mreq_n = '0' then idle <= (others => '0');
       elsif ce = '1' and idle /= (idle'range => '1') then idle <= idle + 1; end if;
       if modo128 = '0' or idle = (idle'range => '1') then
-        b7ffd <= "000"; scr7 <= '0'; lock7 <= '0'; ext7 <= '0'; pg4 <= '0'; pg5 <= '0';
+        b7ffd <= "000"; scr7 <= '0'; lock7 <= '0'; ext7 <= '0'; pg4 <= '0'; pg5 <= '0'; rom7 <= '0';
       elsif io_wr = '1' and a(15) = '0' and a(1) = '0' and (lock7 = '0' or m1024 = '1') then
         b7ffd <= do_cpu(2 downto 0); scr7 <= do_cpu(3); lock7 <= do_cpu(5) and not m1024; ext7 <= do_cpu(6);
-        pg4 <= do_cpu(7); pg5 <= do_cpu(5);
+        pg4 <= do_cpu(7); pg5 <= do_cpu(5); rom7 <= do_cpu(4);
       end if;
     end if;
   end process;
@@ -854,6 +855,10 @@ begin
     if rising_edge(clk) then
       a_l <= a; big_l <= big; home_l <= home; vram_l <= vram; interna_l <= interna;
       dv_ee_l <= not dv_ee_n; dv_oe_l <= not dv_oe_n; dv_romcs_l <= dv_romcs;
+      -- (69i) o esxDOS mapeia depois do opcode em 0066h e conta com o PUSH AF da ROM do 48 (a ROM 1). Na ROM 0
+      -- do 128 (menu e BASIC 128) em 0066h esta' o fim de um LD HL,(5B58h) (5Bh): o NMI rebentava. O opcode
+      -- em 0066h nunca e' lido assim no codigo da ROM 0, so' no NMI.
+      if m1_n = '0' and a = x"0066" and modo128 = '1' and rom7 = '0' then nmi66_l <= '1'; else nmi66_l <= '0'; end if;
     end if;
   end process;
 
@@ -896,6 +901,8 @@ begin
           when others => di <= x"FF";
         end case;
       end if;
+    elsif nmi66_l = '1' then
+      di <= x"F5";                                     -- (69i) NMI na ROM 0: PUSH AF, como na ROM do 48
     elsif big_l = '1' then
       di <= q_mz;                                     -- Pentagon 1024: bancos de C000h
     elsif dv_oe_l = '1' then
