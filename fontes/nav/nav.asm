@@ -4175,11 +4175,11 @@ VHtem               ld hl,TxtNavHR
                     jr z,VHff
                     ld a,(PortaFF)
                     out (0FFh),a
-VHff                ld hl,VHcod         ; copia no buffer da impressora (fora de 84D0h-A3DFh)
-                    ld de,5B00h
-                    ld bc,VHlen
+VHff                ld hl,VHcod         ; v31: copia no fim dos atributos (5AEFh-5AFFh), fora de 84D0h-A3DFh.
+                    ld de,VHsitio       ; Era no buffer da impressora (5B00h): no 128 ai' esta' a rotina SWAP
+                    ld bc,VHlen         ; da ROM do 128 e o BASIC 128 rebentava (reset) a seguir ao navegador
                     ldir
-                    jp 5B00h
+                    jp VHsitio
 VHtesta             ld a,c              ; Z = a FF guardou C (ecra normal ou hi-res: sem bit 7)
                     out (0FFh),a
                     in a,(0FFh)
@@ -4194,6 +4194,8 @@ VHcp                ld bc,0
 VHsp                ld sp,0
                     jp 84D0h
 VHlen               equ $-VHcod
+VHsitio             equ 5B00h-VHlen
+                    assert VHlen <= 17
 TxtNavHR            db "/BIN/NAVHR.BIN",0
                     ENDIF
 
