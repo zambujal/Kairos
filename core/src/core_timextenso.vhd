@@ -341,6 +341,8 @@ architecture rtl of core_timextenso is
   signal ay2_sel, ay2_we, p_sel, p_dat, ts_cmd : std_logic;
   signal ts : std_logic_vector(1 downto 0) := "00";                  -- o FFFD vai para: 00 AY 2, 01 AY 1, 10 AY 3
   signal ay2_q, ay2_a, ay2_b, ay2_c, ay_qm : std_logic_vector(7 downto 0);
+  constant COM_AY3 : boolean := false;   -- (69c) o 3.o AY saiu (faltava lugar na FPGA): o OUT FFFD,FD e' um OUT normal
+  signal ay3_ok : std_logic;
   signal ay3_sel, ay3_we, ay3_on : std_logic := '0';                 -- (2026-10-23) 3.o AY (TurboSound Next: FD)
   signal ay3_q, ay3_a, ay3_b, ay3_c : std_logic_vector(7 downto 0);
   -- ULAplus
@@ -404,7 +406,7 @@ begin
   ua_wr  <= io_wr and ua_cs and not zx_reg(0);
   ua_rd  <= io_rd and ua_cs;
   ua_dat <= not zx_reg(0);                           -- C6 = ...0, C7 = ...1
-  maq_st <= (not gs_rst) & ay3_lig & "000" & m1024 & dv_m2068 & modo128 & regf3;   -- (62) bit 2 do 79 = 1024K (DDh bit 2 e EFF7 bit 2 a 0)
+  maq_st <= (not gs_rst) & ay3_ok & "000" & m1024 & dv_m2068 & modo128 & regf3;   -- (62) bit 2 do 79 = 1024K (DDh bit 2 e EFF7 bit 2 a 0)
   process(clk)
   begin
     if rising_edge(clk) then
@@ -924,11 +926,11 @@ begin
   p_dat <= '1' when a(15 downto 14) = "10" and a(1) = '0' else '0';
   -- (o FD so' com a placa do 3.o AY ligada; sem ela e' um OUT normal para o AY 2, como antes)
   ts_cmd <= '1' when io_wr = '1' and p_sel = '1' and do_cpu(7 downto 2) = "111111" and
-                     (do_cpu(1) = '1' or (do_cpu(1 downto 0) = "01" and ay3_lig = '1')) else '0';
+                     (do_cpu(1) = '1' or (do_cpu(1 downto 0) = "01" and ay3_ok = '1')) else '0';
   process(clk)
   begin
     if rising_edge(clk) then
-      if rst_n_i = '0' or (ay3_lig = '0' and ts = "10") then ts <= "00"; ay3_on <= '0';
+      if rst_n_i = '0' or (ay3_ok = '0' and ts = "10") then ts <= "00"; ay3_on <= '0';
       elsif ts_cmd = '1' then
         case do_cpu(1 downto 0) is
           when "11"   => ts <= "00";                                -- FF -> AY 2
@@ -970,7 +972,7 @@ begin
     variable v : std_logic_vector(71 downto 0);
   begin
     if rising_edge(clk) then
-      if ay3_on = '1' and ay3_lig = '1' then v := ay3_c & ay3_b & ay3_a & ay2_c & ay2_b & ay2_a & ay_c & ay_b & ay_a;
+      if ay3_on = '1' and ay3_ok = '1' then v := ay3_c & ay3_b & ay3_a & ay2_c & ay2_b & ay2_a & ay_c & ay_b & ay_a;
       else v := x"000000" & ay2_c & ay2_b & ay2_a & ay_c & ay_b & ay_a; end if;
       if pico_t20 = 1079999 then
         pico_t20 <= 0; pico <= pico_m; pico_m <= v;
@@ -1000,12 +1002,18 @@ begin
               busctrl_addr => ay2_sel, busctrl_we => ay2_we, ctrl_aymode => '1',
               port_a_i => (others => '1'), port_a_o => open, port_b_i => (others => '1'), port_b_o => open,
               O_AUDIO_A => ay2_a, O_AUDIO_B => ay2_b, O_AUDIO_C => ay2_c);
+  ay3_ok <= ay3_lig when COM_AY3 else '0';
+  ay3_g: if COM_AY3 generate
   ay3: entity work.YM2149
     port map (CLK => clk, ENA => ay_en, RESET_H => not rst_n_i, I_SEL_L => '1',
               I_DA => do_cpu, O_DA => ay3_q, I_REG => '0',
               busctrl_addr => ay3_sel, busctrl_we => ay3_we, ctrl_aymode => '1',
               port_a_i => (others => '1'), port_a_o => open, port_b_i => (others => '1'), port_b_o => open,
               O_AUDIO_A => ay3_a, O_AUDIO_B => ay3_b, O_AUDIO_C => ay3_c);
+  end generate;
+  sem_ay3_g: if not COM_AY3 generate
+    ay3_q <= x"FF"; ay3_a <= (others => '0'); ay3_b <= (others => '0'); ay3_c <= (others => '0');
+  end generate;
   -- SID: relogio de 1 MHz (54 MHz / 54), dois 8580
   process(clk)
   begin
@@ -1039,14 +1047,14 @@ begin
            ("000" & unsigned(ay2_a)) + ("0000" & unsigned(ay2_b(7 downto 1)));
       r := ("000" & unsigned(ay_c)) + ("0000" & unsigned(ay_b(7 downto 1))) +
            ("000" & unsigned(ay2_c)) + ("0000" & unsigned(ay2_b(7 downto 1)));
-      if ay3_on = '1' and ay3_lig = '1' then
+      if ay3_on = '1' and ay3_ok = '1' then
         l := l + ("000" & unsigned(ay3_a)) + ("0000" & unsigned(ay3_b(7 downto 1)));
         r := r + ("000" & unsigned(ay3_c)) + ("0000" & unsigned(ay3_b(7 downto 1)));
       end if;
       if beep = '1' then l := l + 128; r := r + 128; end if;
       if ear_in = '1' then l := l + 64; r := r + 64; end if;      -- a cassete ouve-se (mais baixo que o beeper)
       -- 14 bits: AY + beeper (0..892) x 8, mais o General Sound (+-16128 / 4) a' volta de 4096
-      if gs_rst = '1' and sid_on = '0' and (ay3_on = '0' or ay3_lig = '0') then
+      if gs_rst = '1' and sid_on = '0' and (ay3_on = '0' or ay3_ok = '0') then
         -- GS parado e SID por usar: o AY e o beeper com o volume todo (x 16), como antes do GS
         sl := shift_left(signed(resize(l, 18)), 4);
         sr := shift_left(signed(resize(r, 18)), 4);
