@@ -48,6 +48,7 @@ DIVCTRL             equ 0E3h
 ZXUNOADDR           equ 0FC3Bh
 MODE                equ 0DFh
 CODIGO              equ 23296       ; 5B00h, buffer da impressora
+STUB                equ 0BF00h      ; (69g) -divmenu: o fim do arranque do esxDOS vem aqui
 PILARAM             equ 6000h       ; abaixo de 8000h, onde fica a ROM lida
 
                     org 2000h
@@ -105,7 +106,7 @@ Abre                xor a
                     ld hl,(StatBuf+9)
                     ld a,h
                     or l
-                    jr nz,MauTamanho
+                    jp nz,MauTamanho
                     ld hl,(StatBuf+7)
                     ld (Tamanho),hl
                     ld de,32768
@@ -116,7 +117,7 @@ Abre                xor a
                     ld de,16384
                     or a
                     sbc hl,de
-                    jr nz,MauTamanho
+                    jp nz,MauTamanho
 TamanhoOk
                     ; le a ROM para 8000h. A pilha do BASIC fica nessa
                     ; zona, por isso usa-se a pilha na area do comando.
@@ -128,7 +129,7 @@ TamanhoOk
                     ld bc,(Tamanho)
                     rst 08h
                     db F_READ
-                    jr c,ErroLeitura
+                    jp c,ErroLeitura
                     ld hl,(Tamanho)
                     or a
                     sbc hl,bc
@@ -149,9 +150,27 @@ TamanhoOk
 Rom32
                     ld a,(DivMMCOption)
                     ld (PatchDivMMCOption+1),a
-                    ld a,(MenuDiv)
-                    ld (PatchMenu+1),a
-                    ld (PatchApaga+1),a
+                    ld a,(MenuDiv)      ; (69g) -divmenu: o esxDOS arranca como sempre (fica a saber que e'
+                    or a                ; um 128 e a cassete funciona); no fim ele poe o 7FFD = 10h e salta
+                    jr z,SemMenuDiv     ; para 0001h da ROM 1: ai' fica um JP para o STUB (em BF00h), que
+                    ld hl,0C001h        ; repoe esses 3 bytes, liga o DDh bit 3, poe o 7FFD = 0 e salta para
+                    ld a,(hl)           ; 0 (com o bit 3 o 0000h ja' nao mapeia o esxDOS): o menu da ROM 0
+                    ld (StubB1+1),a
+                    inc hl
+                    ld a,(hl)
+                    ld (StubB2+1),a
+                    inc hl
+                    ld a,(hl)
+                    ld (StubB3+1),a
+                    ld hl,0C001h
+                    ld (hl),0C3h        ; JP STUB
+                    inc hl
+                    ld (hl),low STUB
+                    inc hl
+                    ld (hl),high STUB
+                    ld a,1
+                    ld (PatchStub+1),a
+SemMenuDiv
                     ld a,(OpcaoF3)
                     bit 7,a             ; Timex 128 (-timex/-bus, sem Pentagon): so' o AY do
                     jr nz,F3pronto      ; Timex (F5/F6), o SCLD larga o FFFD/BFFD (bit 0 a 0)
@@ -322,8 +341,21 @@ ROMram
                     IFDEF GO1024
                     or 4
                     ENDIF
-PatchMenu           or 0                ; (69) bit 3 = -divmenu: a ROM 0 arranca o menu (sem trap no 0000h)
+PatchMenu           or 0                ; (69g: o bit 3 do -divmenu so' depois de o esxDOS arrancar, no STUB)
                     call PoeDD
+                    push af
+PatchStub           ld a,0              ; (69g) -divmenu: o STUB em BF00h (banco 2; o esxDOS so' apaga
+                    or a                ; 4000h-5EFFh ao arrancar)
+                    jr z,SemStub
+                    ld hl,CODIGO+Stub0-CodigoEnRAM
+                    ld de,STUB
+                    ld bc,LStub
+                    ldir
+                    pop af
+                    push af
+                    or 8
+                    ld (STUB+StubDD0-Stub0+1),a
+SemStub             pop af
                     IFDEF GO1024
                     xor a               ; EFF7 = 0: 1024K ligado
                     ld bc,0EFF7h
@@ -397,6 +429,29 @@ TestaCopia0         ld a,e              ; Z = a SRAM (pagina 26) tem o byte escr
                     pop af
                     cp e
                     ret
+; (69g) -divmenu: corre em BF00h, chamado pelo JP posto em 0001h da ROM 1 (o fim do arranque do
+; esxDOS: 7FFD = 10h e JP 0001h, ja' sem o DivMMC mapeado)
+Stub0               di
+                    ld bc,ZXUNOADDR
+                    ld a,0DDh
+                    out (c),a
+                    inc b
+StubDD0             ld a,8              ; DDh com o bit 3 (o valor vem do CodigoEnRAM)
+                    out (c),a
+                    ld a,128+34         ; a ROM 1 (paginas 34,35) volta a ter os 3 bytes em 0001h
+                    out (DIVCTRL),a
+                    ld hl,2001h
+StubB1              ld (hl),0
+                    inc hl
+StubB2              ld (hl),0
+                    inc hl
+StubB3              ld (hl),0
+                    xor a
+                    out (DIVCTRL),a
+                    ld bc,7ffdh         ; ROM 0, banco 0
+                    out (c),a
+                    jp 0                ; o menu do 128
+LStub               equ $-Stub0
 LCodigoEnRAM        equ $-CodigoEnRAM
                     assert LCodigoEnRAM <= 512     ; 5B00h-5CFFh (as variaveis do BASIC ja nao contam: arranca a ROM)
 
