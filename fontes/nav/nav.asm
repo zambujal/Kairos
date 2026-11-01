@@ -5989,7 +5989,7 @@ TxtCfg              db "/SYS/NAV.CFG",0
 TabF3               db 00h,22h,26h,02h,00h  ; v36: ZX 128K com o bit 2 (tempos do 128K). v13: bit 0 (AY da placa) a 0 -> AY de fora; Timex 2048, ZX 48K, ZX 128K, Timex 128, TC2068
 
                     align 8
-Fonte               incbin "font8.bin"       ; 8x8 propria (fonte/letra8.py), 32..127
+Fonte               incbin "font8ibm.bin"    ; v55: a 8x8 do font8x8 de Daniel Hepper (dominio publico, do BIOS do IBM PC), 32..127; 96 e 127 da nossa (font8.bin)
 
 ; variaveis
 PortaFF             db 0
