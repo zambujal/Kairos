@@ -185,6 +185,8 @@ architecture rtl of core_timextenso is
   signal int_n : std_logic := '1';
   signal cpu_nmi_n : std_logic;
   signal cpu_nmi_g : std_logic;   -- (69m) o NMI que chega ao Z80
+  signal ent_on, ent_k : std_logic := '0';                       -- (69n) ENTER automatico pedido (ZXUNO A5h)
+  signal ent_t  : unsigned(26 downto 0) := (others => '0');
   -- DivTIESUS
   signal dv_q : std_logic_vector(7 downto 0);
   signal dv_oe, dv_romcs, dv_be_n, dv_ee_n, dv_oe_n, dv_we_n, dv_m128, dv_m2068 : std_logic;
@@ -427,6 +429,7 @@ begin
         if a = x"FD3B" and zx_reg = x"DD" then dd1024 <= do_cpu(2); end if;
         if a = x"EFF7" then eff7b2 <= do_cpu(2); eff7b0 <= do_cpu(0); end if;
         if a = x"FD3B" and zx_reg = x"A0" and io_wr_d = '0' then gs_rst <= do_cpu(0); end if;
+        if a = x"FD3B" and zx_reg = x"A5" then ent_on <= '1'; ent_t <= (others => '0'); end if;   -- (69n) ENTER daqui a 2 s
         if a = x"FD3B" and zx_reg = x"A4" and carga = '1' then      -- (esp61) programa de arranque
           carga_alvo <= do_cpu(0);
           if do_cpu(7) = '1' then carga <= '0'; carga_rst <= (others => '1'); auto_on <= do_cpu(6); rap_on <= '1'; auto_t <= (others => '0'); end if;
@@ -435,6 +438,10 @@ begin
         --  registos, como no clone, e o navegador arranca o TC2048 com jp 0)
       end if;
       if gs_parar = '1' then gs_rst <= '1'; end if;   -- o ESP para o General Sound (fora do OUT do Z80)
+      -- (69n) o plugin do TAP no ZX 128K faz reset para o menu e pede o ENTER: 2 s depois, 0,15 s carregado
+      if ent_on = '1' then
+        if ent_t = 116100000 then ent_on <= '0'; else ent_t <= ent_t + 1; end if;
+      end if;
       if carga_rst(16) = '1' then carga_rst <= carga_rst - 1; end if;   -- (esp61) ~1,2 ms de reset no fim da carga
       -- (64) NMI automatico: 20 ms, 1,5 s depois do fim da carga (o TC2048 e o esxDOS ja' arrancaram)
       -- (65) a 14 MHz o arranque e' mais curto: era 6 s a 3,5 MHz, a 14 MHz e' 1/4; o Z80 fica rapido ate' aos 3 s (o NAV muda de maquina)
@@ -696,6 +703,7 @@ begin
   end process;
   dv_lento <= '1' when cart_t /= 0 else '0';
   dv_mapa <= dv_romcs;
+  ent_k <= '1' when ent_on = '1' and ent_t >= 108000000 else '0';
   -- (69m) no 128 com a ROM 0 (menu, 128 BASIC) o NMI espera pela ROM 1: a interrupcao da ROM 0 passa pela ROM 1
   -- (o KEYBOARD) a cada quadro, e o NMI entra ai', como no Tape Loader (na ROM 0 o NMI rebentava a partir do 2.o).
   -- O reset mestre (RESET+NMI) usa o botao directamente, sem esta espera.
@@ -883,13 +891,14 @@ begin
   end process;
 
   -- teclado: filas com A8-A15 a 0, 0 = carregada
-  process(a, mat)
+  process(a, mat, ent_k)
     variable v : std_logic_vector(4 downto 0);
   begin
     v := (others => '0');
     for f in 0 to 7 loop
       if a(8 + f) = '0' then v := v or mat(f*5 + 4 downto f*5); end if;
     end loop;
+    if ent_k = '1' and a(14) = '0' then v(0) := '1'; end if;   -- (69n) ENTER (fila BFFEh, bit 0)
     teclas <= not v;
   end process;
 
