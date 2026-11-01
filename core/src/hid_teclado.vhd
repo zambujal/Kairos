@@ -33,6 +33,7 @@ entity hid_teclado is
     cad    : out std_logic;                          -- (esp44b) Ctrl+Alt+Del: reset do Spectrum
     rato_x, rato_y : out std_logic_vector(7 downto 0);
     rato_b : out std_logic_vector(2 downto 0);       -- 1 = carregado: 0 esquerdo, 1 direito, 2 meio
+    rato_w : out std_logic_vector(3 downto 0);       -- (75) a roda: contador de 4 bits (sobe para cima)
     joy    : out std_logic_vector(7 downto 0);       -- Kempston (1 = carregado)
     atalho : out std_logic_vector(20 downto 0);       -- (2026-10-22) com a tecla Windows: bit 0 Win+J (menu), bit 1
                                                      -- Win+S (captura), bit 2 Win+C, bit 3 Win+'+' (mais MHz), bit 4
@@ -50,6 +51,7 @@ architecture rtl of hid_teclado is
   signal k   : std_logic_vector(127 downto 0) := (others => '0');   -- teclas carregadas
   signal rx, ry : unsigned(7 downto 0) := (others => '0');
   signal rb : std_logic_vector(2 downto 0) := (others => '0');
+  signal rw : unsigned(3 downto 0) := (others => '1');
   signal j_idx : std_logic_vector(7 downto 0) := (others => '0');
   signal jy : std_logic_vector(7 downto 0) := (others => '0');
   signal jc : std_logic_vector(31 downto 0) := (others => '0');
@@ -75,6 +77,7 @@ begin
             if st = 0 then rb <= d(2 downto 0); end if;
             if st = 1 then rx <= rx + unsigned(d); end if;            -- dx com sinal: soma modulo 256
             if st = 2 then ry <= ry - unsigned(d); end if;            -- USB: dy > 0 para baixo; Kempston: Y sobe para cima
+            if st = 3 then rw <= rw + unsigned(d(3 downto 0)); end if; -- (75) a roda (4.o byte, se o rato a tiver): > 0 para cima
           end if;
           if cmd = x"03" then
             if st = 0 then j_idx <= d; end if;
@@ -96,6 +99,7 @@ begin
   rato_x <= std_logic_vector(rx);
   rato_y <= std_logic_vector(ry);
   rato_b <= rb;
+  rato_w <= std_logic_vector(rw);
   joy <= jy;
   jcru <= jc;
 

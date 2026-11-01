@@ -136,6 +136,7 @@ architecture rtl of top is
   signal m16c_c, m16c_v : std_logic := '0';
   signal rato_x, rato_y : std_logic_vector(7 downto 0);
   signal rato_b : std_logic_vector(2 downto 0);
+  signal rato_w : std_logic_vector(3 downto 0);
   signal joy_k, joy_usb : std_logic_vector(7 downto 0);
   signal pede_rnmi : std_logic := '0';
   signal fita_on : std_logic := '0';   -- (67) a cassete do ESP ligada: sem as traps da fita na DivMMC
@@ -435,7 +436,7 @@ begin
       port map (clk => clk54, clk_div => I_clk, vclk => pclk, ce => ce, ce35 => ce35, reset_n => cpu_rst_n,
                 nmi_n => nmi_core, mat => mat,
                 border => border_c, modo => modo_c, hcor => hcor_c, ecra7 => ecra7_c,
-                vid_a => ecra7_v & va, vid_q => vq, vid_a2 => va2, vid_q2 => vq2, m16c => m16c_c, turbo => turbo_c, sd_esp => sd_dado, sem_fita => fita_on, ear_in => cs_ear, mp_on => '0', mp_rate => mp_rate, mp_idx => mp_idx, mp_l => open, mp_r => open, ce_t => ce_t, dv_lento => dv_lento, dv_mapa => dv_mapa, ay_vis => ay_vis, rato_x => rato_x, rato_y => rato_y, rato_b => rato_b, joy => joy_k, pede_rnmi => pede_rnmi, arr_auto => arr_auto, arr_rapido => arr_rap, halt_n => halt_n,
+                vid_a => ecra7_v & va, vid_q => vq, vid_a2 => va2, vid_q2 => vq2, m16c => m16c_c, turbo => turbo_c, sd_esp => sd_dado, sem_fita => fita_on, ear_in => cs_ear, mp_on => '0', mp_rate => mp_rate, mp_idx => mp_idx, mp_l => open, mp_r => open, ce_t => ce_t, dv_lento => dv_lento, dv_mapa => dv_mapa, ay_vis => ay_vis, rato_x => rato_x, rato_y => rato_y, rato_b => rato_b, rato_w => rato_w, joy => joy_k, pede_rnmi => pede_rnmi, arr_auto => arr_auto, arr_rapido => arr_rap, halt_n => halt_n,
                 pronta => sd_pronta, sd_teste => sd_teste, sd_teste2 => sd_teste2,
                 sd_clk => open, sd_cke => O_sdram_cke, sd_cs_n => O_sdram_cs_n,
                 sd_ras_n => O_sdram_ras_n, sd_cas_n => O_sdram_cas_n, sd_we_n => O_sdram_wen_n,
@@ -533,7 +534,7 @@ begin
   O_spi_irqn <= '1' when irqn_s = '1' or irq_t(24 downto 16) = "111111111" else '0';
   hidk: entity work.hid_teclado port map (clk => clk54, reset => '0', stb => mcu_hid_stb, inicio => mcu_ini,
       d => mcu_d, q => mcu_hid_q, mat => mat_usb, f11 => usb_f11, cad => usb_cad,
-      rato_x => rato_x, rato_y => rato_y, rato_b => rato_b, joy => joy_usb, atalho => atalho, alt => alt_k, jcru => jcru);
+      rato_x => rato_x, rato_y => rato_y, rato_b => rato_b, rato_w => rato_w, joy => joy_usb, atalho => atalho, alt => alt_k, jcru => jcru);
   joy_k <= joy_usb when k_cap = '0' else x"00";   -- menu do ESP aberto: o joystick so' para o ESP
   -- k_mat: teclas carregadas pelo ESP; com k_cap = 1 o teclado so' vai para o ESP (menu do ESP aberto)
   mat_fis <= mat_auto or mat_usb or mat_arr;

@@ -462,6 +462,10 @@ TrSemMsg            ld a,b
                     jp z,Sai
                     cp 1
                     jp z,SaiNMI
+                    IF HIRES
+                    cp 2
+                    jp z,SobePasta      ; v58: o clique no caminho
+                    ENDIF
                     cp '7'
                     jp z,Cima
                     cp '6'
@@ -4738,8 +4742,8 @@ RTdet               push bc             ; bits 7-3 a 1 (noutra maquina o barrame
                     ld e,a
                     ld bc,0FADFh
                     in a,(c)
-                    and 0F8h
-                    xor 0F8h
+                    and 08h             ; v58: so' o bit 3 (core 75: os bits 7-4 sao a roda)
+                    xor 08h
                     or e
                     pop bc
                     jp nz,RTsem
@@ -4756,6 +4760,11 @@ RTdet               push bc             ; bits 7-3 a 1 (noutra maquina o barrame
                     ld (RatoKY),a
                     ld a,d
                     ld (RatoBt),a
+                    rrca
+                    rrca
+                    rrca
+                    rrca
+                    ld (RatoRoda),a
                     call RTpoe
                     xor a               ; (nenhuma tecla)
                     ret
@@ -4803,7 +4812,22 @@ RTini               call RTle           ; A = X, E = Y, D = botoes do Kempston
                     bit 0,a
                     ld a,' '
                     jr nz,RTclq
-                    xor a
+                    ld a,d              ; v58: a roda (FADF bits 7-4): um passo = uma pagina
+                    rrca
+                    rrca
+                    rrca
+                    rrca
+                    ld hl,RatoRoda
+                    sub (hl)
+                    and 0Fh
+                    ret z
+                    cp 8
+                    jr nc,RTrb
+                    inc (hl)
+                    ld a,'u'            ; para cima: pagina de cima
+                    ret
+RTrb                dec (hl)
+                    ld a,'d'
                     ret
 RTclq               ld hl,RatoClq       ; v57: a tecla veio de um clique (a pergunta do arranque olha onde)
                     ld (hl),1
@@ -4820,8 +4844,25 @@ RTesq               push de             ; (a pilha como no RTini: o RTpaira olha
                     ld a,0
                     ret z
                     ENDIF
-                    ld a,13
+                    call RTonde         ; v58: no caminho (linha de cima, colunas 16-63): sobe uma pasta
+                    jr c,RTe13
+                    ld a,d
+                    or a
+                    jr nz,RTe13
+                    ld a,e
+                    cp 16
+                    ld a,2
+                    jr nc,RTclq
+RTe13               ld a,13
                     jr RTclq
+; v58: tecla 2 (so' do rato) = a pasta de cima
+SobePasta           ld a,(Foco)
+                    cp 2
+                    ret nc
+                    ld a,(Cwd+1)        ; na raiz nao ha' de cima
+                    or a
+                    ret z
+                    jp VOpai
 ; A = deslocamento com sinal: HL += 2 x A; RatoMexeu = 1 se A /= 0
 RTsoma              or a
                     jr z,RTs0
@@ -5021,6 +5062,7 @@ RTcn                or 1                ; NZ
 RatoIni             db 0
 RatoMexeu           db 0
 RatoClq             db 0
+RatoRoda            db 0
 RatoKX              db 0
 RatoKY              db 0
 RatoBt              db 0FFh

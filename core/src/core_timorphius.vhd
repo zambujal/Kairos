@@ -60,6 +60,7 @@ entity core_timorphius is
     ay_vis   : out std_logic_vector(191 downto 0);   -- (esp46: tambem o 3.o AY, bytes 16-23)   -- (2026-10-24) copia dos registos dos AY 1 e 2 (barras do ESP)                      -- (2026-10-24) a DivMMC esta' mapeada (esxDOS/NAV): no maximo 14 MHz
     rato_x, rato_y : in std_logic_vector(7 downto 0) := (others => '0');   -- rato USB (Kempston)
     rato_b   : in  std_logic_vector(2 downto 0) := (others => '0');
+    rato_w   : in  std_logic_vector(3 downto 0) := (others => '1');   -- (75) a roda (FADF bits 7-4)
     joy      : in  std_logic_vector(7 downto 0) := (others => '0');   -- joystick USB (Kempston, 1F)
     pede_rnmi : out std_logic;                     -- impulso: ZXUNO A2h = 52h (o NAV pede RESET+NMI)
     arr_auto  : out std_logic;                     -- (64) 20 ms a 1, 1,5 s depois do fim da carga com o A4h bit 6:
@@ -951,7 +952,7 @@ begin
           when x"DF" =>
             if a(15 downto 8) = x"FB" then di <= rato_x;
             elsif a(15 downto 8) = x"FF" then di <= rato_y;
-            elsif a(15 downto 8) = x"FA" then di <= "11111" & not rato_b(2) & not rato_b(0) & not rato_b(1);
+            elsif a(15 downto 8) = x"FA" then di <= rato_w & '1' & not rato_b(2) & not rato_b(0) & not rato_b(1);   -- (75) bits 7-4 = a roda
             else di <= x"FF"; end if;
           when others => di <= x"FF";
         end case;
