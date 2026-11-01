@@ -184,6 +184,7 @@ architecture rtl of core_timextenso is
   signal m1_n, mreq_n, iorq_n, rd_n, wr_n, rfsh_n : std_logic;
   signal int_n : std_logic := '1';
   signal cpu_nmi_n : std_logic;
+  signal cpu_nmi_g : std_logic;   -- (69m) o NMI que chega ao Z80
   -- DivTIESUS
   signal dv_q : std_logic_vector(7 downto 0);
   signal dv_oe, dv_romcs, dv_be_n, dv_ee_n, dv_oe_n, dv_we_n, dv_m128, dv_m2068 : std_logic;
@@ -380,7 +381,7 @@ begin
   cpu: T80se
     generic map (Mode => 0, T2Write => 1, IOWait => 1)
     port map (RESET_n => rst_n_i, CLK_n => clk, CLKEN => ce,
-              WAIT_n => cpu_wait_n, INT_n => int_n, NMI_n => cpu_nmi_n, BUSRQ_n => '1',
+              WAIT_n => cpu_wait_n, INT_n => int_n, NMI_n => cpu_nmi_g, BUSRQ_n => '1',
               M1_n => m1_n, MREQ_n => mreq_n, IORQ_n => iorq_n, RD_n => rd_n, WR_n => wr_n,
               RFSH_n => rfsh_n, HALT_n => halt_n, BUSAK_n => open,
               A => a, DI => di, DO => do_cpu);
@@ -695,6 +696,10 @@ begin
   end process;
   dv_lento <= '1' when cart_t /= 0 else '0';
   dv_mapa <= dv_romcs;
+  -- (69m) no 128 com a ROM 0 (menu, 128 BASIC) o NMI espera pela ROM 1: a interrupcao da ROM 0 passa pela ROM 1
+  -- (o KEYBOARD) a cada quadro, e o NMI entra ai', como no Tape Loader (na ROM 0 o NMI rebentava a partir do 2.o).
+  -- O reset mestre (RESET+NMI) usa o botao directamente, sem esta espera.
+  cpu_nmi_g <= cpu_nmi_n or (modo128 and not rom7);
   eb_io <= '1' when iorq_n = '0' and m1_n = '1' and a(7 downto 0) = x"EB" else '0';
   e7_io <= '1' when iorq_n = '0' and m1_n = '1' and a(7 downto 0) = x"E7" else '0';
   process(clk)
