@@ -16,6 +16,7 @@ ficheiro de outros autores mantém o seu cabeçalho e a sua licença:
 | `fontes/go/go_sem7.asm` | baseado no LOADROM do DivTIESUS | GPL v3 |
 | `fontes/navpt3/navpt3.asm` | contém o Universal PT2/PT3/TS player de S. V. Bulba | livre, com o crédito |
 | `fontes/pt3/plugin_pt3.asm` | inclui o mesmo leitor (o `navpt3.asm`) | livre, com o crédito |
+| `fontes/camtest/font8x16.bin` | a letra Spleen 8x16 de Frederic Cambus (convertida do BDF) | BSD 2 cláusulas, com o crédito |
 | `core/arranque_teste/` | usa o z80emu de Lin Ke-Fong (não incluído) | a do z80emu |
 | o resto (core_timorphius, top, vídeo/HDMI, cassete, som, ponte, arranque e letras, NAV, GO2068, PENTA, SOMNAV, MOD, stub68, cartao.py) | António Vitor | GPL v3 |
 | `core/src/hdmi/hdl-util/*.sv`, `core/src/hdmi/hdmi_hdlutil.sv` / `.v` (o HDMI com som) | hdl-util/hdmi, Sameer Puri (versão do NanoMig do djnice), adaptado para o Timorphius | MIT (ou Apache-2.0) |
