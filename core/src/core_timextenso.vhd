@@ -185,7 +185,9 @@ architecture rtl of core_timextenso is
   signal int_n : std_logic := '1';
   signal cpu_nmi_n : std_logic;
   signal cpu_nmi_g : std_logic;   -- (69m) o NMI que chega ao Z80
-  signal ent_on, ent_k : std_logic := '0';                       -- (69n) ENTER automatico pedido (ZXUNO A5h)
+  signal ent_on, ent_k : std_logic := '0';
+  signal nmi_fura : std_logic := '0';                     -- (69o) o NMI ja' esperou 40 ms pela ROM 1
+  signal nmi_esp  : unsigned(21 downto 0) := (others => '0');                       -- (69n) ENTER automatico pedido (ZXUNO A5h)
   signal ent_t  : unsigned(26 downto 0) := (others => '0');
   -- DivTIESUS
   signal dv_q : std_logic_vector(7 downto 0);
@@ -707,7 +709,17 @@ begin
   -- (69m) no 128 com a ROM 0 (menu, 128 BASIC) o NMI espera pela ROM 1: a interrupcao da ROM 0 passa pela ROM 1
   -- (o KEYBOARD) a cada quadro, e o NMI entra ai', como no Tape Loader (na ROM 0 o NMI rebentava a partir do 2.o).
   -- O reset mestre (RESET+NMI) usa o botao directamente, sem esta espera.
-  cpu_nmi_g <= cpu_nmi_n or (modo128 and not rom7);
+  -- (69o) mas so' ate' 40 ms: num jogo de 128K com a ROM 0 sempre ligada (e a interrupcao dele) a ROM 1 pode nunca
+  -- aparecer; ai' o NMI passa na mesma (com o F5 do 69i em 0066h)
+  cpu_nmi_g <= cpu_nmi_n or (modo128 and not rom7 and not nmi_fura);
+  process(clk)
+  begin
+    if rising_edge(clk) then
+      if cpu_nmi_n = '1' then nmi_esp <= (others => '0'); nmi_fura <= '0';
+      elsif nmi_esp = 2160000 then nmi_fura <= '1';
+      else nmi_esp <= nmi_esp + 1; end if;
+    end if;
+  end process;
   eb_io <= '1' when iorq_n = '0' and m1_n = '1' and a(7 downto 0) = x"EB" else '0';
   e7_io <= '1' when iorq_n = '0' and m1_n = '1' and a(7 downto 0) = x"E7" else '0';
   process(clk)
