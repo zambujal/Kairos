@@ -150,8 +150,8 @@ architecture rtl of camada_esp is
   signal pon_s : std_logic_vector(1 downto 0) := "00";
   signal pxr, pyr, pxf, pyf : integer range 0 to 2047 := 0;
   signal pon_q, a_pin : std_logic := '0';
-  signal a_pdx : integer range 0 to 11 := 0;
-  signal a_pdy : integer range 0 to 18 := 0;
+  signal a_pdx : unsigned(3 downto 0) := (others => '0');
+  signal a_pdy : unsigned(4 downto 0) := (others => '0');
   signal pv1, pv2, pv3 : std_logic_vector(1 downto 0) := "00";
   signal hx : integer range 0 to 4095 := 0;
   signal ly : integer range 0 to 2047 := 0;
@@ -209,6 +209,7 @@ begin
     variable c, baixo : std_logic_vector(23 downto 0);
     variable p16 : std_logic_vector(15 downto 0);
     variable wh, mt : std_logic;
+    variable sp_p, sp_b : std_logic_vector(11 downto 0);
   begin
     if rising_edge(clk) then
       lig_s <= lig_s(0) & ligada; jan_s <= jan_s(0) & janela; sel_s <= sel_s(0) & sel_in;
@@ -271,7 +272,7 @@ begin
       a_hs <= hsa; a_hsd <= a_hs;
       -- (73) o ponteiro: dentro da caixa 12x19?
       if pon_q = '1' and dei = '1' and hx >= pxr and hx < pxf and ly >= pyr and ly < pyf then
-        a_pin <= '1'; a_pdx <= (hx - pxr) mod 12; a_pdy <= (ly - pyr) mod 19;
+        a_pin <= '1'; a_pdx <= to_unsigned((hx - pxr) mod 16, 4); a_pdy <= to_unsigned((ly - pyr) mod 32, 5);
       else
         a_pin <= '0';
       end if;
@@ -299,9 +300,11 @@ begin
       s2 <= s1; lon2 <= lon1; win2 <= win1;
       -- (73) o ponto da seta (andar 1), e mais 2 andares como a camada L
       pv1 <= "00";
-      if a_pin = '1' then
-        if to_unsigned(SETA_P(a_pdy), 12)(11 - a_pdx) = '1' then pv1 <= "01";
-        elsif to_unsigned(SETA_B(a_pdy), 12)(11 - a_pdx) = '1' then pv1 <= "10"; end if;
+      if a_pin = '1' and a_pdy < 19 and a_pdx < 12 then
+        sp_p := std_logic_vector(to_unsigned(SETA_P(to_integer(a_pdy)), 12));
+        sp_b := std_logic_vector(to_unsigned(SETA_B(to_integer(a_pdy)), 12));
+        if sp_p(11 - to_integer(a_pdx)) = '1' then pv1 <= "01";
+        elsif sp_b(11 - to_integer(a_pdx)) = '1' then pv1 <= "10"; end if;
       end if;
       pv2 <= pv1; pv3 <= pv2;
       r2 <= r1; g2 <= g1; b2 <= b1; de2 <= de1; hs2 <= hs1; vs2 <= vs1;
