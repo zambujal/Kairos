@@ -102,7 +102,8 @@ entity core_timorphius is
     -- (2026-10-22) caixa de correio Z80 <-> ESP: portos EE3Bh (comando / estado) e EF3Bh (dados)
     mb_wr    : out std_logic;                             -- OUT a um dos dois portos (enquanto dura)
     mb_rd    : out std_logic;                             -- IN de um dos dois portos (enquanto dura)
-    mb_sel   : out std_logic;                             -- 0 = EE3Bh, 1 = EF3Bh
+    mb_sel   : out std_logic;                             -- 0 = EE3Bh, 1 = EF3Bh (ou EC3Bh / ED3Bh)
+    mb_cam   : out std_logic;                             -- (70) 1 = EC3Bh / ED3Bh (a camada L pelo Z80)
     mb_d     : out std_logic_vector(7 downto 0);
     mb_q     : in  std_logic_vector(7 downto 0) := x"FF";
     -- (2026-10-23) UART do ZX-UNO (registos C6h dados / C7h estado pelas FC3B/FD3B), ligada ao ESP
@@ -407,7 +408,8 @@ begin
   -- SCLD: portas (amostradas como no scld_regs: escrita do Z80 a meio do ciclo de E/S)
   io_wr <= '1' when iorq_n = '0' and wr_n = '0' and m1_n = '1' else '0';
   io_rd <= '1' when iorq_n = '0' and rd_n = '0' and m1_n = '1' else '0';
-  mb_cs  <= '1' when a(15 downto 9) = "1110111" and a(7 downto 0) = x"3B" else '0';   -- EE3Bh / EF3Bh
+  mb_cs  <= '1' when a(15 downto 10) = "111011" and a(7 downto 0) = x"3B" else '0';   -- EE3Bh / EF3Bh, (70) EC3Bh / ED3Bh
+  mb_cam <= not a(9);
   mb_wr  <= io_wr and mb_cs;
   mb_rd  <= io_rd and mb_cs;
   mb_sel <= a(8);

@@ -71,6 +71,10 @@
 --   71 (escrever) bit 0 = 1: a resposta esta' pronta (o pedido deixa de estar a' espera)
 --   73 (escrever) bit 0 = ESP presente
 --   80-BF (ler) o pedido; C0-FF (escrever) a resposta
+--   (70, 2026-11-01) a camada L pelo Z80 (sem o ESP): OUT EC3B (60475),r escolhe o registo r; OUT ED3B (60731),v
+--      escreve-o, como o ESP: so' 26-29, 30-32, 34, 40, 41-49 e 4E; o registo avanca (menos no 34).
+--      IN EC3B / ED3B: bit 0 = fila vazia, bit 1 = cheia, bit 2 = imagem mostrada, bit 7 = ESP presente.
+--      O ponteiro e a fila sao os mesmos do ESP: com o ESP presente o Z80 nao deve usar isto.
 --   (v5, 2026-10-23) UART do ZX-UNO (o Z80 ve' os registos C6h/C7h pelas FC3B/FD3B), filas de 64:
 --      7B (ler) quantos bytes o Z80 escreveu (fila Z80 -> ESP); 7C (ler) o byte seguinte dessa fila
 --      (o endereco nao avanca, como o 52); 7D (escrever) bytes para o Z80 (o endereco nao avanca;
@@ -157,6 +161,7 @@ entity ponte_esp is
     z_wr    : in    std_logic := '0';
     z_rd    : in    std_logic := '0';
     z_sel   : in    std_logic := '0';
+    z_cam   : in    std_logic := '0';            -- (70) 1 = os portos EC3B / ED3B (a camada L pelo Z80)
     z_d     : in    std_logic_vector(7 downto 0) := (others => '0');
     z_q     : out   std_logic_vector(7 downto 0);
     -- UART do ZX-UNO (lado do Z80)
@@ -260,6 +265,8 @@ architecture rtl of ponte_esp is
   signal mb_cmd : std_logic_vector(7 downto 0) := (others => '0');
   signal pedido, pronto, vivo, zw_d, zr_d, zr_sel : std_logic := '0';
   signal mb_est : std_logic_vector(7 downto 0);
+  signal zc_reg : std_logic_vector(7 downto 0) := (others => '0');   -- (70) registo escolhido pelo EC3B
+  signal zc_est : std_logic_vector(7 downto 0);
   -- UART
   signal ut, ur : rx_t;                                -- ut: Z80 -> ESP, ur: ESP -> Z80
   signal utw, utr, urw, urr, ut_n, ur_n : unsigned(6 downto 0) := (others => '0');
@@ -280,7 +287,10 @@ begin
   b_tira <= '1' when b_vazia = '0' and b_pend = '0' and b_ok = '0' and (wp - rp) < 60 else '0';
   esp_irq <= irq_r or pedido;
   mb_est  <= vivo & "00000" & pronto & pedido;
-  z_q     <= rep(to_integer(zri)) when z_sel = '1' else mb_est;
+  z_q     <= zc_est when z_cam = '1' else rep(to_integer(zri)) when z_sel = '1' else mb_est;
+  -- (70) IN EC3B / ED3B: bit 0 = a fila vazia (tudo escrito), bit 1 = cheia, bit 2 = a imagem da camada L
+  -- que o HDMI mostra (como o 40 bit 2), bit 7 = ESP presente (como o EE3B)
+  zc_est  <= vivo & "0000" & at_s(1) & cheia & (vazia and b_vazia and not b_pend and not b_ok and not pk_v and not o_v);
   ut_n    <= utw - utr;
   ur_n    <= urw - urr;
   u_q     <= ur(to_integer(urr(5 downto 0))) when u_dat = '1' else
@@ -343,7 +353,31 @@ begin
       kin_s <= k_in; joy_s <= k_joy; atal_s <= k_atal; jcru_s <= k_jcru; maq_s <= k_maq; vel_s <= k_vel; ay_s <= k_ay; cs_liv_s <= cs_livres; cs_atv_s <= cs_ativa;
       zw_d <= z_wr; zr_d <= z_rd;
       if z_rd = '1' then zr_sel <= z_sel; end if;
-      if z_wr = '1' and zw_d = '0' then
+      if z_wr = '1' and zw_d = '0' and z_cam = '1' then
+        -- (70) a camada L pelo Z80, sem o ESP: OUT EC3B,r escolhe o registo; OUT ED3B,v escreve-o (como o
+        -- ESP, so' estes: 26-29 rectangulo, 30-32 ponteiro, 34 SDRAM pela fila, 40, 41-49 cores, 4E);
+        -- o registo avanca, menos no 34
+        if z_sel = '0' then
+          zc_reg <= z_d;
+        else
+          case zc_reg is
+            when x"26" => r_larg(7 downto 0) <= unsigned(z_d); r_cnt <= (others => '0');
+            when x"27" => r_larg(15 downto 8) <= unsigned(z_d); r_cnt <= (others => '0');
+            when x"28" => r_passo(7 downto 0) <= unsigned(z_d);
+            when x"29" => r_passo(15 downto 8) <= unsigned(z_d);
+            when x"30" => ptr(7 downto 0)   <= unsigned(z_d); r_lin(7 downto 0) <= unsigned(z_d); r_cnt <= (others => '0');
+            when x"31" => ptr(15 downto 8)  <= unsigned(z_d); r_lin(15 downto 8) <= unsigned(z_d); r_cnt <= (others => '0');
+            when x"32" => ptr(22 downto 16) <= unsigned(z_d(6 downto 0)); r_lin(22 downto 16) <= unsigned(z_d(6 downto 0)); r_cnt <= (others => '0');
+            when x"34" => if cheia = '0' then fila(to_integer(wp(5 downto 0))) <= "00" & z_d; wp <= wp + 1; end if;
+            when x"40" => r40 <= z_d(4 downto 0);
+            when x"4E" => r4e <= z_d(2 downto 0);
+            when x"41" | x"42" | x"43" | x"44" | x"45" | x"46" | x"47" | x"48" | x"49" =>
+              cores(to_integer(unsigned(zc_reg)) - 16#41#) <= z_d;
+            when others => null;
+          end case;
+          if zc_reg /= x"34" then zc_reg <= std_logic_vector(unsigned(zc_reg) + 1); end if;
+        end if;
+      elsif z_wr = '1' and zw_d = '0' then
         if z_sel = '1' then
           req(to_integer(zwi)) <= z_d; if zwi /= 63 then zwi <= zwi + 1; end if;
         else
@@ -351,7 +385,7 @@ begin
           pedido <= '1'; pronto <= '0';
         end if;
       end if;
-      if z_rd = '0' and zr_d = '1' and zr_sel = '1' and zri /= 63 then zri <= zri + 1; end if;
+      if z_rd = '0' and zr_d = '1' and zr_sel = '1' and z_cam = '0' and zri /= 63 then zri <= zri + 1; end if;
       -- UART, lado do Z80: OUT C6 no inicio poe na fila para o ESP; IN C6 tira da fila no fim
       uw_d <= u_wr; ud_d <= u_rd;
       if u_rd = '1' then urd_sel <= u_dat; end if;

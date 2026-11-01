@@ -250,7 +250,7 @@ architecture rtl of top is
   signal sd_espera : integer range 0 to 27000000 := 0;
   signal esp_rreq, esp_rv, sd_meu, esp_cs_n, esp_sclk, esp_mosi, k_rst, k_nmi : std_logic := '0';
   signal esp_rd : std_logic_vector(7 downto 0);
-  signal mb_wr, mb_rd, mb_sel : std_logic := '0';
+  signal mb_wr, mb_rd, mb_sel, mb_cam : std_logic := '0';
   signal mb_d, mb_q : std_logic_vector(7 downto 0) := x"FF";
   signal ua_wr, ua_rd, ua_dat : std_logic := '0';
   signal ua_q : std_logic_vector(7 downto 0) := x"FF";
@@ -443,7 +443,7 @@ begin
                 esp_req => esp_req, esp_vram => esp_vram, esp_a => esp_a, esp_d => esp_d, esp_ack => esp_ack,
                 esp_wreq => esp_wreq, esp_wa => esp_wa, esp_wd => esp_wd, esp_wbe => esp_wbe, esp_wack => esp_wack,
                 esp_rreq => esp_rreq, esp_rv => esp_rv, esp_rd => esp_rd,
-                mb_wr => mb_wr, mb_rd => mb_rd, mb_sel => mb_sel, mb_d => mb_d, mb_q => mb_q, ua_wr => ua_wr, ua_rd => ua_rd, ua_dat => ua_dat, ua_q => ua_q, maq_st => maq_st, gs_parar => k_gspara, ay3_lig => k_ay3,
+                mb_wr => mb_wr, mb_rd => mb_rd, mb_sel => mb_sel, mb_cam => mb_cam, mb_d => mb_d, mb_q => mb_q, ua_wr => ua_wr, ua_rd => ua_rd, ua_dat => ua_dat, ua_q => ua_q, maq_st => maq_st, gs_parar => k_gspara, ay3_lig => k_ay3,
                 ovl_pede_l => ovl_pede_l, ovl_lin_l => ovl_lin_l, ovl_pede_w => ovl_pede_w, ovl_lin_w => ovl_lin_w, ovl_sel => c_selq, ovl_w16 => c_w16, ovl_wsep => c_wsepq, ovl_widx => c_widxq, lb_we => lb_we, lb_a => lb_a, lb_d => lb_d);
     fsinc <= '0';
     -- o cartao SD: do DivMMC do Z80 ou do ESP (registo 50 bit 0); com o ESP, o Z80 ve' o MISO a 1
@@ -699,7 +699,7 @@ begin
                                        p_rreq => esp_rreq, p_rv => esp_rv, p_rd => esp_rd,
                                        sd_meu => sd_meu, sd_dado => sd_dado, fita_on => fita_on, esp_vivo => esp_vivo, sd_cs_n => esp_cs_n, sd_sclk => esp_sclk, sd_mosi => esp_mosi, sd_miso => I_sd_miso,
                                        k_mat => k_mat, k_rst => k_rst, k_nmi => k_nmi,
-                                       z_wr => mb_wr, z_rd => mb_rd, z_sel => mb_sel, z_d => mb_d, z_q => mb_q, u_wr => ua_wr, u_rd => ua_rd, u_dat => ua_dat, u_q => ua_q,
+                                       z_wr => mb_wr, z_rd => mb_rd, z_sel => mb_sel, z_cam => mb_cam, z_d => mb_d, z_q => mb_q, u_wr => ua_wr, u_rd => ua_rd, u_dat => ua_dat, u_q => ua_q,
                                        k_in => mat_fis, k_cap => k_cap, k_turbo => k_turbo, k_gspara => k_gspara, k_ay3 => k_ay3, k_vel => vel_cod, cs_wr => cs_wr, cs_d => cs_d, cs_limpa => cs_limpa, cs_livres => cs_livres, cs_ativa => cs_ativa, k_joy => joy_usb, k_atal => atalho, k_ay => ay_vis, k_jcru => jcru, k_maq => maq_st);
   sem_timorphius_g: if not TIMORPHIUS generate esp_ack <= '0'; esp_wack <= '0'; end generate;
   cas: entity work.cassete port map (clk => clk54, t_ce => ce_t, limpa => cs_limpa, wr => cs_wr, d => cs_d,
