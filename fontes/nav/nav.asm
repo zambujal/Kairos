@@ -4132,6 +4132,13 @@ TxtSomNav           db "/BIN/SOMNAV.BIN",0
 VeHR                ld a,(MudouFF)
                     or a
                     jr nz,VHtem
+                    ld a,(5C50h)        ; v43: no BASIC 128 / menu do 128 (FLAGS bit 4, fora do TC2068) vai sempre
+                    cp 68h              ; para o NAVHR, como quando a maquina guardada era o TIMEX 2048 (o BROWSE
+                    jr z,VHteste        ; rebentava ali, com o ZX 128K guardado; o NAVHR nao)
+                    ld a,(5C3Bh)
+                    bit 4,a
+                    jr nz,VHtem
+VHteste
                     xor a               ; F3 sem o bit 5: no Timextenso a FF passa a aceitar
                     out (0F3h),a
                     ld c,06h
