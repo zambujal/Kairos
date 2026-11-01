@@ -23,6 +23,7 @@ module divtiesus_tang (
   output wire [7:0] dout,
   output wire doe,
   output wire zxromcs,          // 1 = a ROM do Timex fica calada
+  output wire mapeado,          // (69t) 1 = o DivMMC esta' mapeado (automap ou CONMEM): o esxDOS a correr
   output wire be_n,             // 0 = este endereco e' servido pela SRAM (bancos 128K): RAM interna calada
   output wire nmi_n,
   input  wire nmi_button_n,
@@ -45,6 +46,7 @@ module divtiesus_tang (
   wire jumper_e = 1'b1;
 
   wire divmmc_zxromcs, divmmc_eeprom_cs, divmmc_sram_cs, divmmc_sram_write_n;
+  assign mapeado = divmmc_zxromcs;
   wire [5:0] divmmc_sram_hiaddr;
   wire trese_sram_cs;
   wire [5:0] trese_sram_hiaddr;

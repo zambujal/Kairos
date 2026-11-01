@@ -172,7 +172,7 @@ architecture rtl of core_timextenso is
     port (clk : in std_logic; rst_n : in std_logic; a : in std_logic_vector(15 downto 0);
           mreq_n, iorq_n, rd_n, wr_n, m1_n : in std_logic;
           din : in std_logic_vector(7 downto 0); dout : out std_logic_vector(7 downto 0); doe : out std_logic;
-          zxromcs, be_n, nmi_n : out std_logic; nmi_button_n : in std_logic;
+          zxromcs, mapeado, be_n, nmi_n : out std_logic; nmi_button_n : in std_logic;
           sclk, mosi : out std_logic; miso : in std_logic; sd_cs0 : out std_logic;
           eeprom_oe_n, sram_oe_n, sram_we_n : out std_logic;
           sram_hiaddr : out std_logic_vector(5 downto 0);
@@ -186,6 +186,7 @@ architecture rtl of core_timextenso is
   signal cpu_nmi_n : std_logic;
   signal cpu_nmi_g : std_logic;   -- (69m) o NMI que chega ao Z80
   signal ent_on, ent_k, rst_pend : std_logic := '0';
+  signal dv_mapeado : std_logic;                          -- (69t) o DivMMC mapeado (o dv_romcs no 128 esta' sempre a 1: a ROM vem da SRAM)
   signal nmi_fura : std_logic := '0';                     -- (69o) o NMI ja' esperou 40 ms pela ROM 1
   signal nmi_esp  : unsigned(21 downto 0) := (others => '0');                       -- (69n) ENTER automatico pedido (ZXUNO A5h)
   signal ent_t  : unsigned(27 downto 0) := (others => '0');
@@ -396,7 +397,7 @@ begin
     port map (clk => clk_div, rst_n => rst_n_i, a => a,
               mreq_n => mreq_n, iorq_n => iorq_n, rd_n => rd_n, wr_n => wr_n, m1_n => m1_n,
               din => do_cpu, dout => dv_q, doe => dv_oe,
-              zxromcs => dv_romcs, be_n => dv_be_n, nmi_n => cpu_nmi_n, nmi_button_n => nmi_n,
+              zxromcs => dv_romcs, mapeado => dv_mapeado, be_n => dv_be_n, nmi_n => cpu_nmi_n, nmi_button_n => nmi_n,
               sclk => mmc_sclk, mosi => mmc_mosi, miso => mmc_miso, sd_cs0 => mmc_cs_n,
               eeprom_oe_n => dv_ee_n, sram_oe_n => dv_oe_n, sram_we_n => dv_we_n,
               sram_hiaddr => dv_hi, modo128 => dv_m128, modo2068 => dv_m2068, p1024 => m1024, sem_fita => sem_fita);
@@ -447,7 +448,7 @@ begin
       -- (69p) o plugin do TAP pediu o reset (A5h): quando o esxDOS se desmapear (o NMI acabou e o navegador saiu)
       -- faz o mesmo reset do botao (Z80 e DivTIESUS, ~1,2 ms): no ZX 128K volta ao menu da Sinclair. O ENTER conta
       -- 2 s a partir daqui.
-      if rst_pend = '1' and dv_romcs = '0' then
+      if rst_pend = '1' and dv_mapeado = '0' then   -- (69t) era o dv_romcs: no modo 128 nunca descia
         rst_pend <= '0'; carga_rst <= (others => '1'); ent_on <= '1'; ent_t <= (others => '0');
       end if;
       if carga_rst(16) = '1' then carga_rst <= carga_rst - 1; end if;   -- (esp61) ~1,2 ms de reset no fim da carga
