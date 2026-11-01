@@ -1,8 +1,8 @@
-# Timorphius na Gowin EDA: gw_sh timorphius.tcl  (correr dentro desta pasta)
-# Resultado: impl/pnr/timorphius.fs
+# Kairos na Gowin EDA: gw_sh kairos.tcl  (correr dentro desta pasta)
+# Resultado: impl/pnr/kairos.fs
 set_device GW2AR-LV18QN88C8/I7 -name GW2AR-18C -device_version C
 add_file src/sid/sid_all.v
-add_file src/sid/sid_timorphius.v
+add_file src/sid/sid_kairos.v
 add_file src/divt/divmmc_mcleod.v
 add_file src/divt/tres_e.v
 add_file src/divt/modo.v
@@ -31,7 +31,7 @@ add_file src/teclas_seq.vhd
 add_file src/teclas_auto.vhd
 add_file src/teclas_arranque.vhd
 add_file src/gs.vhd
-add_file src/core_timorphius.vhd
+add_file src/core_kairos.vhd
 add_file src/mcu_spi.vhd
 add_file src/sysctrl.vhd
 add_file src/hid_teclado.vhd
@@ -40,10 +40,10 @@ add_file src/ponte_esp.vhd
 add_file src/cassete.vhd
 add_file src/top.vhd
 add_file mem.v
-add_file timorphius.cst
-add_file timorphius.sdc
+add_file kairos.cst
+add_file kairos.sdc
 set_option -synthesis_tool gowinsynthesis
-set_option -output_base_name timorphius
+set_option -output_base_name kairos
 set_option -verilog_std v2001
 set_option -vhdl_std vhd2008
 set_option -top_module top

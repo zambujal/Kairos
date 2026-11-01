@@ -5,7 +5,7 @@ ficheiro de outros autores mantém o seu cabeçalho e a sua licença:
 
 | O quê | De quem | Licença |
 |---|---|---|
-| a parte SCLD do `core/src/core_timorphius.vhd` | modelo do SCLD do Load ZX Museum (Álvaro Lopes, Paulo Cortesão), reparado e completado por António Vitor (CPLD-XC95288XL-replacement-for-scld-timex) | CC BY-SA 4.0 |
+| a parte SCLD do `core/src/core_kairos.vhd` | modelo do SCLD do Load ZX Museum (Álvaro Lopes, Paulo Cortesão), reparado e completado por António Vitor (CPLD-XC95288XL-replacement-for-scld-timex) | CC BY-SA 4.0 |
 | `core/src/T80*.vhd` | Daniel Wallner (2001-2002), Sorgelig (2018); reparado e completado em 2026 (registo Q, flags) por António Vitor | a do T80 (tipo BSD, no cabeçalho) |
 | `core/src/ym2149.vhd` | MikeJ (2005) | a do cabeçalho (tipo BSD) |
 | `core/src/gs.vhd` | tradução para VHDL do gs.v do core ZX Spectrum do MiSTer (Sorgelig) | GPL |
@@ -20,8 +20,8 @@ ficheiro de outros autores mantém o seu cabeçalho e a sua licença:
 | `fontes/nav/font8ibm.bin` | a letra 8x8 do `font8x8_basic.h` de Daniel Hepper (github.com/dhepper/font8x8), feita a partir da do BIOS do IBM PC; o £ e o © são os nossos | domínio público, segundo o autor |
 | `fontes/nav/spleen8x16_linhas.bin` (no `NAVL.EXT`) | a mesma letra Spleen 8x16, por linhas | BSD 2 cláusulas, com o crédito |
 | `core/arranque_teste/` | usa o z80emu de Lin Ke-Fong (não incluído) | a do z80emu |
-| o resto (core_timorphius, top, vídeo/HDMI, cassete, som, ponte, arranque e letras, NAV, GO2068, PENTA, SOMNAV, MOD, stub68, cartao.py) | António Vitor | GPL v3 |
-| `core/src/hdmi/hdl-util/*.sv`, `core/src/hdmi/hdmi_hdlutil.sv` / `.v` (o HDMI com som) | hdl-util/hdmi, Sameer Puri (versão do NanoMig do djnice), adaptado para o Timorphius | MIT (ou Apache-2.0) |
+| o resto (core_kairos, top, vídeo/HDMI, cassete, som, ponte, arranque e letras, NAV, GO2068, PENTA, SOMNAV, MOD, stub68, cartao.py) | António Vitor | GPL v3 |
+| `core/src/hdmi/hdl-util/*.sv`, `core/src/hdmi/hdmi_hdlutil.sv` / `.v` (o HDMI com som) | hdl-util/hdmi, Sameer Puri (versão do NanoMig do djnice), adaptado para o Kairos | MIT (ou Apache-2.0) |
 
 Código escrito com ajuda de IA.
 

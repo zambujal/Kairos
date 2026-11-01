@@ -212,7 +212,7 @@ ESf                 inc h               ; a linha seguinte da letra
                     ret
 
 Cores               db 00h,00h,60h,  20h,80h,0E0h,  0F0h,0F0h,0F0h
-Txt1                db "Timorphius - camada L, so' no quadrado do meio: 96 x 36 letras 8x16",0
+Txt1                db "Kairos - camada L, so' no quadrado do meio: 96 x 36 letras 8x16",0
 Txt2                db "/JOGOS/",0
 Txt3                db " > Manic Miner.tap                                  48K ",0
 Txt4                db "   Jet Set Willy.tap                                48K ",0

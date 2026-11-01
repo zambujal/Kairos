@@ -1,4 +1,4 @@
-// Tang Nano 20K (Timorphius): copia do DivTIESUS v13 do Antonio. Unica mudanca: o barramento
+// Tang Nano 20K (Kairos): copia do DivTIESUS v13 do Antonio. Unica mudanca: o barramento
 // de dados bidireccional (inout d) passa a din (entrada) + dout/doe (saida), porque dentro
 // da FPGA nao ha' 3 estados.
 /*

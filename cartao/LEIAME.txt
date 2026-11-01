@@ -1,13 +1,13 @@
-TIMORPHIUS - cartao para o Tang Nano 20K (Timex TC2048 / TC2068 / ZX Spectrum / Pentagon)
-https://github.com/zambujal/timorphius
+KAIROS - cartao para o Tang Nano 20K (Timex TC2048 / TC2068 / ZX Spectrum / Pentagon)
+https://github.com/zambujal/kairos
 
 1. GRAVAR O CORE NO TANG
 ------------------------
-O core esta' na pasta core/ deste cartao (timorphius_core75.fs). Grava-se uma vez, no PC, com o
+O core esta' na pasta core/ deste cartao (kairos_core75.fs). Grava-se uma vez, no PC, com o
 Tang ligado directamente a uma porta USB do PC (sem hub). Depois de gravar, desligar e voltar a ligar.
 
 Linux (openFPGALoader):
-    openFPGALoader -b tangnano20k -f timorphius_core75.fs
+    openFPGALoader -b tangnano20k -f kairos_core75.fs
     (Fedora: sudo dnf copr enable mobicarte/openFPGALoader && sudo dnf install openFPGALoader
      Debian/Ubuntu: sudo apt install openfpgaloader
      "unable to open ftdi device" = permissao de USB: com sudo, ou as regras udev do openFPGALoader)
@@ -16,7 +16,7 @@ Windows (Gowin Programmer, do Gowin EDA Education, www.gowinsemi.com):
     scan_device -> GW2AR-18C; duas vezes na linha do dispositivo:
       Access Mode: External Flash Mode
       Operation:   exFlash Erase, Program
-      FS File:     timorphius_core75.fs
+      FS File:     kairos_core75.fs
       External Flash: Generic Flash, endereco 0x000000
     Program.
 
@@ -27,7 +27,7 @@ Para jogar, o teclado (ou um hub com teclado, rato e comando) vai no USB-C do Ta
 O cartao e' FAT32 e leva, por esta ordem:
   1. o esxDOS (BIN, SYS, TMP do pacote de www.esxdos.org)
   2. por cima, o navegador do Bob Fossil (BROWSE_latest.zip: BIN/BPLUGINS e SYS/NMI.SYS)
-  3. por cima, o do Timorphius:
+  3. por cima, o do Kairos:
      BIN/BROWSE.BIN, NAVHR.BIN   o navegador (normal e alta resolucao)
      BIN/GO128, GO256, GO1024, GO2068   mudam de maquina (o navegador usa-os)
      BIN/PENTA.BIN, NAVPT3.BIN, SOMNAV.BIN   Pentagon, leitor de PT3, musica de arranque

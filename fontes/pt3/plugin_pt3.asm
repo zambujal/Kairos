@@ -8,9 +8,9 @@
 ;   = tempo maximo em minutos (0 = sem limite).
 ;   PT3 TurboSound (2 modulos no mesmo ficheiro, PT 3.7+): os dois AY (FFFD / BFFD com o FE / FF do TurboSound).
 ; Memoria: codigo e leitor em 8000h; o modulo em A3E0h-FCFFh (PLUGIN_RESTORE_BUFFERS); o IM 2 proprio
-; (tabela em FE00h, salto em FDFDh) para o HALT de cada frame. O AY pelo FFFD/BFFD (no Timorphius em todas
+; (tabela em FE00h, salto em FDFDh) para o HALT de cada frame. O AY pelo FFFD/BFFD (no Kairos em todas
 ; as maquinas).
-; (Timorphius, 2026-11-01)
+; (Kairos, 2026-11-01)
 
                     include "esxdos.inc"
 
@@ -28,7 +28,7 @@ MODMAX              equ 0FD00h-MODBUF
                     db "BP",0,0
                     db 0                ; flags
                     db 0                ; flags2
-                    db "PT3 (AY) - Timorphius",0
+                    db "PT3 (AY) - Kairos",0
 
 Inicio              push ix
                     push iy

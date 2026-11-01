@@ -274,7 +274,7 @@ ESc                 push bc
 
 Cores               db 00h,00h,60h,  20h,80h,0E0h,  0F0h,0F0h,0F0h
 Zero4               db 0,0,0,0
-Txt1                db "Timorphius - camada L pelo Z80, letra Spleen 8x16 (1280x720, 160 x 45 letras)",0
+Txt1                db "Kairos - camada L pelo Z80, letra Spleen 8x16 (1280x720, 160 x 45 letras)",0
 Txt2                db "/JOGOS/",0
 Txt3                db " > Manic Miner.tap                                 48K ",0
 Txt4                db "   Jet Set Willy.tap                               48K ",0

@@ -26,7 +26,7 @@
 ;   so' o tempo que passou.
 ;   Passado o tempo total + 2 s conta como o fim. CFG byte 0 bit 2 (como o PT3.CFG do Bob Fossil): as setas
 ;   (6 / 7) passam ao seguinte / anterior.
-; (Timorphius, 2026-10-26)
+; (Kairos, 2026-10-26)
 
                     include "esxdos.inc"
 
@@ -46,7 +46,7 @@ GS_DAT              equ 0B3h
                     db "BP",0,0
                     db 0                ; flags
                     db 0                ; flags2
-                    db "MOD (GS) - Timorphius",0
+                    db "MOD (GS) - Kairos",0
 
 Inicio              push ix
                     push iy

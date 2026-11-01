@@ -13,7 +13,7 @@
 ;   - o INIT corre com a pilha da musica e os registos HiReg/LoReg; depois, em cada frame (HALT com o IM 2
 ;     deste plugin), a rotina INTERRUPT, com os registos que ela deixou da vez anterior (como o leitor
 ;     de referencia). Sem INTERRUPT (0) nao da'.
-; (Timorphius, 2026-11-01)
+; (Kairos, 2026-11-01)
 
                     include "esxdos.inc"
 
@@ -32,7 +32,7 @@ PSALVA              equ 50              ; 4000h-7FFFh nas paginas 50-51
                     db "BP",0,0
                     db 0                ; flags
                     db 0                ; flags2
-                    db "AY (ZXAYEMUL) - Timorphius",0
+                    db "AY (ZXAYEMUL) - Kairos",0
 
 Inicio              push ix
                     push iy
