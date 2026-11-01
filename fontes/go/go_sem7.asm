@@ -133,7 +133,7 @@ TamanhoOk
                     ld hl,(Tamanho)
                     or a
                     sbc hl,bc
-                    jr nz,ErroLeitura
+                    jp nz,ErroLeitura
                     ld a,(FHandle)
                     rst 08h
                     db F_CLOSE
@@ -150,6 +150,34 @@ TamanhoOk
 Rom32
                     ld a,(DivMMCOption)
                     ld (PatchDivMMCOption+1),a
+                    ld hl,0C56Ch        ; (69k) ROM 1: no LD-BYTES o CALL LD-EDGE-1 (CD E7 05) em 056Ch passa a
+                    ld a,(hl)           ; CALL 3CA0h (bytes a 0 antes da fonte): sem flanco (tempo esgotado) volta
+                    cp 0CDh             ; a 0562h, onde o esxDOS ve' se ja' ha' TAP. Antes, um TAP montado com a
+                    jp nz,SemFita       ; ROM ja' a espera da cassete (NMI dentro do Tape Loader / LOAD "") so'
+                    inc hl              ; entrava depois de um BREAK. Com cassete verdadeira continua a dar.
+                    ld a,(hl)
+                    cp 0E7h
+                    jp nz,SemFita
+                    inc hl
+                    ld a,(hl)
+                    cp 05h
+                    jp nz,SemFita
+                    ld hl,0FCA0h        ; 3CA0h da ROM 1 tem de estar a zeros
+                    ld b,LStubFita
+VeZeros             ld a,(hl)
+                    or a
+                    jp nz,SemFita
+                    inc hl
+                    djnz VeZeros
+                    ld hl,0C56Dh
+                    ld (hl),0A0h
+                    inc hl
+                    ld (hl),3Ch
+                    ld hl,StubFita
+                    ld de,0FCA0h
+                    ld bc,LStubFita
+                    ldir
+SemFita
                     ld a,(MenuDiv)      ; (69g) -divmenu: o esxDOS arranca como sempre (fica a saber que e'
                     or a                ; um 128 e a cassete funciona); no fim ele poe o 7FFD = 10h e salta
                     jr z,SemMenuDiv     ; para 0001h da ROM 1: ai' fica um JP para o STUB (em BF00h), que
@@ -183,6 +211,15 @@ F3pronto            ld (PatchF3+1),a
                     ld bc,LCodigoEnRAM
                     ldir
                     jp CODIGO
+
+; (69k) em 3CA0h da ROM 1 (chamado de 056Ch): CALL LD-EDGE-1; flanco -> RET C; BREAK -> RET NZ;
+; tempo esgotado -> tira o regresso e volta a 0562h (a armadilha da cassete do esxDOS)
+StubFita            db 0CDh,0E7h,05h    ; call 05E7h
+                    db 0D8h             ; ret c
+                    db 0C0h             ; ret nz
+                    db 0E1h             ; pop hl
+                    db 0C3h,62h,05h     ; jp 0562h
+LStubFita           equ $-StubFita
 
 MauTamanho          ld a,(FHandle)
                     rst 08h
