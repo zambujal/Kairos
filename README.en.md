@@ -280,11 +280,10 @@ instantly. `cartao.py` **does not touch** names or order and **does not guess th
    - Linux: `python3 ferramentas/cartao.py /run/media/$USER/CARD_NAME`
    - Windows: `python ferramentas\cartao.py E:\` (the card's drive letter)
 3. If it looks right, the same command with `--fazer` at the end.
-   `cartao.py` starts by printing `plugins em .../BIN/BPLUGINS: ...`: only files the browser can run (the
-   ones with a plugin) go into the index. If only `MOD` is listed and almost everything comes out as
-   "sem plugin, fora" (no plugin, left out), Bob Fossil's `BIN/BPLUGINS` folder is missing (section 2, step 3).
+   Everything on the card goes in, except the root `BIN`, `SYS` and `TMP` folders (and the `_NAV` ones):
+   in each folder, folders first (with `[up]` outside the root), then files, in order.
    If on the Tang the browser shows up black and white, with short names, it is the esxDOS one: Bob Fossil's
-   `SYS/NMI.SYS` is missing (same step), or the `cartao/` folder did not go on top.
+   `SYS/NMI.SYS` is missing (section 2, step 3), or the `cartao/` folder did not go on top.
 
 It can be run again whenever games are added (it rebuilds the indexes). Without indexes everything still
 works, only with short names and slower in very large folders.

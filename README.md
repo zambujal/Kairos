@@ -281,11 +281,10 @@ Precisa só de Python 3.
    - Linux: `python3 ferramentas/cartao.py /run/media/$USER/NOME_DO_CARTAO`
    - Windows: `python ferramentas\cartao.py E:\` (a letra do cartão)
 3. Se estiver bem, o mesmo comando com `--fazer` no fim.
-   O `cartao.py` começa por dizer `plugins em .../BIN/BPLUGINS: ...`: só entram no índice os ficheiros
-   que o navegador consegue correr (os que têm plugin). Se só aparecer `MOD` e quase tudo ficar
-   "sem plugin, fora", falta a pasta `BIN/BPLUGINS` do Bob Fossil (secção 2, passo 3).
+   Entra tudo o que estiver no cartão, menos as pastas `BIN`, `SYS` e `TMP` da raiz (e os `_NAV`):
+   em cada pasta, primeiro as pastas (com `[up]` fora da raiz) e depois os ficheiros, por ordem.
    Se no Tang o navegador aparecer a preto e branco, com nomes curtos, é o do esxDOS: falta o `SYS/NMI.SYS`
-   do Bob Fossil (mesmo passo), ou a pasta `cartao/` não ficou por cima.
+   do Bob Fossil (secção 2, passo 3), ou a pasta `cartao/` não ficou por cima.
 
 Pode-se repetir sempre que se juntam jogos (ele refaz os índices). Sem índices tudo funciona na mesma,
 só com os nomes curtos e mais devagar nas pastas muito grandes.
