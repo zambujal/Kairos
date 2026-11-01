@@ -128,7 +128,7 @@ module bancos128 (
   // Cleared by a master reset, like the TC2068 mode, and (69f) by any reset.
   reg rmenu = 1'b0;
   always @(posedge clk) begin
-    if (mrst_n == 1'b0 || rst_n == 1'b0)   // (69f) qualquer reset: sem isto o RESET+NMI da mudanca de maquina caia outra vez no menu do 128
+    if (mrst_n == 1'b0)   // (69l) so' o reset mestre (o A2h = 52h do NAV ao sair do 128 tambem): o RESET no menu do 128 volta ao menu, como num 128K
       rmenu <= 1'b0;
     else if (zxuno_regwr == 1'b1 && zxuno_addr == 8'hDD)
       rmenu <= din[3];
