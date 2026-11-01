@@ -20,14 +20,14 @@ FLAGS       equ 5C3Bh
 Inicio      ld a,(5C50h)        ; CHANS alto: 68h no TC2068
             cp 68h
             jr z,T68
-            ld a,80h+12         ; (69r) o .go128 -divmenu deixa 1 em 3FFAh da pagina 12 (o menu do 128); os
-            out (0E3h),a        ; outros .go deixam 0
-            ld a,(3FFAh)
-            ld b,a
+            ld a,80h+39         ; (69s) o .go128 -divmenu deixa "M8" em 2000h da pagina 39 (o menu do 128);
+            out (0E3h),a        ; os outros .go deixam 0,0
+            ld hl,(2000h)
             xor a
             out (0E3h),a
-            ld a,b
-            cp 1
+            ld de,384Dh         ; "M8"
+            or a
+            sbc hl,de
             jp z,Reset128       ; reset (o do botao, pelo core) e ENTER: o Tape Loader
             xor a
             rst 8

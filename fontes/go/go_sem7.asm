@@ -392,11 +392,15 @@ PatchStub           ld a,0              ; (69g) -divmenu: o STUB em BF00h (banco
                     push af
                     or 8
                     ld (STUB+StubDD0-Stub0+1),a
-SemStub             push af             ; (69r) pagina 12, 3FFAh: 1 = menu do 128 (-divmenu), senao 0. O plugin do
-                    ld a,128+12         ; TAP le-o (a maquina que o NAV adivinha pela porta FF depende do jogo)
-                    out (DIVCTRL),a
+SemStub             push af             ; (69s) pagina 39 do DivMMC, 2000h: "M8" = menu do 128 (-divmenu), senao 0,0.
+                    ld a,128+39         ; O plugin do TAP le-o (a maquina que o NAV adivinha pela porta FF depende do
+                    out (DIVCTRL),a     ; jogo; a pagina 12 e' reescrita pelo trampolim dos plugins)
+                    ld hl,0
                     ld a,(CODIGO+PatchStub+1-CodigoEnRAM)
-                    ld (3FFAh),a
+                    or a
+                    jr z,MarcaM8
+                    ld hl,384Dh         ; "M8"
+MarcaM8             ld (2000h),hl
                     xor a
                     out (DIVCTRL),a
                     pop af
