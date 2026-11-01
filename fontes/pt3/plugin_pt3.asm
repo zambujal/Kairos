@@ -3,8 +3,10 @@
 ;   O navegador hi-res fica no ecra (o NAV v48 nao o limpa para o PT3); no canto de cima a' direita o tempo.
 ;   Teclas: P pausa / continua, N o seguinte, B o anterior, BREAK (Caps + Espaco) para e volta.
 ;   No fim (o ponteiro da posicao do leitor volta para tras: deu a volta) o seguinte da pasta.
-;   /BIN/BPLUGINS/CFG/PT3.CFG (opcional, como o MOD.CFG): byte 0 bit 0 = repetir, bit 1 = no fim o seguinte;
-;   byte 1 = tempo maximo em minutos (0 = sem limite).
+;   /BIN/BPLUGINS/CFG/PT3.CFG: o mesmo do PT3 do Bob Fossil (e o PT3.INI dele serve): byte 0 bit 0 = repetir,
+;   bit 1 = no fim o seguinte, bit 2 = as setas (6 / 7) passam ao seguinte / anterior; byte 1 (nosso, opcional)
+;   = tempo maximo em minutos (0 = sem limite).
+;   PT3 TurboSound (2 modulos no mesmo ficheiro, PT 3.7+): os dois AY (FFFD / BFFD com o FE / FF do TurboSound).
 ; Memoria: codigo e leitor em 8000h; o modulo em A3E0h-FCFFh (PLUGIN_RESTORE_BUFFERS); o IM 2 proprio
 ; (tabela em FE00h, salto em FDFDh) para o HALT de cada frame. O AY pelo FFFD/BFFD (no Timorphius em todas
 ; as maquinas).
@@ -100,8 +102,11 @@ Larga               xor a
                     cpl
                     and 1Fh
                     jr nz,Larga
+                    ld a,20h            ; SETUP: bits 4-5 = %10, o TurboSound (2 AY) do PT3 3.7+ (AlCo) se o houver;
+                    ld (SETUP),a        ; os outros so' num AY
                     ld hl,MODBUF
-                    call PT3ORG         ; Inicia (HL = modulo)
+                    ld de,0
+                    call INIT
                     ld hl,(VARS1+CrPsPtr)
                     ld (PosAnt),hl
                     xor a
@@ -122,23 +127,23 @@ Toca                ei
                     jr nc,TNaoFim
                     ld a,(Opc)          ; a repetir: continua
                     rra
-                    jr nc,Acabou
+                    jp nc,Acabou
 TNaoFim             ld hl,Frac
                     inc (hl)
                     ld a,(hl)
                     cp 50
-                    jr c,TTeclas
+                    jp c,TTeclas
                     ld (hl),0
                     call MaisSeg
                     ld a,(Minutos)      ; o tempo maximo, em minutos
                     or a
-                    jr z,TTeclas
+                    jp z,TTeclas
                     ld hl,Min
                     cp (hl)
-                    jr z,Acabou
-                    jr c,Acabou
+                    jp z,Acabou
+                    jp c,Acabou
 TTeclas             call Teclas
-                    jr Toca
+                    jp Toca
 ; Z = nada; senao salta (N, B, BREAK) ou faz a pausa
 Teclas              ld a,7Fh            ; B N M Sym Espaco
                     in a,(0FEh)
@@ -152,7 +157,19 @@ Teclas              ld a,7Fh            ; B N M Sym Espaco
                     in a,(0FEh)
                     rra
                     jr nc,BrkP
-TSemBrk             ld a,0DFh           ; P: pausa
+TSemBrk             ld a,0EFh           ; 6 / 7 (setas baixo / cima) com o bit 2 do CFG: o seguinte / o anterior
+                    in a,(0FEh)
+                    cpl
+                    and 18h
+                    jr z,TSemSet
+                    ld b,a
+                    ld a,(Opc)
+                    and 4
+                    jr z,TSemSet
+                    bit 4,b
+                    jr nz,SegueP
+                    jr AnteriorP
+TSemSet             ld a,0DFh           ; P: pausa
                     in a,(0FEh)
                     rra
                     ret c

@@ -4452,6 +4452,12 @@ TLanca              ld a,80h+12
                     db F_OPEN
                     jr c,TSemCfg
                     ld (TH),a
+                    ld hl,TCfg          ; v49: o resto a 0 (o PT3.CFG do Bob Fossil tem 1 byte)
+                    ld de,TCfg+1
+                    ld bc,15
+                    ld (hl),b
+                    ldir
+                    ld a,(TH)
                     ld hl,TCfg
                     ld bc,16
                     rst 08h
