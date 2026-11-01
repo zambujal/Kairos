@@ -4783,12 +4783,14 @@ RTini               call RTle           ; A = X, E = Y, D = botoes do Kempston
                     call RTlim
                     ld (RatoY),hl
                     pop de
+                    push de             ; v57: D = os botoes (o RTpaira / NovoSel estragam-no: cliques sozinhos)
                     ld a,(RatoMexeu)    ; v56: primeiro escolhe a linha (o RTpoe apaga o RatoMexeu: antes o
                     or a                ; RTpaira nunca corria e o clique ficava na linha de antes)
                     call nz,RTpaira
                     ld a,(RatoMexeu)
                     or a
                     call nz,RTpoe
+                    pop de
                     ; os botoes (0 = carregado): bit 1 esquerdo, bit 0 direito; so' no carregar
                     ld a,(RatoBt)
                     ld c,a
@@ -4800,21 +4802,26 @@ RTini               call RTle           ; A = X, E = Y, D = botoes do Kempston
                     jr nz,RTesq
                     bit 0,a
                     ld a,' '
-                    ret nz
+                    jr nz,RTclq
                     xor a
+                    ret
+RTclq               ld hl,RatoClq       ; v57: a tecla veio de um clique (a pergunta do arranque olha onde)
+                    ld (hl),1
                     ret
 RTsem               ld a,2
                     ld (RatoIni),a
                     xor a
                     ret
-RTesq               call RTpaira        ; v56: o clique escolhe a linha debaixo do ponteiro e depois ENTER
+RTesq               push de             ; (a pilha como no RTini: o RTpaira olha para o 3.o endereco)
+                    call RTpaira        ; v56: o clique escolhe a linha debaixo do ponteiro e depois ENTER
+                    pop de
                     IF CAML
                     call RTcanto        ; o canto: troca a camada L / hi-res
                     ld a,0
                     ret z
                     ENDIF
                     ld a,13
-                    ret
+                    jr RTclq
 ; A = deslocamento com sinal: HL += 2 x A; RatoMexeu = 1 se A /= 0
 RTsoma              or a
                     jr z,RTs0
@@ -4936,7 +4943,7 @@ RTohr               ld hl,(RatoX)       ; o hi-res do Timex a 720p: 12 x 24 a pa
                     ld d,a
                     ret
 ; o ponteiro mexeu: por cima de um ficheiro da lista (so' no Ciclo), escolhe-o
-RTpaira             ld hl,4             ; so' no Ciclo: o LeTecla volta a CicloVolta (pilha: Rato, LeTecla, Ciclo)
+RTpaira             ld hl,6             ; so' no Ciclo: o LeTecla volta a CicloVolta (pilha: Rato, DE, LeTecla, Ciclo)
                     add hl,sp
                     ld a,(hl)
                     inc hl
@@ -5013,6 +5020,7 @@ RTcn                or 1                ; NZ
                     ENDIF
 RatoIni             db 0
 RatoMexeu           db 0
+RatoClq             db 0
 RatoKX              db 0
 RatoKY              db 0
 RatoBt              db 0FFh
@@ -5052,9 +5060,28 @@ PAsolta             halt                ; primeiro larga a tecla do NMI
                     or a
                     jr nz,PAsolta
                     ld (UltTecla),a
+                    IF HIRES
+                    ld (RatoClq),a
+                    ENDIF
 PAesp               call LeTecla
                     or a
                     jr z,PAesp
+                    IF HIRES
+                    ld hl,RatoClq       ; v57: um clique so' conta em cima da pergunta (a linha 23)
+                    ld c,(hl)
+                    ld (hl),0
+                    dec c
+                    jr nz,PAtec
+                    push af
+                    call RTonde
+                    pop bc              ; B = a tecla (o C da maquina esta' na pilha)
+                    jr c,PAesp
+                    ld a,d
+                    cp 23
+                    jr nz,PAesp
+                    ld a,b
+PAtec
+                    ENDIF
                     pop bc
                     cp 13
                     jr nz,PAnao
