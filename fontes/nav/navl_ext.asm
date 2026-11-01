@@ -92,6 +92,19 @@ LG1                 inc hl
                     ld a,4Eh
                     ld e,0
                     call Reg
+                    ld hl,0             ; a camada toda transparente (cor 0): o que la' ficou de antes
+                    ld a,60h            ; (o ESP, os testes) via-se a' volta do quadrado
+                    ld de,0             ; (sem rectangulo)
+                    call Ptr
+                    ld a,3Ch
+                    ld e,0
+                    call Reg
+                    ld e,(1280 * 720 / 16) & 255
+                    ld a,3Dh
+                    call Reg
+                    ld e,(1280 * 720 / 16) >> 8
+                    ld a,3Eh
+                    call Reg
                     ld hl,CQUAD & 0FFFFh   ; o quadrado todo com o papel (cor 1), pelo core
                     ld a,CQUAD >> 16
                     ld de,192
