@@ -289,7 +289,9 @@ Precisa só de Python 3.
    Se no Tang o navegador aparecer a preto e branco, com nomes curtos, é o do esxDOS: falta o `SYS/NMI.SYS`
    do Bob Fossil (secção 2, passo 3), ou a pasta `cartao/` não ficou por cima.
 
-Pode-se repetir sempre que se juntam jogos (ele refaz os índices). Sem índices tudo funciona na mesma,
+Pode-se repetir sempre que se juntam jogos (ele refaz os índices). Os índices só valem no cartão onde
+foram feitos (copiados para outro, os nomes 8.3 podem mudar): `--limpar --fazer` apaga-os todos, no cartão
+ou numa pasta do PC. Sem índices tudo funciona na mesma,
 só com os nomes curtos e mais devagar nas pastas muito grandes.
 
 `fontes/` tem o código de tudo o que vai no cartão (navegador, GO*, PENTA, SOMNAV, NAVPT3, plugin MOD,

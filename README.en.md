@@ -287,7 +287,9 @@ instantly. `cartao.py` **does not touch** names or order and **does not guess th
    If on the Tang the browser shows up black and white, with short names, it is the esxDOS one: Bob Fossil's
    `SYS/NMI.SYS` is missing (section 2, step 3), or the `cartao/` folder did not go on top.
 
-It can be run again whenever games are added (it rebuilds the indexes). Without indexes everything still
+It can be run again whenever games are added (it rebuilds the indexes). Indexes are only valid on the
+card they were made on (copied to another one, the 8.3 names may change): `--limpar --fazer` deletes them
+all, on the card or in a folder on the PC. Without indexes everything still
 works, only with short names and slower in very large folders.
 
 `fontes/` has the source of everything that goes on the card (browser, GO*, PENTA, SOMNAV, NAVPT3, MOD

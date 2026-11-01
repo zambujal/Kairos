@@ -6,6 +6,8 @@
 #
 #   python cartao.py E:\            so' mostra o que faria
 #   python cartao.py E:\ --fazer    faz
+#   python cartao.py E:\ --limpar --fazer   apaga todos os indices (_NAV): um cartao copiado de outro
+#                                         tem indices que ja' nao valem (os nomes 8.3 mudam)
 #
 # Barra de baixo do navegador hi-res:  --pasta DEMOS GAMES PT3  (ou MUSICA/PT3=PT3)
 #   ou no config.ini ao lado deste (seccao [pastas])
@@ -58,8 +60,20 @@ def main():
     ap.add_argument('--fazer', action='store_true')
     ap.add_argument('--pasta', nargs='+', action='extend', default=[], help='pastas da barra de baixo do navegador')
     ap.add_argument('--normal', action='store_true', help='nomes de 17 letras (navegador de 32 colunas)')
+    ap.add_argument('--limpar', action='store_true', help="apaga todos os indices (_NAV) do cartao e mais nada")
     a = ap.parse_args()
     if not os.path.isdir(a.cartao): sys.exit('nao existe: %s' % a.cartao)
+    if a.limpar:                                    # os indices de outro cartao nao valem neste (os nomes 8.3 mudam)
+        import shutil
+        n = 0
+        for raiz, subs, _ in os.walk(a.cartao):
+            for s in list(subs):
+                if s.upper() == '_NAV':
+                    if a.fazer: shutil.rmtree(os.path.join(raiz, s))
+                    print(('apagado: ' if a.fazer else 'apagava: ') + os.path.join(raiz, s)); n += 1
+                    subs.remove(s)
+        print('%d pastas _NAV%s' % (n, '' if a.fazer else ' (nada apagado: repete com --fazer)'))
+        return
     le_config()
     if not a.normal and CFG.has_option('opcoes', 'normal'):
         a.normal = CFG.getboolean('opcoes', 'normal')

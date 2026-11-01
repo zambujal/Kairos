@@ -57,7 +57,14 @@ nao cria pastas. Precisa de Python 3. Com o cartao no PC, na raiz dele:
     python3 cartao.py . --fazer          (Windows: python cartao.py . --fazer)
 
 Sem --fazer so' mostra o que faria. Repete-se sempre que se juntam ou tiram ficheiros (so' reescreve
-os indices que mudaram). Entra tudo, menos BIN, SYS, TMP e System Volume Information da raiz; em cada
+os indices que mudaram).
+
+Os indices so' valem no cartao onde foram feitos: copiados para outro cartao, os nomes 8.3 podem mudar.
+Para os tirar todos (no cartao ou numa pasta do disco do PC):
+
+    python3 cartao.py . --limpar --fazer
+
+e no cartao novo faz-se outra vez "python3 cartao.py . --fazer". Entra tudo, menos BIN, SYS, TMP e System Volume Information da raiz; em cada
 pasta aparecem primeiro as pastas ([up] para a de cima e, mais abaixo, [raiz]) e depois os ficheiros,
 por ordem. A maquina ([48K], [128K]...) so' aparece se ja' estiver no nome do ficheiro.
 
