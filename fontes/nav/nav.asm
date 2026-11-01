@@ -4409,6 +4409,20 @@ CMc                 ld a,(hl)
                     inc b
                     jr CMc
 
+                    IF HIRES
+; v58: tecla 2 (so' do rato) = a pasta de cima
+SobePasta           ld a,(Foco)
+                    cp 2
+                    ret nc
+                    ld a,(Cwd+1)        ; na raiz nao ha' de cima
+                    or a
+                    ret z
+                    jp VOpai
+                    ENDIF
+TxtRaiz             db "raiz",0         ; v62: estes passaram para a 1.a parte (faltava lugar na 2.a)
+PAesc               db 0
+PAconta             db 0
+
 LNavIdx             equ 8+58+6*58
 FimCodigo
                     assert FimCodigo <= 09FFCh  ; 9FFCh-9FFFh: o filtro na pagina 12 (GFescreve)
@@ -4843,14 +4857,6 @@ RTesq0
                     ld (Foco),a
 RTe13               ld a,13
                     jr RTclq
-; v58: tecla 2 (so' do rato) = a pasta de cima
-SobePasta           ld a,(Foco)
-                    cp 2
-                    ret nc
-                    ld a,(Cwd+1)        ; na raiz nao ha' de cima
-                    or a
-                    ret z
-                    jp VOpai
 ; A = deslocamento com sinal: HL += 2 x A; RatoMexeu = 1 se A /= 0
 RTsoma              or a
                     jr z,RTs0
@@ -5140,7 +5146,6 @@ DT2cabe             ld d,0
                     ld e,DTCOL+4
                     ld b,DTLARG
                     jp Escreve
-TxtRaiz             db "raiz",0
 
 ; v44: acabou de ligar (TIMEX 2048) e o /SYS/NAV.CFG tem outra maquina: MaqAnt = essa (0 = nada)
 VeAnt               call LeCfg
@@ -5167,8 +5172,11 @@ PerguntaAnt         ld hl,MaqAnt
                     or c
                     ret nz
                     push bc
-                    ld hl,TxtAnterior
-                    call MensagemSoEcra
+                    xor a               ; v62: a pergunta com [SIM] NAO: setas mudam, ENTER escolhe; rato: clique
+                    ld (PAesc),a        ; esquerdo sim, direito nao; 3 s sem tecla = sim
+                    ld a,160            ; 3,2 s (e a piscar a comecar a' vista)
+                    ld (PAconta),a
+                    call PAmostra
 PAsolta             halt                ; primeiro larga a tecla do NMI
                     call Varre
                     or a
@@ -5177,32 +5185,75 @@ PAsolta             halt                ; primeiro larga a tecla do NMI
                     IF HIRES
                     ld (RatoClq),a
                     ENDIF
-PAesp               call LeTecla
+PAesp               call LeTecla        ; (um HALT por chamada: 150 = 3 s)
                     or a
-                    jr z,PAesp
+                    jr nz,PAkey
+                    ld hl,PAconta
+                    dec (hl)
+                    jr z,PAsim
+                    ld a,(hl)           ; a piscar: de 16 em 16 quadros
+                    and 15
+                    call z,PAmostra
+                    jr PAesp
+PAkey
                     IF HIRES
-                    ld hl,RatoClq       ; v57: um clique so' conta em cima da pergunta (a linha 23)
+                    ld hl,RatoClq
                     ld c,(hl)
                     ld (hl),0
                     dec c
                     jr nz,PAtec
-                    push af
-                    call RTonde
-                    pop bc              ; B = a tecla (o C da maquina esta' na pilha)
-                    jr c,PAesp
-                    ld a,d
-                    cp 23
-                    jr nz,PAesp
-                    ld a,b
+                    cp 13               ; clique esquerdo = sim, direito (ESPACO) = nao
+                    jr z,PAsim
+                    jr PAnaoP
 PAtec
                     ENDIF
-                    pop bc
+                    cp '5'
+                    jr z,PAesq
+                    cp '8'
+                    jr z,PAdir
                     cp 13
-                    jr nz,PAnao
+                    jr z,PAent
+                    cp ' '
+                    jr z,PAnaoP
+                    cp 3
+                    jr z,PAnaoP
+                    jr PAesp
+PAesq               xor a
+                    jr PAmud
+PAdir               ld a,1
+PAmud               ld (PAesc),a
+                    ld a,160            ; mexeu: mais 3 s
+                    ld (PAconta),a
+                    call PAmostra
+                    jr PAesp
+PAent               ld a,(PAesc)
+                    or a
+                    jr nz,PAnaoP
+PAsim               pop bc
                     ld a,1
                     ld (SemPergunta),a
                     ld a,b
                     jp TrocaMaquina
+; a pergunta na linha de baixo; a resposta escolhida entre [ ], a piscar (PAconta bit 4)
+PAmostra            ld hl,TxtAnterior
+                    ld de,MsgEstado
+                    ld bc,LTXTANT
+                    ldir
+                    ld a,(PAconta)
+                    and 16
+                    jp nz,DesenhaEstado
+                    ld hl,MsgEstado+PB0
+                    ld de,6
+                    ld a,(PAesc)
+                    or a
+                    jr z,PAm1
+                    add hl,de
+PAm1                ld (hl),'['
+                    ld e,4
+                    add hl,de
+                    ld (hl),']'
+                    jp DesenhaEstado
+PAnaoP              pop bc
 PAnao               call GravaCfg       ; o Filtro e' o TIMEX 2048 (a maquina verdadeira)
                     xor a
                     ld (MsgEstado),a
@@ -6107,10 +6158,13 @@ TxtReinicia         db "Mudar a maquina? ENTER sim",0
 TxtReinicia         db "Reiniciar? ENTER sim",0
                     ENDIF
                     IF HIRES
-TxtAnterior         db "Voltar a' maquina anterior? ENTER sim",0
+TxtAnterior         db "Voltar a maquina anterior?   SIM   NAO ",0
+PB0                 equ 28              ; o '[' do SIM
                     ELSE
-TxtAnterior         db "Anterior? ENTER sim",0
+TxtAnterior         db "Anterior?  SIM   NAO ",0
+PB0                 equ 10
                     ENDIF
+LTXTANT             equ $-TxtAnterior
 TxtMenuTit          db "  ESCOLHER A MAQUINA",0
 TxtMenuAj           db "ENTER muda   SPC volta",0  ; v37: sem a maquina de arranque (D)
 TabMenu             db "TIMEX 2048",0,0
