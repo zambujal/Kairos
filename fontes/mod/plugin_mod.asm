@@ -14,6 +14,8 @@
 ; v6 (2026-10-29): a posicao (60h) so' conta depois de o GS a por a 0 (a cancao nova a andar): logo a seguir
 ;   ao 31h a primeira leitura podia trazer a posicao do modulo anterior e a seguinte (0) parecia "voltou para
 ;   tras" -> o 2.o MOD acabava em 1-2 s. Espera ate' 2 s pelo 0; e no fim diz em que posicao acabou (mensagem).
+; v7 (2026-11-01): a tocar, o N passa ao MOD seguinte da pasta (como no fim). Com o NAV v45 o navegador
+;   hi-res fica no ecra enquanto o MOD toca (antes ficava tudo branco).
 ; (Timorphius, 2026-10-26)
 
                     include "esxdos.inc"
@@ -153,6 +155,8 @@ SemLim              ld (Limite),hl
 Toca                ld de,4000          ; ~50 ms a 3,5 MHz (o plugin corre com DI)
 TEsp                ld a,7Fh            ; BREAK: Caps Shift (FEFE bit 0) + Espaco (7FFE bit 0)
                     in a,(0FEh)
+                    bit 3,a             ; (v7) N (7FFE bit 3): o MOD seguinte
+                    jr z,Seguinte
                     rra
                     jr c,TSemBrk
                     ld a,0FEh
@@ -190,7 +194,7 @@ Acabou              call MostraFim      ; (v6) escreve "NNN MMM" (posicao final,
                     ld a,(Opc)          ; o seguinte (bit 1) ou so' parar
                     and 2
                     jr z,Brk
-                    ld a,32h
+Seguinte            ld a,32h
                     call Comando
                     pop iy
                     pop ix

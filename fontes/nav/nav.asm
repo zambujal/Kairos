@@ -2355,7 +2355,8 @@ COsemmsg            call SaiNav         ; o plugin abre o ficheiro pelo nome: pa
                     ld a,(Iguardado)
                     ld i,a
                     IF HIRES
-                    call EcraPlugin     ; ecra normal e o F3 da maquina para o plugin
+                    call EPveMod        ; v45: o MOD (GS) nao desenha: o navegador fica a ver-se
+                    call nz,EcraPlugin  ; ecra normal e o F3 da maquina para o plugin
                     ENDIF
                     call LimpaLivre     ; v33: a RAM livre do topo a zero, como depois de ligar
                     call TLanca
@@ -4575,6 +4576,19 @@ LLini               ex de,hl            ; DE = inicio
                     inc de
                     ldir
                     ret
+                    IF HIRES
+; v45: Z = o plugin e' o MOD (o "/BIN/BPLUGINS/MOD"): fica o ecra do navegador enquanto toca
+EPveMod             ld hl,(TPlugin+14)
+                    ld de,"OM"          ; "MO" (little-endian)
+                    or a
+                    sbc hl,de
+                    ret nz
+                    ld hl,(TPlugin+16)
+                    ld de,"D"           ; "D",0
+                    or a
+                    sbc hl,de
+                    ret
+                    ENDIF
 ; v44: acabou de ligar (TIMEX 2048) e o /SYS/NAV.CFG tem outra maquina: MaqAnt = essa (0 = nada)
 VeAnt               call LeCfg
                     ld hl,Filtro
