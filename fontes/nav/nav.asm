@@ -4783,12 +4783,12 @@ RTini               call RTle           ; A = X, E = Y, D = botoes do Kempston
                     call RTlim
                     ld (RatoY),hl
                     pop de
+                    ld a,(RatoMexeu)    ; v56: primeiro escolhe a linha (o RTpoe apaga o RatoMexeu: antes o
+                    or a                ; RTpaira nunca corria e o clique ficava na linha de antes)
+                    call nz,RTpaira
                     ld a,(RatoMexeu)
                     or a
                     call nz,RTpoe
-                    ld a,(RatoMexeu)
-                    or a
-                    call nz,RTpaira
                     ; os botoes (0 = carregado): bit 1 esquerdo, bit 0 direito; so' no carregar
                     ld a,(RatoBt)
                     ld c,a
@@ -4807,7 +4807,8 @@ RTsem               ld a,2
                     ld (RatoIni),a
                     xor a
                     ret
-RTesq               IF CAML
+RTesq               call RTpaira        ; v56: o clique escolhe a linha debaixo do ponteiro e depois ENTER
+                    IF CAML
                     call RTcanto        ; o canto: troca a camada L / hi-res
                     ld a,0
                     ret z
