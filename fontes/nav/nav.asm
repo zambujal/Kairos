@@ -23,6 +23,11 @@
                     IFNDEF HIRES
                     DEFINE HIRES 0
                     ENDIF
+; v51: CAML = 1 (com HIRES = 1): /BIN/NAVL.BIN, o NAVHR com o ecra hi-res copiado para a camada L do core
+; (72+, portos EC3B / ED3B), 512x384 ao meio do quadrado do Spectrum. O BROWSE.BIN usa-o sem o ESP.
+                    IFNDEF CAML
+                    DEFINE CAML 0
+                    ENDIF
 
 TRAMP               equ 0A000h
 CODE2               equ 0A3E0h              ; 2.a parte do codigo: A3E0h-BBE1h (o NMI.SYS apaga de BBE2h)
@@ -261,6 +266,9 @@ INsai               pop af
 
 ; A = tecla, com repeticao (0 = nada de novo)
 LeTecla             halt
+                    IF CAML
+                    call Espelho        ; v51: as linhas que mudaram vao para a camada L
+                    ENDIF
                     xor a               ; v22: no ciclo principal a musica pode tocar (interrupcao)
                     ld (MusPara),a
                     call Varre
@@ -862,6 +870,9 @@ AMmeio              ld (Esta128),a
 ; NMI do esxDOS faz com o .snapload). O .go nao volta (arranca a maquina); se voltar foi erro:
 ; sai do navegador e fica a mensagem do .go no ecra.
 ExecGo              push ix
+                    IF CAML
+                    call CamDesliga
+                    ENDIF
                     call MusCala
                     call SaiNav
                     di
@@ -1306,6 +1317,9 @@ RI68df              ld (C68df+1),a
                     ld hl,Codigo2068
                     ld bc,LCodigo2068
 RIcorre             di
+                    IF CAML
+                    call CamDesliga
+                    ENDIF
                     push hl
                     push bc
                     ld hl,F3Seguro      ; v23l: o OUT do F3 corre em F000h (fora da RAM de video)
@@ -2358,6 +2372,9 @@ COsemmsg            call SaiNav         ; o plugin abre o ficheiro pelo nome: pa
                     ld a,(Iguardado)
                     ld i,a
                     IF HIRES
+                    IF CAML
+                    call CamDesliga     ; v51: o relogio dos plugins de musica fica no hi-res
+                    ENDIF
                     call EPveMod        ; v45: o MOD (GS) nao desenha: o navegador fica a ver-se
                     call nz,EcraPlugin  ; ecra normal e o F3 da maquina para o plugin
                     ENDIF
@@ -3769,10 +3786,17 @@ EntraHires          ld a,(Filtro)
                     call ValorF3
                     and 0DFh
                     out (0F3h),a
+                    IF CAML
+                    jp CamLiga          ; v51: a camada L (outra vez) ligada e toda por copiar
+                    ELSE
                     ret
+                    ENDIF
 
 ; FF que o programa tinha (ou 0 se a FF nao era do Timex), depois o F3 da maquina
-SaiEcra             call SEf3
+SaiEcra             IF CAML
+                    call CamDesliga
+                    ENDIF
+                    call SEf3
                     ld a,(MudouFF)
                     or a
                     jr z,SEff
@@ -3791,7 +3815,10 @@ SEf3                pop bc              ; F3 sem o bit 5 (a FF tem de aceitar) e
                     ret
 
 ; antes de um plugin: ecra normal limpo, a FF so' com o bit 7 e o F3 da maquina
-EcraPlugin          call LimpaEcra      ; CLS: os dois ecras (4000h e 6000h) limpos,
+EcraPlugin          IF CAML
+                    call CamDesliga
+                    ENDIF
+                    call LimpaEcra      ; CLS: os dois ecras (4000h e 6000h) limpos,
                     ld hl,5800h         ; atributos como o BASIC (papel branco, tinta preta)
                     ld de,5801h
                     ld bc,2FFh
@@ -4155,8 +4182,14 @@ VHteste
 VHnao               ld a,20h            ; esconde outra vez (o AcertaMaquina poe o F3 todo)
                     out (0F3h),a
                     ret nz
-VHtem               ld hl,TxtNavHR
-                    ld de,BUF
+VHtem               ld bc,0EC3Bh        ; v51: sem o ESP (IN EC3B bit 7 a 0, core 72+): primeiro o NAVL.BIN
+                    in a,(c)
+                    rla
+                    jr c,VHhr
+                    ld hl,TxtNavL
+                    call VHle           ; (so' volta se nao deu)
+VHhr                ld hl,TxtNavHR
+VHle                ld de,BUF
                     ld bc,CODE2MAX-84D0h
                     call LeFich
                     ret c
@@ -4193,6 +4226,7 @@ VHlen               equ $-VHcod
 VHsitio             equ 5B00h-VHlen
                     assert VHlen <= 17
 TxtNavHR            db "/BIN/NAVHR.BIN",0
+TxtNavL             db "/BIN/NAVL.BIN",0
                     ENDIF
 
 ; v25 (2026-10-22): ordem do ESP32 (caixa de correio do Timorphius, portos EE3Bh / EF3Bh).
@@ -4616,6 +4650,268 @@ EPv2                ld hl,(TPlugin+16)
                     or a
                     sbc hl,de
                     ret
+                    IF CAML
+; ---------------------------------------------------------------- v51: a camada L (core 72+)
+; O ecra hi-res (64 x 24 letras de 8x8) vai para a camada L a 1 ponto por ponto e com cada linha de pontos
+; duas vezes: 512x384, ao meio do quadrado do Spectrum (768x576), que fica todo com a cor do papel.
+; Em cada LeTecla ve-se 2 linhas de letras (soma de Fletcher dos 512 bytes) e copia-se no maximo 1 que mudou.
+CPSEL               equ 0EC3Bh
+CPDAT               equ 0ED3Bh
+CQUAD               equ 600000h + 72 * 320 + 64     ; o quadrado: ponto 256, linha 72, 192 bytes x 576
+CBASE               equ 600000h + 168 * 320 + 96    ; as letras: ponto 384, linha 168
+CTINTA              equ (HIRESFF >> 3) & 7          ; as cores do hi-res (a FF)
+CPAPEL              equ 7 - CTINTA
+; A = registo, E = valor (nao mexe no BC)
+CamReg              push bc
+                    ld bc,CPSEL
+                    out (c),a
+                    ld bc,CPDAT
+                    out (c),e
+                    pop bc
+                    ret
+CamEspera           push bc             ; (mexe no HL e no A)
+                    ld bc,CPSEL
+                    ld hl,0             ; ~0,7 s no maximo (nao fica para sempre se o core nao tiver isto)
+CEs                 in a,(c)
+                    rra
+                    jr c,CEf
+                    dec hl
+                    ld a,h
+                    or l
+                    jr nz,CEs
+CEf                 pop bc
+                    ret
+; HL = os bits 15-0, A = os bits 22-16 do ponteiro; depois o rectangulo de DE bytes com passo 320
+CamPtr              push af
+                    push de
+                    push hl
+                    call CamEspera
+                    pop hl
+                    ld e,l
+                    ld a,30h
+                    call CamReg
+                    ld e,h
+                    ld a,31h
+                    call CamReg
+                    pop de
+                    pop af
+                    push de
+                    ld e,a
+                    ld a,32h
+                    call CamReg
+                    pop de
+                    ld a,26h
+                    call CamReg
+                    ld e,d
+                    ld a,27h
+                    call CamReg
+                    ld e,320 & 255
+                    ld a,28h
+                    call CamReg
+                    ld e,320 >> 8
+                    ld a,29h
+                    jp CamReg
+CamLiga             ld a,40h            ; desligada enquanto se prepara
+                    ld e,0
+                    call CamReg
+                    ld hl,CamCores
+                    ld b,9
+                    ld a,41h
+                    ld e,(hl)
+                    call CamReg         ; (o registo avanca sozinho: so' o 1.o se escolhe)
+                    dec b
+                    push bc
+                    ld bc,CPDAT
+CLc                 inc hl
+                    ld a,(hl)
+                    out (c),a
+                    pop de
+                    dec d
+                    push de
+                    jr nz,CLc
+                    pop bc
+                    ld a,4Eh
+                    ld e,0
+                    call CamReg
+                    ld hl,CQUAD & 0FFFFh   ; o quadrado todo com o papel (cor 1), pelo core
+                    ld a,CQUAD >> 16
+                    ld de,192
+                    call CamPtr
+                    ld a,3Ch
+                    ld e,55h
+                    call CamReg
+                    ld e,(576 * 192 / 4) & 255
+                    ld a,3Dh
+                    call CamReg
+                    ld e,(576 * 192 / 4) >> 8
+                    ld a,3Eh
+                    call CamReg
+                    ld hl,CamVal        ; todas as linhas por copiar
+                    ld b,24
+CLv                 ld (hl),0
+                    inc hl
+                    djnz CLv
+                    ld a,40h
+                    ld e,1
+                    call CamReg
+                    ld a,1
+                    ld (CamOn),a
+                    ret
+CamDesliga          ld a,(CamOn)
+                    or a
+                    ret z
+                    xor a
+                    ld (CamOn),a
+                    ld a,40h
+                    ld e,0
+                    jp CamReg
+; HL = o 1.o byte (banco 4000h) da linha de letras A
+CamLinha            ld l,a
+                    and 18h
+                    or 40h
+                    ld h,a
+                    ld a,l
+                    and 7
+                    rrca
+                    rrca
+                    rrca
+                    ld l,a
+                    ret
+Espelho             ld a,(CamOn)
+                    or a
+                    ret z
+                    ld b,2              ; 2 linhas vistas
+ESv                 push bc
+                    ld a,(CamProx)
+                    call CamLinha
+                    ld de,0             ; Fletcher: E = soma, D = soma das somas
+                    ld c,8
+ESy                 push hl
+                    ld b,32
+ESb1                ld a,(hl)
+                    add a,e
+                    ld e,a
+                    add a,d
+                    ld d,a
+                    inc l
+                    djnz ESb1
+                    pop hl
+                    push hl
+                    set 5,h
+                    ld b,32
+ESb2                ld a,(hl)
+                    add a,e
+                    ld e,a
+                    add a,d
+                    ld d,a
+                    inc l
+                    djnz ESb2
+                    pop hl
+                    inc h
+                    dec c
+                    jr nz,ESy
+                    ld a,(CamProx)      ; igual e ja' copiada: a seguinte
+                    ld c,a
+                    ld b,0
+                    ld hl,CamVal
+                    add hl,bc
+                    ld a,(hl)
+                    or a
+                    ld (hl),1
+                    ld hl,CamSoma
+                    add hl,bc
+                    add hl,bc
+                    jr z,ESnova
+                    ld a,(hl)
+                    cp e
+                    jr nz,ESnova
+                    inc hl
+                    ld a,(hl)
+                    cp d
+                    jr z,ESigual
+                    dec hl
+ESnova              ld (hl),e
+                    inc hl
+                    ld (hl),d
+                    ld a,(CamProx)
+                    call CamCopia
+                    call ESprox
+                    pop bc
+                    ret
+ESigual             call ESprox
+                    pop bc
+                    djnz ESv
+                    ret
+ESprox              ld a,(CamProx)
+                    inc a
+                    cp 24
+                    jr c,ESp1
+                    xor a
+ESp1                ld (CamProx),a
+                    ret
+; copia a linha de letras A: as 8 linhas de pontos, cada uma duas vezes (64 bytes = 512 pontos a 1 bit)
+CamCopia            push af
+                    ld l,a              ; o ponteiro: CBASE + A x 16 x 320 = CBASE + (A x 20) << 8
+                    ld h,0
+                    add hl,hl
+                    add hl,hl
+                    ld d,h
+                    ld e,l
+                    add hl,hl
+                    add hl,hl
+                    add hl,de           ; HL = A x 20
+                    ld a,(CBASE >> 8) & 0FFh
+                    add a,l
+                    ld d,a
+                    ld a,CBASE >> 16
+                    adc a,h
+                    ld e,CBASE & 0FFh
+                    ex de,hl            ; HL = os bits 15-0
+                    ld de,128
+                    call CamPtr
+                    ld a,36h            ; tinta 3, papel 1
+                    ld e,0Dh
+                    call CamReg
+                    ld a,35h            ; daqui em diante: 1 OUT = 8 pontos
+                    ld bc,CPSEL
+                    out (c),a
+                    pop af
+                    call CamLinha
+                    ld bc,CPDAT
+                    ld d,8
+CCy                 ld a,2
+CCd                 push af
+                    push hl
+                    ld e,32
+CCb                 ld a,(hl)           ; coluna par (4000h)
+                    out (c),a
+                    set 5,h
+                    ld a,(hl)           ; coluna impar (6000h)
+                    out (c),a
+                    res 5,h
+                    inc l
+                    dec e
+                    jr nz,CCb
+                    pop hl
+                    pop af
+                    dec a
+                    jr nz,CCd
+                    inc h
+                    dec d
+                    jr nz,CCy
+                    ret
+NIVEL               macro c
+                    db ((c >> 1) & 1) * 0D7h, ((c >> 2) & 1) * 0D7h, (c & 1) * 0D7h
+                    endm
+CamCores            NIVEL CPAPEL        ; cor 1 = o papel, 2 = o papel, 3 = a tinta (R, G, B)
+                    NIVEL CPAPEL
+                    NIVEL CTINTA
+CamOn               db 0
+CamProx             db 0
+CamVal              ds 24
+CamSoma             ds 48
+                    ENDIF
+
 ; v44: acabou de ligar (TIMEX 2048) e o /SYS/NAV.CFG tem outra maquina: MaqAnt = essa (0 = nada)
 VeAnt               call LeCfg
                     ld hl,Filtro
