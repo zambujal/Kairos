@@ -4187,13 +4187,7 @@ VHteste
 VHnao               ld a,20h            ; esconde outra vez (o AcertaMaquina poe o F3 todo)
                     out (0F3h),a
                     ret nz
-VHtem               ld bc,0EC3Bh        ; v51: sem o ESP (IN EC3B bit 7 a 0, core 72+): primeiro o NAVL.BIN
-                    in a,(c)
-                    rla
-                    jr c,VHhr
-                    ld hl,TxtNavL
-                    call VHle           ; (so' volta se nao deu)
-VHhr                ld hl,TxtNavHR
+VHtem               ld hl,TxtNavHR      ; v54: sempre o NAVHR (o NAVL / camada L posto de parte)
 VHle                ld de,BUF
                     ld bc,CODE2MAX-84D0h
                     call LeFich
@@ -4231,7 +4225,6 @@ VHlen               equ $-VHcod
 VHsitio             equ 5B00h-VHlen
                     assert VHlen <= 17
 TxtNavHR            db "/BIN/NAVHR.BIN",0
-TxtNavL             db "/BIN/NAVL.BIN",0
                     ENDIF
 
 ; v25 (2026-10-22): ordem do ESP32 (caixa de correio do Timorphius, portos EE3Bh / EF3Bh).

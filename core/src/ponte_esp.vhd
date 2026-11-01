@@ -279,21 +279,6 @@ architecture rtl of ponte_esp is
   signal ptr_y : std_logic_vector(9 downto 0) := (others => '0');
   signal ptr_on : std_logic := '0';   -- (70) registo escolhido pelo EC3B
   signal zc_est : std_logic_vector(7 downto 0);
-  -- (72) o Z80 manda pontos a 1 bit (35: 8 pontos -> 2 bytes com as cores do 36) e enche (3C valor,
-  -- 3D/3E quantos x 4 bytes); os bytes entram na fila sozinhos, um por ciclo
-  signal ex_b, ex_cor, fl_v, fl_lo : std_logic_vector(7 downto 0) := (others => '0');
-  signal ex_n : integer range 0 to 2 := 0;
-  signal fl_n : unsigned(17 downto 0) := (others => '0');
-  function to_std(b : boolean) return std_logic is begin if b then return '1'; else return '0'; end if; end function;
-  function expande(nb : std_logic_vector(3 downto 0); c : std_logic_vector(7 downto 0)) return std_logic_vector is
-    variable r : std_logic_vector(7 downto 0);
-  begin
-    for i in 0 to 3 loop
-      if nb(3 - i) = '1' then r(7 - 2 * i downto 6 - 2 * i) := c(3 downto 2);    -- tinta
-      else r(7 - 2 * i downto 6 - 2 * i) := c(1 downto 0); end if;              -- papel
-    end loop;
-    return r;
-  end function;
   -- UART
   signal ut, ur : rx_t;                                -- ut: Z80 -> ESP, ur: ESP -> Z80
   signal utw, utr, urw, urr, ut_n, ur_n : unsigned(6 downto 0) := (others => '0');
@@ -318,8 +303,7 @@ begin
   z_q     <= zc_est when z_cam = '1' else rep(to_integer(zri)) when z_sel = '1' else mb_est;
   -- (70) IN EC3B / ED3B: bit 0 = a fila vazia (tudo escrito), bit 1 = cheia, bit 2 = a imagem da camada L
   -- que o HDMI mostra (como o 40 bit 2), bit 7 = ESP presente (como o EE3B)
-  zc_est  <= vivo & "0000" & at_s(1) & cheia & (vazia and b_vazia and not b_pend and not b_ok and not pk_v and not o_v and
-             to_std(ex_n = 0) and to_std(fl_n = 0));
+  zc_est  <= vivo & "0000" & at_s(1) & cheia & (vazia and b_vazia and not b_pend and not b_ok and not pk_v and not o_v);
   ut_n    <= utw - utr;
   ur_n    <= urw - urr;
   u_q     <= ur(to_integer(urr(5 downto 0))) when u_dat = '1' else
@@ -382,49 +366,21 @@ begin
       kin_s <= k_in; joy_s <= k_joy; atal_s <= k_atal; jcru_s <= k_jcru; maq_s <= k_maq; vel_s <= k_vel; ay_s <= k_ay; cs_liv_s <= cs_livres; cs_atv_s <= cs_ativa;
       zw_d <= z_wr; zr_d <= z_rd;
       if z_rd = '1' then zr_sel <= z_sel; end if;
-      -- (72) os pontos a 1 bit e o encher entram na fila quando ha' lugar (o Z80 nao escreve no 34 entretanto)
-      if cheia = '0' then
-        if ex_n = 2 then
-          fila(to_integer(wp(5 downto 0))) <= "00" & expande(ex_b(7 downto 4), ex_cor); wp <= wp + 1; ex_n <= 1;
-        elsif ex_n = 1 then
-          fila(to_integer(wp(5 downto 0))) <= "00" & expande(ex_b(3 downto 0), ex_cor); wp <= wp + 1; ex_n <= 0;
-        elsif fl_n /= 0 then
-          fila(to_integer(wp(5 downto 0))) <= "00" & fl_v; wp <= wp + 1; fl_n <= fl_n - 1;
-        end if;
-      end if;
       if z_wr = '1' and zw_d = '0' and z_cam = '1' then
-        -- (70) a camada L pelo Z80, sem o ESP: OUT EC3B,r escolhe o registo; OUT ED3B,v escreve-o (como o
-        -- ESP, so' estes: 26-29 rectangulo, 30-32 ponteiro, 34 SDRAM pela fila, 40, 41-49 cores, 4E);
-        -- o registo avanca, menos no 34
+        -- (74) pelo Z80 (OUT EC3B,r escolhe o registo; OUT ED3B,v escreve-o e o registo avanca) so' o ponteiro
+        -- do rato: 15/16 x, 17/18 y, 19 bit 0 ligado. A camada L pelo Z80 (71-73) foi tirada.
         if z_sel = '0' then
           zc_reg <= z_d;
         else
           case zc_reg is
-            when x"26" => r_larg(7 downto 0) <= unsigned(z_d); r_cnt <= (others => '0');
-            when x"27" => r_larg(15 downto 8) <= unsigned(z_d); r_cnt <= (others => '0');
-            when x"28" => r_passo(7 downto 0) <= unsigned(z_d);
-            when x"29" => r_passo(15 downto 8) <= unsigned(z_d);
-            when x"30" => ptr(7 downto 0)   <= unsigned(z_d); r_lin(7 downto 0) <= unsigned(z_d); r_cnt <= (others => '0');
-            when x"31" => ptr(15 downto 8)  <= unsigned(z_d); r_lin(15 downto 8) <= unsigned(z_d); r_cnt <= (others => '0');
-            when x"32" => ptr(22 downto 16) <= unsigned(z_d(6 downto 0)); r_lin(22 downto 16) <= unsigned(z_d(6 downto 0)); r_cnt <= (others => '0');
-            when x"34" => if cheia = '0' then fila(to_integer(wp(5 downto 0))) <= "00" & z_d; wp <= wp + 1; end if;
             when x"15" => ptr_x(7 downto 0) <= z_d;
             when x"16" => ptr_x(10 downto 8) <= z_d(2 downto 0);
             when x"17" => ptr_y(7 downto 0) <= z_d;
             when x"18" => ptr_y(9 downto 8) <= z_d(1 downto 0);
             when x"19" => ptr_on <= z_d(0);
-            when x"35" => ex_b <= z_d; ex_n <= 2;
-            when x"36" => ex_cor <= z_d;
-            when x"3C" => fl_v <= z_d;
-            when x"3D" => fl_lo <= z_d;
-            when x"3E" => fl_n <= unsigned(z_d) & unsigned(fl_lo) & "00";
-            when x"40" => r40 <= z_d(4 downto 0);
-            when x"4E" => r4e <= z_d(2 downto 0);
-            when x"41" | x"42" | x"43" | x"44" | x"45" | x"46" | x"47" | x"48" | x"49" =>
-              cores(to_integer(unsigned(zc_reg)) - 16#41#) <= z_d;
             when others => null;
           end case;
-          if zc_reg /= x"34" and zc_reg /= x"35" then zc_reg <= std_logic_vector(unsigned(zc_reg) + 1); end if;
+          zc_reg <= std_logic_vector(unsigned(zc_reg) + 1);
         end if;
       elsif z_wr = '1' and zw_d = '0' then
         if z_sel = '1' then
