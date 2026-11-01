@@ -4527,6 +4527,11 @@ TRet                db 0
 TNav                db 0
 TDE                 dw 0
 TParam              db 0,1
+                    IF HIRES
+                    db 'H'              ; v47: o plugin MOD (v8) sabe que o ecra e' o hi-res (o relogio)
+                    ELSE
+                    db 0
+                    ENDIF
 TSettings           db 0Fh,0Fh,1,0Fh,0Eh,28h,0,0,0,'7','6','5','8',13
 TPlugin             db "/BIN/BPLUGINS/",0,0,0,0
 TxtP68              db "PLUG2068"
@@ -5516,9 +5521,9 @@ TxtAjuda            db "ENT corre SPC volta",0
                     ENDIF
 TxtACorrer          db "A carregar...",0
                     IF HIRES
-TxtMod              db "MOD: N seguinte  BREAK para",0
+TxtMod              db "MOD: P pausa N seguinte B anterior BREAK para",0
                     ELSE
-TxtMod              db "MOD: N segue BRK sai",0
+TxtMod              db "MOD P pausa N/B muda",0
                     ENDIF
 TxtSemExt           db "Sem extensao",0
 TxtSemPlugin        db "Sem plugin para isto",0
