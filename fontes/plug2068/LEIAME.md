@@ -15,7 +15,7 @@ maneira de carregar. Por isso, no TC2068, o navegador procura primeiro `/BIN/PLU
 É o plugin TAP do Bob Fossil com uma alteração pequena:
 
 - em 8071h, os 3 bytes `XOR A / RST 8 / DB 90h` (o auto-load do esxDOS) passam a `JP 8B31h`;
-- no fim do ficheiro (8B31h) junta-se o `stub68` (350 bytes, código nosso, `stub68.asm`).
+- no fim do ficheiro (8B31h) junta-se o `stub68` (331 bytes, código nosso, `stub68.asm`).
 
 O `stub68` vê em que máquina está (CHANS = 6840h no TC2068):
 
@@ -61,7 +61,7 @@ another way of loading. So, in TC2068 mode, the browser first looks for `/BIN/PL
 Bob Fossil's TAP plugin with a small change:
 
 - at 8071h, the 3 bytes `XOR A / RST 8 / DB 90h` (the esxDOS auto-load) become `JP 8B31h`;
-- at the end of the file (8B31h) the `stub68` is appended (350 bytes, our own code, `stub68.asm`).
+- at the end of the file (8B31h) the `stub68` is appended (331 bytes, our own code, `stub68.asm`).
 
 The `stub68` checks the machine (CHANS = 6840h on the TC2068):
 

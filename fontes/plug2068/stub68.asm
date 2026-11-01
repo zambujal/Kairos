@@ -1,7 +1,8 @@
 ; Acrescento ao plugin TAP do Bob Fossil (entra em 8071h no lugar de XOR A / RST 8 / DB 90h).
 ; Spectrum: o auto-load do esxDOS, como no original.
-; ZX 128K do NAV (o menu da Sinclair, .go128 -divmenu): abre o TAP, faz reset para o menu e pede ao core um ENTER
-;   2 s depois (registo ZXUNO A5h): entra o Tape Loader e carrega. Vale no menu, no BASIC 128 e a meio de um jogo.
+; ZX 128K do NAV (o menu da Sinclair, .go128 -divmenu): abre o TAP e escreve no registo ZXUNO A5h: o core faz o reset
+;   (o do botao) quando o NMI acabar e carrega no ENTER 2 s depois: o Tape Loader carrega. Vale no menu, no BASIC 128 e
+;   a meio de um jogo (core 69p).
 ; TC2068 (CHANS = 6840h): o auto-load do esxDOS nao serve (reinicia com o ROM do 48K).
 ;   O NMI guardou a RAM 4000h-FFFFh nas paginas 5-10 do DivMMC e repoe-na a' saida:
 ;   escreve-se LOAD "" na linha de edicao dessa copia e deixa-se um ENTER pendente
@@ -113,26 +114,16 @@ SoAbre      xor a
             ld a,11h            ; OK + mensagem
             ld bc,TxtAberto
             ret
-Reset128    ld bc,0FC3Bh        ; ZXUNO A5h: o core carrega no ENTER daqui a 2 s, durante 0,15 s
-            ld a,0A5h
-            out (c),a
+Reset128    ld bc,0FC3Bh        ; ZXUNO A5h: o core faz o reset (o do botao) quando o NMI acabar e carrega no
+            ld a,0A5h           ; ENTER 2 s depois: no ZX 128K volta ao menu da Sinclair e o ENTER escolhe o
+            out (c),a           ; Tape Loader (o TAP fica aberto). Vale no menu, no BASIC 128 e num jogo.
             inc b
             out (c),a
-            xor a               ; pagina 0 do esxDOS em 2000h
-            out (0E3h),a
-            ld hl,(2E61h)       ; o SP do programa no NMI (o esxDOS guarda-o ai'): [AF do 0066h][PC]
-            inc hl
-            inc hl
-            xor a               ; o regresso do NMI passa a ser 0000h (na copia da RAM)
-            call PoeByte
-            inc hl
-            call PoeByte
             xor a
             out (0E3h),a
-            ld (309Ah),a        ; o 7FFD que o NMI repoe: ROM 0, banco 0
-            ld a,31h            ; OK + mensagem + 20h: o navegador sai como sempre, o esxDOS acaba o NMI
-            ld bc,TxtRst        ; e o Z80 vai para 0: no menu do 128 o 0000h desmapeia o DivMMC e a ROM 0
-            ret                 ; reinicia (o TAP fica aberto); 2 s depois o ENTER escolhe o Tape Loader
+            ld a,31h            ; OK + mensagem + 20h: o navegador sai como sempre
+            ld bc,TxtRst
+            ret
 
 ; HL = endereco da RAM do BASIC -> HL = sitio na copia (2000h-3FFFh), pagina ligada
 Mapa        ld a,h

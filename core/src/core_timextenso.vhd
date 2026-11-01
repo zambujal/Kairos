@@ -185,7 +185,7 @@ architecture rtl of core_timextenso is
   signal int_n : std_logic := '1';
   signal cpu_nmi_n : std_logic;
   signal cpu_nmi_g : std_logic;   -- (69m) o NMI que chega ao Z80
-  signal ent_on, ent_k : std_logic := '0';
+  signal ent_on, ent_k, rst_pend : std_logic := '0';
   signal nmi_fura : std_logic := '0';                     -- (69o) o NMI ja' esperou 40 ms pela ROM 1
   signal nmi_esp  : unsigned(21 downto 0) := (others => '0');                       -- (69n) ENTER automatico pedido (ZXUNO A5h)
   signal ent_t  : unsigned(26 downto 0) := (others => '0');
@@ -431,7 +431,7 @@ begin
         if a = x"FD3B" and zx_reg = x"DD" then dd1024 <= do_cpu(2); end if;
         if a = x"EFF7" then eff7b2 <= do_cpu(2); eff7b0 <= do_cpu(0); end if;
         if a = x"FD3B" and zx_reg = x"A0" and io_wr_d = '0' then gs_rst <= do_cpu(0); end if;
-        if a = x"FD3B" and zx_reg = x"A5" then ent_on <= '1'; ent_t <= (others => '0'); end if;   -- (69n) ENTER daqui a 2 s
+        if a = x"FD3B" and zx_reg = x"A5" then rst_pend <= '1'; end if;   -- (69p) reset quando o NMI acabar, depois o ENTER
         if a = x"FD3B" and zx_reg = x"A4" and carga = '1' then      -- (esp61) programa de arranque
           carga_alvo <= do_cpu(0);
           if do_cpu(7) = '1' then carga <= '0'; carga_rst <= (others => '1'); auto_on <= do_cpu(6); rap_on <= '1'; auto_t <= (others => '0'); end if;
@@ -443,6 +443,12 @@ begin
       -- (69n) o plugin do TAP no ZX 128K faz reset para o menu e pede o ENTER: 2 s depois, 0,15 s carregado
       if ent_on = '1' then
         if ent_t = 116100000 then ent_on <= '0'; else ent_t <= ent_t + 1; end if;
+      end if;
+      -- (69p) o plugin do TAP pediu o reset (A5h): quando o esxDOS se desmapear (o NMI acabou e o navegador saiu)
+      -- faz o mesmo reset do botao (Z80 e DivTIESUS, ~1,2 ms): no ZX 128K volta ao menu da Sinclair. O ENTER conta
+      -- 2 s a partir daqui.
+      if rst_pend = '1' and dv_romcs = '0' then
+        rst_pend <= '0'; carga_rst <= (others => '1'); ent_on <= '1'; ent_t <= (others => '0');
       end if;
       if carga_rst(16) = '1' then carga_rst <= carga_rst - 1; end if;   -- (esp61) ~1,2 ms de reset no fim da carga
       -- (64) NMI automatico: 20 ms, 1,5 s depois do fim da carga (o TC2048 e o esxDOS ja' arrancaram)
