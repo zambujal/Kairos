@@ -874,6 +874,9 @@ ExecGo              push ix
                     ENDIF
                     pop ix
                     ld iy,5C3Ah         ; o .go escreve com a ROM (RST 10h)
+                    push ix             ; v42: o comando tambem em HL. O NAV usa o HL em todas as chamadas ao
+                    pop hl              ; esxDOS (F_OPEN, F_CHDIR...); so' aqui ia em IX: o M_EXECCMD nao corria
+                                        ; o .go e caia sempre no RIantigo (a maneira do v23)
                     rst 08h
                     db 8Fh              ; M_EXECCMD
                     jp RIantigo         ; v24c: voltou (o esxDOS nao correu o .go, ou o .go deu erro):
