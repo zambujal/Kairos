@@ -97,11 +97,62 @@ entity camada_esp is
     lin_w  : out std_logic_vector(7 downto 0);       -- linha da janela (0..191)
     -- buffer de linhas (porto de leitura)
     lb_a   : out std_logic_vector(8 downto 0);
-    lb_q   : in  std_logic_vector(31 downto 0)
+    lb_q   : in  std_logic_vector(31 downto 0);
+    -- (73) o ponteiro do rato: uma seta 12x19 (preta e branca) por cima de tudo, com a ponta em (p_x, p_y)
+    p_on   : in  std_logic := '0';
+    p_x    : in  std_logic_vector(10 downto 0) := (others => '0');
+    p_y    : in  std_logic_vector(9 downto 0) := (others => '0')
   );
 end entity;
 
 architecture rtl of camada_esp is
+  type seta_t is array (0 to 18) of integer range 0 to 4095;
+  constant SETA_P : seta_t := (
+    2048,
+    3072,
+    2560,
+    2304,
+    2176,
+    2112,
+    2080,
+    2064,
+    2056,
+    2052,
+    2050,
+    2079,
+    2192,
+    2376,
+    2632,
+    3108,
+    2084,
+    18,
+    12);
+  constant SETA_B : seta_t := (
+    0,
+    0,
+    1024,
+    1536,
+    1792,
+    1920,
+    1984,
+    2016,
+    2032,
+    2040,
+    2044,
+    2016,
+    1888,
+    1584,
+    1072,
+    24,
+    24,
+    12,
+    0);
+  signal pon_s : std_logic_vector(1 downto 0) := "00";
+  signal pxr, pyr, pxf, pyf : integer range 0 to 2047 := 0;
+  signal pon_q, a_pin : std_logic := '0';
+  signal a_pdx : integer range 0 to 11 := 0;
+  signal a_pdy : integer range 0 to 18 := 0;
+  signal pv1, pv2, pv3 : std_logic_vector(1 downto 0) := "00";
   signal hx : integer range 0 to 4095 := 0;
   signal ly : integer range 0 to 2047 := 0;
   signal de_d, vs_d : std_logic := '0';
@@ -163,6 +214,12 @@ begin
       lig_s <= lig_s(0) & ligada; jan_s <= jan_s(0) & janela; sel_s <= sel_s(0) & sel_in;
       wsep_s <= wsep_s(0) & wsep_in; widx_s1 <= widx_in; widx_s2 <= widx_s1;
       dob_s <= dob_s(0) & dobro; w16_s <= w16_s(0) & w16;
+      pon_s <= pon_s(0) & p_on;
+      if vsa = '1' and vs_d = '0' then                   -- (73) o ponteiro so' muda no inicio do quadro
+        pon_q <= pon_s(1);
+        pxr <= to_integer(unsigned(p_x)); pyr <= to_integer(unsigned(p_y));
+        pxf <= to_integer(unsigned(p_x)) + 12; pyf <= to_integer(unsigned(p_y)) + 19;
+      end if;
       if vsa = '1' and vs_d = '0' then                   -- a escala so' muda no inicio do quadro
         w16_q <= w16_s(1);
         if dob_s(1) = '1' then wmax <= 1; jw <= 512; jh <= 384; else wmax <= 2; jw <= 768; jh <= 576; end if;
@@ -212,6 +269,12 @@ begin
       if lig_s(1) = '1' and dei = '1' then a_lig <= '1'; else a_lig <= '0'; end if;
       a_de <= dei; a_hs_in <= hsi; a_vs_in <= vsi; a_r <= ri; a_g <= gi; a_b <= bi;
       a_hs <= hsa; a_hsd <= a_hs;
+      -- (73) o ponteiro: dentro da caixa 12x19?
+      if pon_q = '1' and dei = '1' and hx >= pxr and hx < pxf and ly >= pyr and ly < pyf then
+        a_pin <= '1'; a_pdx <= (hx - pxr) mod 12; a_pdy <= (ly - pyr) mod 19;
+      else
+        a_pin <= '0';
+      end if;
 
       -- andar B: leituras do buffer (uma por ciclo; o dado chega 2 ciclos depois)
       if a_x0 = '1' then ph := 0; ix := 0;
@@ -234,6 +297,13 @@ begin
       s1 <= a_s; lon1 <= a_lig; win1 <= a_win;
       r1 <= a_r; g1 <= a_g; b1 <= a_b; de1 <= a_de; hs1 <= a_hs_in; vs1 <= a_vs_in;
       s2 <= s1; lon2 <= lon1; win2 <= win1;
+      -- (73) o ponto da seta (andar 1), e mais 2 andares como a camada L
+      pv1 <= "00";
+      if a_pin = '1' then
+        if to_unsigned(SETA_P(a_pdy), 12)(11 - a_pdx) = '1' then pv1 <= "01";
+        elsif to_unsigned(SETA_B(a_pdy), 12)(11 - a_pdx) = '1' then pv1 <= "10"; end if;
+      end if;
+      pv2 <= pv1; pv3 <= pv2;
       r2 <= r1; g2 <= g1; b2 <= b1; de2 <= de1; hs2 <= hs1; vs2 <= vs1;
 
       -- andar 3: chegou o dado pedido 2 ciclos antes
@@ -271,7 +341,11 @@ begin
         when others => c := cor3; mt := meio(2);
       end case;
       baixo := baixo3;
-      if lon3 = '1' and idx3 /= "00" and mt = '1' then
+      if pv3 = "01" then                                 -- (73) a seta por cima de tudo
+        ro <= x"00"; go <= x"00"; bo <= x"00";
+      elsif pv3 = "10" then
+        ro <= x"FF"; go <= x"FF"; bo <= x"FF";
+      elsif lon3 = '1' and idx3 /= "00" and mt = '1' then
         ro <= std_logic_vector(resize((unsigned("00" & c(23 downto 16)) * 3 + unsigned(baixo(23 downto 16))) / 4, 8));
         go <= std_logic_vector(resize((unsigned("00" & c(15 downto 8)) * 3 + unsigned(baixo(15 downto 8))) / 4, 8));
         bo <= std_logic_vector(resize((unsigned("00" & c(7 downto 0)) * 3 + unsigned(baixo(7 downto 0))) / 4, 8));

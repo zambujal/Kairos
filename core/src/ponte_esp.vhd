@@ -78,6 +78,8 @@
 --      (72) 35 = 8 pontos a 1 bit (bit 7 = o da esquerda) -> 2 bytes, com as cores do 36 (bits 3-2 tinta,
 --      1-0 papel); o registo nao avanca. 3C = valor, 3D/3E = quantos x 4 bytes (escrever o 3E comeca):
 --      enche sem o Z80. O IN bit 0 so' fica a 1 com isto tudo escrito.
+--      (73) 15/16 = x (0-1279), 17/18 = y (0-719) da ponta do ponteiro do rato, 19 bit 0 = ligado: uma seta
+--      12x19 que o core desenha por cima de tudo (o Z80 so' diz onde).
 --   (v5, 2026-10-23) UART do ZX-UNO (o Z80 ve' os registos C6h/C7h pelas FC3B/FD3B), filas de 64:
 --      7B (ler) quantos bytes o Z80 escreveu (fila Z80 -> ESP); 7C (ler) o byte seguinte dessa fila
 --      (o endereco nao avanca, como o 52); 7D (escrever) bytes para o Z80 (o endereco nao avanca;
@@ -113,6 +115,10 @@ entity ponte_esp is
     c_lig, c_sel, c_jan : out std_logic;
     c_2x    : out std_logic;                         -- janela a 2x (registo 40 bit 4)
     c_meio  : out std_logic_vector(2 downto 0);
+    -- (73) o ponteiro do rato (registos 15/16 x, 17/18 y, 19 bit 0 ligado; pelo Z80, EC3B / ED3B)
+    c_pon   : out std_logic;
+    c_px    : out std_logic_vector(10 downto 0);
+    c_py    : out std_logic_vector(9 downto 0);
     c_w16   : out std_logic;
     -- (esp44) 4F bit 1 = a janela com escolha propria, bits 3-2 = a imagem pedida (0-2); ler bits 5-4 = a mostrada
     c_wsep  : out std_logic;
@@ -268,7 +274,10 @@ architecture rtl of ponte_esp is
   signal mb_cmd : std_logic_vector(7 downto 0) := (others => '0');
   signal pedido, pronto, vivo, zw_d, zr_d, zr_sel : std_logic := '0';
   signal mb_est : std_logic_vector(7 downto 0);
-  signal zc_reg : std_logic_vector(7 downto 0) := (others => '0');   -- (70) registo escolhido pelo EC3B
+  signal zc_reg : std_logic_vector(7 downto 0) := (others => '0');
+  signal ptr_x : std_logic_vector(10 downto 0) := (others => '0');   -- (73)
+  signal ptr_y : std_logic_vector(9 downto 0) := (others => '0');
+  signal ptr_on : std_logic := '0';   -- (70) registo escolhido pelo EC3B
   signal zc_est : std_logic_vector(7 downto 0);
   -- (72) o Z80 manda pontos a 1 bit (35: 8 pontos -> 2 bytes com as cores do 36) e enche (3C valor,
   -- 3D/3E quantos x 4 bytes); os bytes entram na fila sozinhos, um por ciclo
@@ -290,6 +299,7 @@ architecture rtl of ponte_esp is
   signal utw, utr, urw, urr, ut_n, ur_n : unsigned(6 downto 0) := (others => '0');
   signal uw_d, ud_d, urd_sel, ur_tem : std_logic := '0';
 begin
+  c_pon <= ptr_on; c_px <= ptr_x; c_py <= ptr_y;
   c_lig <= r40(0); c_sel <= r40(1); c_jan <= r40(3); c_2x <= r40(4); c_meio <= r4e; mp_on <= mp_on_r; mp_alto <= mp_alto_r; mp_rate <= mp_rate_r;
   c_w16 <= r4f(0); c_wsep <= r4f(1); c_widx <= r4f(3 downto 2); c_wx <= wx_r; c_wy <= wy_r;
   c_cor1 <= cores(0) & cores(1) & cores(2);
@@ -398,6 +408,11 @@ begin
             when x"31" => ptr(15 downto 8)  <= unsigned(z_d); r_lin(15 downto 8) <= unsigned(z_d); r_cnt <= (others => '0');
             when x"32" => ptr(22 downto 16) <= unsigned(z_d(6 downto 0)); r_lin(22 downto 16) <= unsigned(z_d(6 downto 0)); r_cnt <= (others => '0');
             when x"34" => if cheia = '0' then fila(to_integer(wp(5 downto 0))) <= "00" & z_d; wp <= wp + 1; end if;
+            when x"15" => ptr_x(7 downto 0) <= z_d;
+            when x"16" => ptr_x(10 downto 8) <= z_d(2 downto 0);
+            when x"17" => ptr_y(7 downto 0) <= z_d;
+            when x"18" => ptr_y(9 downto 8) <= z_d(1 downto 0);
+            when x"19" => ptr_on <= z_d(0);
             when x"35" => ex_b <= z_d; ex_n <= 2;
             when x"36" => ex_cor <= z_d;
             when x"3C" => fl_v <= z_d;

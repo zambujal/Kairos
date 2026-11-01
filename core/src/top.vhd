@@ -235,6 +235,9 @@ architecture rtl of top is
   signal maq_st : std_logic_vector(15 downto 0) := (others => '0');
   signal jcru : std_logic_vector(31 downto 0) := (others => '0');
   signal c_meio : std_logic_vector(2 downto 0) := "000";
+  signal c_pon : std_logic := '0';                                    -- (73) o ponteiro do rato
+  signal c_px : std_logic_vector(10 downto 0) := (others => '0');
+  signal c_py : std_logic_vector(9 downto 0) := (others => '0');
   signal c_w16 : std_logic := '0';
   signal c_wsep, c_wsepq : std_logic := '0';
   signal c_widx, c_widxq : std_logic_vector(1 downto 0) := "00";
@@ -312,7 +315,8 @@ begin
     port map (clk => pclk, ligada => c_lig, janela => c_jan, dobro => c_2x, meio => c_meio, w16 => c_w16, wx => c_wx, wy => c_wy, sel_in => c_sel, sel_out => c_selq, wsep_in => c_wsep, widx_in => c_widx, wsep_out => c_wsepq, widx_out => c_widxq, cor1 => c_cor1, cor2 => c_cor2, cor3 => c_cor3,
               ri => rv, gi => gv, bi => bv, dei => dev, hsi => hsv, vsi => vsv,
               ro => r, go => g, bo => b, deo => de, hso => hs, vso => vs,
-              pede_l => ovl_pede_l, lin_l => ovl_lin_l, pede_w => ovl_pede_w, lin_w => ovl_lin_w, lb_a => lb_ra, lb_q => lb_q);
+              pede_l => ovl_pede_l, lin_l => ovl_lin_l, pede_w => ovl_pede_w, lin_w => ovl_lin_w, lb_a => lb_ra, lb_q => lb_q,
+              p_on => c_pon, p_x => c_px, p_y => c_py);
   linhas: entity work.ram_linha generic map (AW => 9)
     port map (clka => clk54, wea => lb_we, aa => lb_a, da => lb_d, clkb => pclk, ab => lb_ra, qb => lb_q);
 
@@ -695,7 +699,7 @@ begin
                                        esp_d => IO_esp_d, esp_irq => O_esp_irq,
                                        p_req => esp_req, p_vram => esp_vram, p_a => esp_a, p_d => esp_d, p_ack => esp_ack,
                                        p_wreq => esp_wreq, p_wa => esp_wa, p_wd => esp_wd, p_wbe => esp_wbe, p_wack => esp_wack,
-                                       c_lig => c_lig, c_sel => c_sel, c_jan => c_jan, c_2x => c_2x, c_meio => c_meio, c_w16 => c_w16, c_wsep => c_wsep, c_widx => c_widx, c_wmostra => c_widxq, mp_on => mp_on, mp_alto => mp_alto, mp_rate => mp_rate, mp_idx => mp_idx, c_wx => c_wx, c_wy => c_wy, c_ativa => c_selq, c_cor1 => c_cor1, c_cor2 => c_cor2, c_cor3 => c_cor3,
+                                       c_pon => c_pon, c_px => c_px, c_py => c_py, c_lig => c_lig, c_sel => c_sel, c_jan => c_jan, c_2x => c_2x, c_meio => c_meio, c_w16 => c_w16, c_wsep => c_wsep, c_widx => c_widx, c_wmostra => c_widxq, mp_on => mp_on, mp_alto => mp_alto, mp_rate => mp_rate, mp_idx => mp_idx, c_wx => c_wx, c_wy => c_wy, c_ativa => c_selq, c_cor1 => c_cor1, c_cor2 => c_cor2, c_cor3 => c_cor3,
                                        p_rreq => esp_rreq, p_rv => esp_rv, p_rd => esp_rd,
                                        sd_meu => sd_meu, sd_dado => sd_dado, fita_on => fita_on, esp_vivo => esp_vivo, sd_cs_n => esp_cs_n, sd_sclk => esp_sclk, sd_mosi => esp_mosi, sd_miso => I_sd_miso,
                                        k_mat => k_mat, k_rst => k_rst, k_nmi => k_nmi,
