@@ -879,10 +879,7 @@ ExecGo              push ix
                     jp RIantigo         ; v24c: voltou (o esxDOS nao correu o .go, ou o .go deu erro):
                                         ; faz como o v23 (o NAV carrega a ROM e reinicia ele proprio)
 ; NovaMaq / NovaPenta -> IX = comando
-ComandoGo           ld a,(NovaMenu)     ; v35: ZX 128K MENU
-                    or a
-                    ld ix,TxtGoMenu
-                    ret nz
+ComandoGo
                     ld a,(NovaMaq)
                     ld ix,TxtGo2068
                     cp 5
@@ -902,14 +899,13 @@ ComandoGo           ld a,(NovaMenu)     ; v35: ZX 128K MENU
                     ret z
                     ld ix,TxtGo128
                     ret
-TxtGo128            db "go128 -ts",0     ; v36: ZX 128K com os tempos do 128K (228 T x 311, 3,5469 MHz)
+TxtGo128            db "go128 -divmenu -ts",0   ; v41: o ZX 128K arranca o menu da Sinclair (como um 128K sem DivMMC), tempos do 128K
 TxtGoTimex          db "go128 -timex",0
 TxtGoPenta          db "go128 -penta",0
 TxtGo1024           db "go1024",0
 TxtGo256            db "go256",0
 TxtGo2068           db "go2068",0
 TxtGoReset          db "go128 -reset",0
-TxtGoMenu           db "go128 -divmenu -ts",0  ; v39: com os tempos do 128K (com o GO128 69g o menu aparece)
 ; v24d: como o .gs: /BIN/GS105B.ROM (32K) para o GS pelos registos ZXUNO A0h (1 = parado e
 ; ponteiro a 0, 0 = arranca) e A1h (byte seguinte). No clone nao ha' GS (os registos nao existem).
 CarregaGS           ld hl,TxtGSrom
@@ -1097,8 +1093,6 @@ AM128
                     jr z,AMf3           ; TIMEX 2048 / ZX 48K: o F3 dela (o GuardaFiltro apaga o pendente)
                     ld a,(PendPenta)
                     ld (NovaPenta),a
-                    xor a
-                    ld (NovaMenu),a
                     ld a,1
                     ld (SemPergunta),a
                     jr AMf3
@@ -1162,8 +1156,6 @@ PoeF3               call ValorF3
 
 ; A = nova maquina (vem das teclas 1-4 ou do joystick)
 TrocaMaquina        push af             ; v23: o MusCala estraga o A (a maquina nova)
-                    xor a               ; v35: nao e' o ZX 128K MENU
-                    ld (NovaMenu),a
                     call MusCala        ; v22: a mudar de maquina, sem musica
                     pop af
                     ld hl,NovaPenta     ; as outras maquinas: sem Pentagon nem sombra
@@ -2677,7 +2669,7 @@ DFattr              ld d,1
 
 ; ---------------------------------------------------------------------------
 ; Menu das maquinas (ENTER na barra de cima). 7/6 ou joystick, ENTER escolhe, ESPACO volta.
-NMENU               equ 10                  ; v35: + ZX 128K MENU (a' direita, por baixo do GS). v27: 8 maquinas a' esquerda (PENTAGON 128 e, so' na Tang, 256 e
+NMENU               equ 9                   ; v41: sem o ZX 128K MENU (o ZX 128K ja' arranca o menu). v27: 8 maquinas a' esquerda (PENTAGON 128 e, so' na Tang, 256 e
 MNESQ               equ 8                   ; 1024) e o GS a' direita (so' na Tang); o clone mostra 6
 Menu                call VeTang         ; v24g: Tang (registo ZXUNO A3h = 54h) ou clone
                     ld a,(Filtro)
@@ -2797,7 +2789,7 @@ MNcima              ld a,(MenuSel)
                     dec a
                     jr MNmuda
 MNbaixo             ld a,(MenuSel)
-                    cp MNESQ            ; v35: na coluna da direita (GS, ZX 128K MENU)
+                    cp MNESQ            ; na coluna da direita (GS)
                     jr nc,MNbD
                     inc a
                     ld b,a
@@ -2861,8 +2853,6 @@ MNmaq               xor a
                     jr c,MNtroca
                     cp MNESQ+1          ; v24d: General Sound (nao e' maquina: carrega a ROM do GS)
                     jp z,CarregaGS
-                    cp MNESQ+2          ; v35: ZX 128K MENU
-                    jp z,MNmenu128
                     push af
                     call MusCala        ; v23: tambem calada ao mudar para o Pentagon
                     pop af
@@ -2874,8 +2864,6 @@ MNmaq               xor a
                     ld b,8Ch
 MNp128              ld a,b
                     ld (NovaPenta),a
-                    xor a
-                    ld (NovaMenu),a
                     ld a,3
                     jp TMcomum
 MNtroca             jp TrocaMaquina
@@ -4609,14 +4597,6 @@ RIsim               call MusCala        ; v23e: a musica parada enquanto se carr
                     call GravaCfg
                     call ComandoGo      ; v24: IX = "go128 ...", "go1024" ou "go2068"
                     jp ExecGo
-MNmenu128           call MusCala        ; v35: ZX 128K MENU, de qualquer maquina (sem o "ja' estou nela":
-                    ld a,1              ; vai sempre pelo .go128 -divmenu)
-                    ld (NovaMenu),a
-                    xor a
-                    ld (NovaPenta),a
-                    ld a,3
-                    ld (NovaMaq),a
-                    jp TMoutra
 
 
                     IF !HIRES
@@ -5481,7 +5461,6 @@ TabPenta            db "PENTAGON 128 ",0,0
                     db "PENTAGON 256 ",0,0     ; v27 (so' na Tang)
                     db "PENTAGON 1024",0,0     ; v26 (so' na Tang)
                     db "GENERAL SOUND",0,0
-                    db "ZX 128K MENU",0,0      ; v35: o .go128 -divmenu (o menu da ROM 128 com as traps do DivMMC)
 TxtAMudar           db "A reiniciar...",0
 TxtSemRom           db "Falta a ROM (/BIN)",0
 TxtRom              db "/BIN/128.rom",0
@@ -5505,7 +5484,6 @@ PendPenta           db 0                ; v24: os bits do Pentagon dessa maquina
 Esta128             db 0
 NovaMaq             db 0
 NovaPenta           db 0                ; 80h = a maquina escolhida e' o Pentagon
-NovaMenu            db 0                ; v35: 1 = ZX 128K MENU (.go128 -divmenu)
 SemPergunta         db 0
                     IF !HIRES
 CRk                 db 0
