@@ -281,7 +281,7 @@ instantly. `cartao.py` **does not touch** names or order and **does not guess th
    - Windows: `python ferramentas\cartao.py E:\` (the card's drive letter)
 3. If it looks right, the same command with `--fazer` at the end.
    Everything on the card goes in, except the root `BIN`, `SYS`, `TMP` and `System Volume Information` folders (and the `_NAV` ones):
-   in each folder, folders first (with `[up]` outside the root), then files, in order.
+   in each folder, folders first (with `[up]` outside the root and `[raiz]` from the 2nd level down), then files, in order.
    If on the Tang the browser shows up black and white, with short names, it is the esxDOS one: Bob Fossil's
    `SYS/NMI.SYS` is missing (section 2, step 3), or the `cartao/` folder did not go on top.
 
