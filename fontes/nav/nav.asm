@@ -2584,33 +2584,7 @@ DesenhaPaineis      call DesenhaLetras
                     call DesenhaEmblema
                     jp DesenhaEstado
 
-DesenhaTopo         ld d,0
-                    ld e,0
-                    ld b,32
-                    ld a,A_TOPO
-                    call Atrib
-                    ld hl,Cwd           ; mostra o fim do caminho se for comprido
-                    push hl
-                    call Comprimento
-                    pop hl
-                    IF HIRES
-                    sub 47              ; hi-res: maquina em 0-15, caminho em 17-63
-                    ELSE
-                    sub 25
-                    ENDIF
-                    jr c,DTcabe
-                    ld e,a
-                    ld d,0
-                    add hl,de
-DTcabe              ld d,0
-                    IF HIRES
-                    ld e,17
-                    ld b,47
-                    ELSE
-                    ld e,0
-                    ld b,24
-                    ENDIF
-                    jp Escreve
+DesenhaTopo         jp DTopo2           ; v61: passou para a 2.a parte ("raiz" antes do caminho)
 
                     IF HIRES
 DesenhaFiltro       ld a,(Filtro)       ; hi-res: a maquina no inicio da linha de cima
@@ -5134,6 +5108,39 @@ RatoBt              db 0FFh
 RatoX               dw 0
 RatoY               dw 0
                     ENDIF
+
+; v61: a linha de cima: "raiz" e o caminho a seguir (raiz/JOGOS/A); comprido demais, o fim dele
+                    IF HIRES
+DTCOL               equ 17              ; hi-res: maquina em 0-15, caminho em 17-63
+DTLARG              equ 43
+                    ELSE
+DTCOL               equ 0
+DTLARG              equ 20
+                    ENDIF
+DTopo2              ld d,0
+                    ld e,0
+                    ld b,32
+                    ld a,A_TOPO
+                    call Atrib
+                    ld hl,TxtRaiz
+                    ld d,0
+                    ld e,DTCOL
+                    ld b,4
+                    call Escreve
+                    ld hl,Cwd
+                    push hl
+                    call Comprimento
+                    pop hl
+                    sub DTLARG
+                    jr c,DT2cabe
+                    ld e,a
+                    ld d,0
+                    add hl,de
+DT2cabe             ld d,0
+                    ld e,DTCOL+4
+                    ld b,DTLARG
+                    jp Escreve
+TxtRaiz             db "raiz",0
 
 ; v44: acabou de ligar (TIMEX 2048) e o /SYS/NAV.CFG tem outra maquina: MaqAnt = essa (0 = nada)
 VeAnt               call LeCfg
