@@ -4844,7 +4844,7 @@ RTesq               push de             ; (a pilha como no RTini: o RTpaira olha
                     ld a,0
                     ret z
                     ENDIF
-                    call RTonde         ; v58: no caminho (linha de cima, colunas 16-63): sobe uma pasta
+                    call RTonde         ; v58: no caminho (linha de cima, colunas 16-63): sobe uma pasta; v59: na maquina, o menu
                     jr c,RTe13
                     ld a,d
                     or a
@@ -4853,6 +4853,8 @@ RTesq               push de             ; (a pilha como no RTini: o RTpaira olha
                     cp 16
                     ld a,2
                     jr nc,RTclq
+                    ld a,2              ; v59: na maquina (colunas 0-15): o menu das maquinas (ENTER na barra)
+                    ld (Foco),a
 RTe13               ld a,13
                     jr RTclq
 ; v58: tecla 2 (so' do rato) = a pasta de cima
