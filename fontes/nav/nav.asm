@@ -118,6 +118,7 @@ SemSom
                     ld a,(SemPergunta)  ; acabou de ligar e a ultima maquina e' de outra classe
                     or a
                     call nz,Reinicia
+                    call PerguntaAnt    ; v44: acabou de ligar e o NAV.CFG tem outra maquina: volta a ela?
                     IF !HIRES
                     xor a               ; (sem o NAVHR: a copia para ele ja' nao serve)
                     ld (5BFEh),a
@@ -1115,6 +1116,7 @@ AM2068              ld (Filtro),a
                     jr AMf3
 AMpadrao            call MaqHw
                     ld (Filtro),a
+                    call VeAnt          ; v44: a maquina do NAV.CFG, se for outra (pergunta-se no Inicio)
 AMf3                ld a,(Filtro)       ; o F3 da maquina (o RESET nao o muda; a FF fica)
                     call ValorF3
                     ld bc,00F3h
@@ -4573,6 +4575,53 @@ LLini               ex de,hl            ; DE = inicio
                     inc de
                     ldir
                     ret
+; v44: acabou de ligar (TIMEX 2048) e o /SYS/NAV.CFG tem outra maquina: MaqAnt = essa (0 = nada)
+VeAnt               call LeCfg
+                    ld hl,Filtro
+                    cp (hl)
+                    jr nz,VAfim
+                    xor a
+VAfim               ld (MaqAnt),a
+                    ret
+; v44: pergunta se volta a' maquina anterior. ENTER: muda para ela; outra tecla: o NAV.CFG passa a
+; TIMEX 2048 (a verdadeira) e deixa de perguntar. Com uma ordem do ESP nao pergunta.
+PerguntaAnt         ld hl,MaqAnt
+                    ld a,(hl)
+                    ld (hl),0
+                    or a
+                    ret z
+                    ld b,a
+                    ld a,(EspMaq)
+                    ld c,a
+                    ld a,(EspSai)
+                    or c
+                    ld c,a
+                    ld a,(EspFich)
+                    or c
+                    ret nz
+                    push bc
+                    ld hl,TxtAnterior
+                    call MensagemSoEcra
+PAsolta             halt                ; primeiro larga a tecla do NMI
+                    call Varre
+                    or a
+                    jr nz,PAsolta
+                    ld (UltTecla),a
+PAesp               call LeTecla
+                    or a
+                    jr z,PAesp
+                    pop bc
+                    cp 13
+                    jr nz,PAnao
+                    ld a,1
+                    ld (SemPergunta),a
+                    ld a,b
+                    jp TrocaMaquina
+PAnao               call GravaCfg       ; o Filtro e' o TIMEX 2048 (a maquina verdadeira)
+                    xor a
+                    ld (MsgEstado),a
+                    call DesenhaFiltro
+                    jp DesenhaEstado
 ; v35: o Reinicia passou para a 2.a parte (faltava lugar na 1.a com o hi-res)
 ; reinicia na maquina NovaMaq (pergunta antes, menos no arranque automatico)
 Reinicia            call MusCala        ; v23e: calada (no arranque pelo pendente a musica ja' tocava e a
@@ -5460,6 +5509,11 @@ TxtReinicia         db "Mudar a maquina? ENTER sim",0
                     ELSE
 TxtReinicia         db "Reiniciar? ENTER sim",0
                     ENDIF
+                    IF HIRES
+TxtAnterior         db "Voltar a' maquina anterior? ENTER sim",0
+                    ELSE
+TxtAnterior         db "Anterior? ENTER sim",0
+                    ENDIF
 TxtMenuTit          db "  ESCOLHER A MAQUINA",0
 TxtMenuAj           db "ENTER muda   SPC volta",0  ; v37: sem a maquina de arranque (D)
 TabMenu             db "TIMEX 2048",0,0
@@ -5495,6 +5549,7 @@ Esta128             db 0
 NovaMaq             db 0
 NovaPenta           db 0                ; 80h = a maquina escolhida e' o Pentagon
 SemPergunta         db 0
+MaqAnt              db 0                ; v44: a maquina do NAV.CFG ao ligar, se for outra
                     IF !HIRES
 CRk                 db 0
 CRtam               db 0
