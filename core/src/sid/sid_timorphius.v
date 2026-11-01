@@ -1,6 +1,6 @@
-// sid_timextenso.v: dois SID (sid_top do C64_MiSTer, Verilog gerado pelo sv2v) para o Timextenso.
+// sid_timorphius.v: dois SID (sid_top do C64_MiSTer, Verilog gerado pelo sv2v) para o Timorphius.
 //   mode = 1 para cada SID (8580) ou 0 (6581); filtros normais, sem curvas carregadas.
-module sid_timextenso (
+module sid_timorphius (
   input clk, input reset, input ce_1m,
   input [1:0] cs, input we, input [4:0] addr, input [7:0] din, output [7:0] dout,
   input [1:0] mode,

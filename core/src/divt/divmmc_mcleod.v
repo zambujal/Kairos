@@ -1,4 +1,4 @@
-// Tang Nano 20K (Timextenso): copia do DivTIESUS v13 do Antonio. Unica mudanca: o barramento
+// Tang Nano 20K (Timorphius): copia do DivTIESUS v13 do Antonio. Unica mudanca: o barramento
 // de dados bidireccional (inout d) passa a din (entrada) + dout/doe (saida), porque dentro
 // da FPGA nao ha' 3 estados.
 /*
@@ -39,8 +39,8 @@ module divmmc_mcleod (
   output wire nmi_to_cpu_n, // Actual NMI signal to CPU
   // Spectrum ROM shadowing
   input wire inrom48k,  
-  input wire modo128,   // 1 = modo 128K do Timextenso (F4 = F0): NMI tambem com a ROM0
-  input wire modo2068,  // 1 = modo TC2068 do Timextenso: outras traps (ver em baixo)
+  input wire modo128,   // 1 = modo 128K do Timorphius (F4 = F0): NMI tambem com a ROM0
+  input wire modo2068,  // 1 = modo TC2068 do Timorphius: outras traps (ver em baixo)
   input wire exlo,      // 1 = modo TC2068 com a EXROM em 0000-1FFF
   input wire menu128,   // (69) 1 = 128K com o menu da ROM: sem automap no 0000h (o resto das traps fica)
   input wire sem_fita,  // (67) Tang: 1 = a cassete do ESP esta' ligada: sem as traps da fita (04C6, 0562)

@@ -10,6 +10,11 @@ cassete e faz o auto-load do esxDOS. Nos modos TC2048 e Spectrum isto funciona t
 No modo **TC2068** não funciona: o auto-load do esxDOS reinicia com a ROM do 48K, e o 2068 tem outra ROM e outra
 maneira de carregar. Por isso, no TC2068, o navegador procura primeiro `/BIN/PLUG2068/TAP` e usa esse.
 
+Desde o navegador v40 o mesmo `/BIN/PLUG2068/TAP` serve também as máquinas 128K. No **ZX 128K** (o menu da
+Sinclair, `.go128 -divmenu`, que deixa "M8" no início da página 39 do DivMMC) o stub abre o TAP e escreve no
+registo ZX-UNO A5h: o core faz o RESET quando o NMI acabar e carrega no ENTER até o Tape Loader arrancar. Nas
+outras (Pentagon, TIMEX 128K) faz o auto-load do esxDOS, como o original.
+
 ## O que é o PLUG2068/TAP
 
 É o plugin TAP do Bob Fossil com uma alteração pequena:
@@ -55,6 +60,11 @@ and does the esxDOS auto-load. In TC2048 and Spectrum modes this works as it com
 
 In **TC2068** mode it does not: the esxDOS auto-load restarts with the 48K ROM, and the 2068 has another ROM and
 another way of loading. So, in TC2068 mode, the browser first looks for `/BIN/PLUG2068/TAP` and uses that one.
+
+Since browser v40 the same `/BIN/PLUG2068/TAP` is also used on the 128K machines. On the **ZX 128K** (the Sinclair
+menu, `.go128 -divmenu`, which leaves "M8" at the start of DivMMC page 39) the stub opens the TAP and writes to
+ZX-UNO register A5h: the core does a RESET once the NMI is over and presses ENTER until the Tape Loader starts. On
+the others (Pentagon, TIMEX 128K) it does the esxDOS auto-load, like the original.
 
 ## What PLUG2068/TAP is
 

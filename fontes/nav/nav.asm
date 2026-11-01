@@ -19,7 +19,7 @@
 
 ; HIRES = 1: o mesmo navegador no modo de alta resolucao do Timex (512x192, 64 colunas,
 ; 2 cores). Monta-se com  sjasmplus -DHIRES=1  e fica /BIN/NAVHR.BIN. O normal (BROWSE.BIN)
-; carrega-o sozinho quando a FFh e' o registo do Timex (no Timextenso tambem nos modos ZX).
+; carrega-o sozinho quando a FFh e' o registo do Timex (no Timorphius tambem nos modos ZX).
                     IFNDEF HIRES
                     DEFINE HIRES 0
                     ENDIF
@@ -971,7 +971,7 @@ TxtGSrom            db "/BIN/GS105B.ROM",0
 TxtGSok             db "GS: ROM carregada, a correr",0
 TxtGSmau            db "GS: falta /BIN/GS105B.ROM (32K)",0
 GSbl                db 0
-; v24g/h: NZ e EhTang = 1 se for o Timextenso da Tang (A3h = 54h, ou os bits 5-0 do DFh a 0);
+; v24g/h: NZ e EhTang = 1 se for o Timorphius da Tang (A3h = 54h, ou os bits 5-0 do DFh a 0);
 ; no clone o registo nao existe (le-se o barramento): duas leituras iguais a 54h
 VeTang              ld bc,0FC3Bh
                     ld a,0A3h
@@ -1597,7 +1597,7 @@ CRf3                ld a,0              ; v23l: o F3 de fora da RAM de video (F0
                     inc b
                     xor a
                     out (c),a
-                    ld bc,0FC3Bh        ; v23b: no Timextenso da Tang o registo ZXUNO A2h = 52h faz o
+                    ld bc,0FC3Bh        ; v23b: no Timorphius da Tang o registo ZXUNO A2h = 52h faz o
                     ld a,0A2h           ; RESET+NMI sozinho (no clone nao existe: fica a' espera)
                     out (c),a
                     inc b
@@ -3758,7 +3758,7 @@ Recarrega           ld hl,(Sel)
                     ld (Foco),a
                     ret
 
-; F3 da maquina sem o bit 5: a FF aceita o modo hi-res (o bit 5 so' conta no Timextenso)
+; F3 da maquina sem o bit 5: a FF aceita o modo hi-res (o bit 5 so' conta no Timorphius)
 EntraHires          ld a,(Filtro)
                     call ValorF3
                     and 0DFh
@@ -4099,7 +4099,7 @@ VeTimex             xor a
                     ld a,1              ; e' o Timex: a' saida repoe-se o modo antigo
                     ld (MudouFF),a
                     ret
-VTnao               xor a               ; a leitura nao e' o registo (Spectrum, ou o Timextenso num modo
+VTnao               xor a               ; a leitura nao e' o registo (Spectrum, ou o Timorphius num modo
                     out (0FFh),a        ; ZX com o barramento flutuante): FF = 0, como num ZX
                     inc a               ; (NZ)
                     ret
@@ -4126,13 +4126,20 @@ SomArranque         ld a,0C9h
                     jp BUF
 TxtSomNav           db "/BIN/SOMNAV.BIN",0
 
-; Timex (FF e' o registo do Timex, ou e' o Timextenso num modo ZX, com o bit 5 do F3 a esconde-la):
+; Timex (FF e' o registo do Timex, ou e' o Timorphius num modo ZX, com o bit 5 do F3 a esconde-la):
 ; carrega o /BIN/NAVHR.BIN por cima deste e corre-o, como se fosse o NMI.SYS a chama-lo.
 ; Se nao der (Spectrum, ou nao ha' o ficheiro), volta e segue este.
 VeHR                ld a,(MudouFF)
                     or a
                     jr nz,VHtem
-                    xor a               ; F3 sem o bit 5: no Timextenso a FF passa a aceitar
+                    ld a,(5C50h)        ; v43: no BASIC 128 / menu do 128 (FLAGS bit 4, fora do TC2068) vai sempre
+                    cp 68h              ; para o NAVHR, como quando a maquina guardada era o TIMEX 2048 (o BROWSE
+                    jr z,VHteste        ; rebentava ali, com o ZX 128K guardado; o NAVHR nao)
+                    ld a,(5C3Bh)
+                    bit 4,a
+                    jr nz,VHtem
+VHteste
+                    xor a               ; F3 sem o bit 5: no Timorphius a FF passa a aceitar
                     out (0F3h),a
                     ld c,06h
                     call VHtesta
@@ -4182,7 +4189,7 @@ VHsitio             equ 5B00h-VHlen
 TxtNavHR            db "/BIN/NAVHR.BIN",0
                     ENDIF
 
-; v25 (2026-10-22): ordem do ESP32 (caixa de correio do Timextenso, portos EE3Bh / EF3Bh).
+; v25 (2026-10-22): ordem do ESP32 (caixa de correio do Timorphius, portos EE3Bh / EF3Bh).
 ; O ESP mostra o cartao e as capas; quando se escolhe um ficheiro, guarda a ordem e faz um NMI.
 ; Aqui pergunta-se (comando 10h) se ha' ordem: [tipo][caminho 8.3 com 0 no fim]. Havendo,
 ; muda para a pasta e corre o ficheiro com o plugin, como o ENTER, sem desenhar nada; o plugin
