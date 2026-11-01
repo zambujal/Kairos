@@ -152,7 +152,7 @@ SemFich
                     call MNesc
                     jp Sai              ; v25e: feita a mudanca (ou o GS): para o BASIC, como o ESP pede
 Ciclo               call LeTecla
-                    or a
+CicloVolta          or a                ; (v53: o rato so' escolhe na lista quando o LeTecla e' deste call)
                     IF HIRES
                     jr nz,CiTecla
                     call Pisca
@@ -271,6 +271,11 @@ LeTecla             halt
                     ENDIF
                     xor a               ; v22: no ciclo principal a musica pode tocar (interrupcao)
                     ld (MusPara),a
+                    IF HIRES
+                    call Rato           ; v53: o rato (ponteiro do core 73): A = tecla que ele faz, ou 0
+                    or a
+                    ret nz
+                    ENDIF
                     call Varre
                     ld hl,Larga         ; v17: depois de um ENTER/fogo, nada ate' largar tudo
                     inc (hl)
@@ -870,8 +875,8 @@ AMmeio              ld (Esta128),a
 ; NMI do esxDOS faz com o .snapload). O .go nao volta (arranca a maquina); se voltar foi erro:
 ; sai do navegador e fica a mensagem do .go no ecra.
 ExecGo              push ix
-                    IF CAML
-                    call CamDesliga
+                    IF HIRES
+                    call SaiRato
                     ENDIF
                     call MusCala
                     call SaiNav
@@ -1317,8 +1322,8 @@ RI68df              ld (C68df+1),a
                     ld hl,Codigo2068
                     ld bc,LCodigo2068
 RIcorre             di
-                    IF CAML
-                    call CamDesliga
+                    IF HIRES
+                    call SaiRato
                     ENDIF
                     push hl
                     push bc
@@ -2372,8 +2377,8 @@ COsemmsg            call SaiNav         ; o plugin abre o ficheiro pelo nome: pa
                     ld a,(Iguardado)
                     ld i,a
                     IF HIRES
-                    IF CAML
-                    call CamDesliga     ; v51: o relogio dos plugins de musica fica no hi-res
+                    IF HIRES
+                    call SaiRato     ; v51: o relogio dos plugins de musica fica no hi-res
                     ENDIF
                     call EPveMod        ; v45: o MOD (GS) nao desenha: o navegador fica a ver-se
                     call nz,EcraPlugin  ; ecra normal e o F3 da maquina para o plugin
@@ -3793,8 +3798,8 @@ EntraHires          ld a,(Filtro)
                     ENDIF
 
 ; FF que o programa tinha (ou 0 se a FF nao era do Timex), depois o F3 da maquina
-SaiEcra             IF CAML
-                    call CamDesliga
+SaiEcra             IF HIRES
+                    call SaiRato
                     ENDIF
                     call SEf3
                     ld a,(MudouFF)
@@ -3815,8 +3820,8 @@ SEf3                pop bc              ; F3 sem o bit 5 (a FF tem de aceitar) e
                     ret
 
 ; antes de um plugin: ecra normal limpo, a FF so' com o bit 7 e o F3 da maquina
-EcraPlugin          IF CAML
-                    call CamDesliga
+EcraPlugin          IF HIRES
+                    call SaiRato
                     ENDIF
                     call LimpaEcra      ; CLS: os dois ecras (4000h e 6000h) limpos,
                     ld hl,5800h         ; atributos como o BASIC (papel branco, tinta preta)
@@ -4672,6 +4677,7 @@ CamLiga             ld a,(CamExt)
 CLtem               ld hl,Fonte
                     ld a,1
                     ld (CamOn),a
+                    ld (CamVer),a       ; v53: a camada L a ver-se (o canto do rato troca)
                     ld de,3000h
                     jr CamExt2
 Espelho             ld a,(CamOn)
@@ -4703,6 +4709,7 @@ CamDesliga          ld a,(CamOn)
                     ret z
                     xor a
                     ld (CamOn),a
+                    ld (CamVer),a
                     ld bc,0EC3Bh
                     ld a,40h
                     out (c),a
@@ -4712,8 +4719,311 @@ CamDesliga          ld a,(CamOn)
                     ret
 TxtExt              db "/BIN/NAVL.EXT",0
 CamOn               db 0
+CamVer              db 0
 CamExt              db 0
 E3somb              db 0
+                    ENDIF
+
+                    IF HIRES
+; ---------------------------------------------------------------- v53: o rato (Kempston) e o ponteiro do core 73
+; O ponteiro anda com o rato (2 pontos HDMI por unidade). Na lista (so' no Ciclo): por cima de um ficheiro
+; escolhe-o; o botao esquerdo e' o ENTER, o direito o ESPACO (volta). Fora da lista: esquerdo ENTER, direito
+; ESPACO. No NAVL, o canto de cima a' direita do quadrado (fora das letras) troca a camada L pelo hi-res.
+                    IF CAML
+RX0                 equ 384             ; as letras na camada L: 8 x 16 a partir de (384, 168)
+RY0                 equ 168
+                    ENDIF
+Rato                ld a,(RatoIni)
+                    cp 1
+                    jr z,RTini
+                    jp nc,RTsem         ; 2: sem rato (devolve 0)
+                    ld b,4              ; e' o Timorphius 73+? 4 vezes: IN EC3B bits 6-3 a 0 e o FADF com os
+RTdet               push bc             ; bits 7-3 a 1 (noutra maquina o barramento solto nao da' isto)
+                    ld bc,0EC3Bh
+                    in a,(c)
+                    and 78h
+                    ld e,a
+                    ld bc,0FADFh
+                    in a,(c)
+                    and 0F8h
+                    xor 0F8h
+                    or e
+                    pop bc
+                    jp nz,RTsem
+                    djnz RTdet
+                    ld a,1
+                    ld (RatoIni),a
+                    ld hl,640
+                    ld (RatoX),hl
+                    ld hl,360
+                    ld (RatoY),hl
+                    call RTle
+                    ld (RatoKX),a
+                    ld a,e
+                    ld (RatoKY),a
+                    ld a,d
+                    ld (RatoBt),a
+                    call RTpoe
+                    xor a               ; (nenhuma tecla)
+                    ret
+RTini               call RTle           ; A = X, E = Y, D = botoes do Kempston
+                    push de
+                    ld hl,RatoKX        ; dx = X - antes
+                    ld c,(hl)
+                    ld (hl),a
+                    sub c
+                    ld hl,(RatoX)
+                    call RTsoma
+                    ld de,1279
+                    call RTlim
+                    ld (RatoX),hl
+                    pop de
+                    push de
+                    ld a,(RatoKY)       ; dy = antes - Y (o Y do Kempston sobe para cima)
+                    ld c,e
+                    sub c
+                    ld hl,RatoKY
+                    ld (hl),e
+                    ld hl,(RatoY)
+                    call RTsoma
+                    ld de,719
+                    call RTlim
+                    ld (RatoY),hl
+                    pop de
+                    ld a,(RatoMexeu)
+                    or a
+                    call nz,RTpoe
+                    ld a,(RatoMexeu)
+                    or a
+                    call nz,RTpaira
+                    ; os botoes (0 = carregado): bit 1 esquerdo, bit 0 direito; so' no carregar
+                    ld a,(RatoBt)
+                    ld c,a
+                    ld a,d
+                    ld (RatoBt),a
+                    cpl
+                    and c               ; carregados agora e nao antes
+                    bit 1,a
+                    jr nz,RTesq
+                    bit 0,a
+                    ld a,' '
+                    ret nz
+                    xor a
+                    ret
+RTsem               ld a,2
+                    ld (RatoIni),a
+                    xor a
+                    ret
+RTesq               IF CAML
+                    call RTcanto        ; o canto: troca a camada L / hi-res
+                    ld a,0
+                    ret z
+                    ENDIF
+                    ld a,13
+                    ret
+; A = deslocamento com sinal: HL += 2 x A; RatoMexeu = 1 se A /= 0
+RTsoma              or a
+                    jr z,RTs0
+                    ld e,a
+                    ld d,0
+                    bit 7,a
+                    jr z,RTs1
+                    dec d
+RTs1                ex de,hl
+                    add hl,hl
+                    add hl,de
+                    ld a,1
+                    ld (RatoMexeu),a
+                    ret
+RTs0                ret
+; HL entre 0 e DE (com sinal: negativo -> 0)
+RTlim               bit 7,h
+                    jr z,RTl1
+                    ld hl,0
+                    ret
+RTl1                push hl
+                    or a
+                    sbc hl,de
+                    pop hl
+                    ret c
+                    ret z
+                    ex de,hl
+                    ret
+RTle                ld bc,0FBDFh
+                    in a,(c)
+                    push af
+                    ld b,0FFh
+                    in e,(c)
+                    ld b,0FAh
+                    in d,(c)
+                    pop af
+                    ret
+; o ponteiro no core: 15-19 = x, y, ligado
+RTpoe               xor a
+                    ld (RatoMexeu),a
+                    ld bc,0EC3Bh
+                    ld a,15h
+                    out (c),a
+                    inc b
+                    ld hl,(RatoX)
+                    out (c),l
+                    out (c),h
+                    ld hl,(RatoY)
+                    out (c),l
+                    out (c),h
+                    ld a,1
+                    out (c),a
+                    ret
+SaiRato             IF CAML
+                    call CamDesliga
+                    ENDIF
+                    xor a
+                    ld (RatoIni),a
+                    ld bc,0EC3Bh        ; o ponteiro desligado
+                    ld a,19h
+                    out (c),a
+                    inc b
+                    xor a
+                    out (c),a
+                    ret
+; HL = RatoX - X0, A = celula (largura C): A = (HL) / C, CF = fora (negativo ou >= B celulas)
+RTcel               bit 7,h
+                    scf
+                    ret nz
+                    push de
+                    ld e,c
+                    ld d,0
+                    ld a,0
+RTc1                or a
+                    sbc hl,de
+                    jr c,RTc2
+                    inc a
+                    jr RTc1
+RTc2                pop de
+                    cp b
+                    ccf
+                    ret
+; D = linha (0-23), E = coluna (0-63) da celula do hi-res por baixo do ponteiro; CF = fora das letras
+RTonde              IF CAML
+                    ld a,(CamVer)       ; a camada L a ver-se: 8 x 16 a partir de (384, 168)
+                    or a
+                    jr z,RTohr
+                    ld hl,(RatoX)
+                    ld de,-RX0
+                    add hl,de
+                    ld bc,64 * 256 + 8
+                    call RTcel
+                    ret c
+                    push af
+                    ld hl,(RatoY)
+                    ld de,-RY0
+                    add hl,de
+                    ld bc,24 * 256 + 16
+                    call RTcel
+                    pop de
+                    ld e,d
+                    ld d,a
+                    ret
+                    ENDIF
+RTohr               ld hl,(RatoX)       ; o hi-res do Timex a 720p: 12 x 24 a partir de (256, 72)
+                    ld de,-256
+                    add hl,de
+                    ld bc,64 * 256 + 12
+                    call RTcel
+                    ret c
+                    push af
+                    ld hl,(RatoY)
+                    ld de,-72
+                    add hl,de
+                    ld bc,24 * 256 + 24
+                    call RTcel
+                    pop de
+                    ld e,d
+                    ld d,a
+                    ret
+; o ponteiro mexeu: por cima de um ficheiro da lista (so' no Ciclo), escolhe-o
+RTpaira             ld hl,4             ; so' no Ciclo: o LeTecla volta a CicloVolta (pilha: Rato, LeTecla, Ciclo)
+                    add hl,sp
+                    ld a,(hl)
+                    inc hl
+                    ld h,(hl)
+                    ld l,a
+                    ld de,CicloVolta
+                    or a
+                    sbc hl,de
+                    ret nz
+                    call RTonde
+                    ret c
+                    ld a,d              ; linha da lista?
+                    sub LIN0
+                    ret c
+                    cp NLIN
+                    ret nc
+                    ld c,a
+                    ld a,(Ocultas)      ; sem a coluna das letras: a lista comeca na coluna 0
+                    or a
+                    jr nz,RTp1
+                    ld a,e
+                    cp LCEL * 2
+                    ret c
+RTp1                ld hl,(Topo)        ; o ficheiro: Topo + linha
+                    ld b,0
+                    add hl,bc
+                    ld de,(Total)
+                    push hl
+                    or a
+                    sbc hl,de
+                    pop hl
+                    ret nc
+                    ld a,(Foco)
+                    cp 1
+                    jr z,RTp2
+                    push hl
+                    ld a,1
+                    ld (Foco),a
+                    call DesenhaPaineis
+                    pop hl
+                    jp NovoSel
+RTp2                ld de,(Sel)
+                    push hl
+                    or a
+                    sbc hl,de
+                    pop hl
+                    ret z
+                    jp NovoSel
+                    IF CAML
+; Z = o clique foi no canto de cima a' direita do quadrado (e trocou a camada L / o hi-res)
+RTcanto             ld hl,(RatoX)
+                    ld de,896
+                    or a
+                    sbc hl,de
+                    jr c,RTcn
+                    ld hl,(RatoY)
+                    ld de,RY0
+                    or a
+                    sbc hl,de
+                    jr nc,RTcn
+                    ld a,(CamVer)
+                    xor 1
+                    ld (CamVer),a
+                    ld e,a
+                    ld bc,0EC3Bh
+                    ld a,40h
+                    out (c),a
+                    inc b
+                    out (c),e
+                    xor a               ; Z
+                    ret
+RTcn                or 1                ; NZ
+                    ret
+                    ENDIF
+RatoIni             db 0
+RatoMexeu           db 0
+RatoKX              db 0
+RatoKY              db 0
+RatoBt              db 0FFh
+RatoX               dw 0
+RatoY               dw 0
                     ENDIF
 
 ; v44: acabou de ligar (TIMEX 2048) e o /SYS/NAV.CFG tem outra maquina: MaqAnt = essa (0 = nada)
