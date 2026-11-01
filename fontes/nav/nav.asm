@@ -4651,265 +4651,69 @@ EPv2                ld hl,(TPlugin+16)
                     sbc hl,de
                     ret
                     IF CAML
-; ---------------------------------------------------------------- v51: a camada L (core 72+)
-; O ecra hi-res (64 x 24 letras de 8x8) vai para a camada L a 1 ponto por ponto e com cada linha de pontos
-; duas vezes: 512x384, ao meio do quadrado do Spectrum (768x576), que fica todo com a cor do papel.
-; Em cada LeTecla ve-se 2 linhas de letras (soma de Fletcher dos 512 bytes) e copia-se no maximo 1 que mudou.
-CPSEL               equ 0EC3Bh
-CPDAT               equ 0ED3Bh
-CQUAD               equ 600000h + 72 * 320 + 64     ; o quadrado: ponto 256, linha 72, 192 bytes x 576
-CBASE               equ 600000h + 168 * 320 + 96    ; as letras: ponto 384, linha 168
-CTINTA              equ (HIRESFF >> 3) & 7          ; as cores do hi-res (a FF)
-CPAPEL              equ 7 - CTINTA
-; A = registo, E = valor (nao mexe no BC)
-CamReg              push bc
-                    ld bc,CPSEL
-                    out (c),a
-                    ld bc,CPDAT
-                    out (c),e
-                    pop bc
-                    ret
-CamEspera           push bc             ; (mexe no HL e no A)
-                    ld bc,CPSEL
-                    ld hl,0             ; ~0,7 s no maximo (nao fica para sempre se o core nao tiver isto)
-CEs                 in a,(c)
-                    rra
-                    jr c,CEf
-                    dec hl
-                    ld a,h
-                    or l
-                    jr nz,CEs
-CEf                 pop bc
-                    ret
-; HL = os bits 15-0, A = os bits 22-16 do ponteiro; depois o rectangulo de DE bytes com passo 320
-CamPtr              push af
-                    push de
-                    push hl
-                    call CamEspera
-                    pop hl
-                    ld e,l
-                    ld a,30h
-                    call CamReg
-                    ld e,h
-                    ld a,31h
-                    call CamReg
-                    pop de
-                    pop af
-                    push de
-                    ld e,a
-                    ld a,32h
-                    call CamReg
-                    pop de
-                    ld a,26h
-                    call CamReg
-                    ld e,d
-                    ld a,27h
-                    call CamReg
-                    ld e,320 & 255
-                    ld a,28h
-                    call CamReg
-                    ld e,320 >> 8
-                    ld a,29h
-                    jp CamReg
-CamLiga             ld a,40h            ; desligada enquanto se prepara
-                    ld e,0
-                    call CamReg
-                    ld hl,CamCores
-                    ld b,9
-                    ld a,41h
-                    ld e,(hl)
-                    call CamReg         ; (o registo avanca sozinho: so' o 1.o se escolhe)
-                    dec b
-                    push bc
-                    ld bc,CPDAT
-CLc                 inc hl
-                    ld a,(hl)
-                    out (c),a
-                    pop de
-                    dec d
-                    push de
-                    jr nz,CLc
-                    pop bc
-                    ld a,4Eh
-                    ld e,0
-                    call CamReg
-                    ld hl,CQUAD & 0FFFFh   ; o quadrado todo com o papel (cor 1), pelo core
-                    ld a,CQUAD >> 16
-                    ld de,192
-                    call CamPtr
-                    ld a,3Ch
-                    ld e,55h
-                    call CamReg
-                    ld e,(576 * 192 / 4) & 255
-                    ld a,3Dh
-                    call CamReg
-                    ld e,(576 * 192 / 4) >> 8
-                    ld a,3Eh
-                    call CamReg
-                    ld hl,CamVal        ; todas as linhas por copiar
-                    ld b,24
-CLv                 ld (hl),0
-                    inc hl
-                    djnz CLv
-                    ld a,40h
-                    ld e,1
-                    call CamReg
+; ---------------------------------------------------------------- v51/v52: a camada L (core 72+)
+; O trabalho todo esta' no /BIN/NAVL.EXT (fontes/nav/navl_ext.asm), carregado na pagina CPAG do DivMMC e
+; corrido em 2000h: em 3000h Liga (HL = a letra 8x8 do NAV), em 3003h Espelho. Sem ele fica o NAVHR.
+CPAG                equ 52
+CamLiga             ld a,(CamExt)
+                    or a
+                    jr nz,CLtem
+                    ld a,80h+CPAG       ; o NAVL.EXT para a pagina CPAG (pelo TMP, como a musica)
+                    ld (MLpag),a
+                    ld hl,TxtExt
+                    ld de,2000h
+                    ld bc,2000h
+                    call MusLe
+                    ld a,80h+PMUS
+                    ld (MLpag),a
+                    ret c
+                    ld a,1
+                    ld (CamExt),a
+CLtem               ld hl,Fonte
                     ld a,1
                     ld (CamOn),a
+                    ld de,3000h
+                    jr CamExt2
+Espelho             ld a,(CamOn)
+                    or a
+                    ret z
+                    ld de,3003h
+CamExt2             ld a,i              ; P/V = as interrupcoes como estavam
+                    push af
+                    di
+                    ld a,80h+CPAG
+                    ld (E3somb),a
+                    out (0E3h),a
+                    push ix
+                    push iy
+                    call CEsalto
+                    pop iy
+                    pop ix
+                    xor a
+                    ld (E3somb),a
+                    out (0E3h),a
+                    pop af
+                    ret po
+                    ei
+                    ret
+CEsalto             push de
                     ret
 CamDesliga          ld a,(CamOn)
                     or a
                     ret z
                     xor a
                     ld (CamOn),a
+                    ld bc,0EC3Bh
                     ld a,40h
-                    ld e,0
-                    jp CamReg
-; HL = o 1.o byte (banco 4000h) da linha de letras A
-CamLinha            ld l,a
-                    and 18h
-                    or 40h
-                    ld h,a
-                    ld a,l
-                    and 7
-                    rrca
-                    rrca
-                    rrca
-                    ld l,a
-                    ret
-Espelho             ld a,(CamOn)
-                    or a
-                    ret z
-                    ld b,2              ; 2 linhas vistas
-ESv                 push bc
-                    ld a,(CamProx)
-                    call CamLinha
-                    ld de,0             ; Fletcher: E = soma, D = soma das somas
-                    ld c,8
-ESy                 push hl
-                    ld b,32
-ESb1                ld a,(hl)
-                    add a,e
-                    ld e,a
-                    add a,d
-                    ld d,a
-                    inc l
-                    djnz ESb1
-                    pop hl
-                    push hl
-                    set 5,h
-                    ld b,32
-ESb2                ld a,(hl)
-                    add a,e
-                    ld e,a
-                    add a,d
-                    ld d,a
-                    inc l
-                    djnz ESb2
-                    pop hl
-                    inc h
-                    dec c
-                    jr nz,ESy
-                    ld a,(CamProx)      ; igual e ja' copiada: a seguinte
-                    ld c,a
-                    ld b,0
-                    ld hl,CamVal
-                    add hl,bc
-                    ld a,(hl)
-                    or a
-                    ld (hl),1
-                    ld hl,CamSoma
-                    add hl,bc
-                    add hl,bc
-                    jr z,ESnova
-                    ld a,(hl)
-                    cp e
-                    jr nz,ESnova
-                    inc hl
-                    ld a,(hl)
-                    cp d
-                    jr z,ESigual
-                    dec hl
-ESnova              ld (hl),e
-                    inc hl
-                    ld (hl),d
-                    ld a,(CamProx)
-                    call CamCopia
-                    call ESprox
-                    pop bc
-                    ret
-ESigual             call ESprox
-                    pop bc
-                    djnz ESv
-                    ret
-ESprox              ld a,(CamProx)
-                    inc a
-                    cp 24
-                    jr c,ESp1
+                    out (c),a
+                    inc b
                     xor a
-ESp1                ld (CamProx),a
+                    out (c),a
                     ret
-; copia a linha de letras A: as 8 linhas de pontos, cada uma duas vezes (64 bytes = 512 pontos a 1 bit)
-CamCopia            push af
-                    ld l,a              ; o ponteiro: CBASE + A x 16 x 320 = CBASE + (A x 20) << 8
-                    ld h,0
-                    add hl,hl
-                    add hl,hl
-                    ld d,h
-                    ld e,l
-                    add hl,hl
-                    add hl,hl
-                    add hl,de           ; HL = A x 20
-                    ld a,(CBASE >> 8) & 0FFh
-                    add a,l
-                    ld d,a
-                    ld a,CBASE >> 16
-                    adc a,h
-                    ld e,CBASE & 0FFh
-                    ex de,hl            ; HL = os bits 15-0
-                    ld de,128
-                    call CamPtr
-                    ld a,36h            ; tinta 3, papel 1
-                    ld e,0Dh
-                    call CamReg
-                    ld a,35h            ; daqui em diante: 1 OUT = 8 pontos
-                    ld bc,CPSEL
-                    out (c),a
-                    pop af
-                    call CamLinha
-                    ld bc,CPDAT
-                    ld d,8
-CCy                 ld a,2
-CCd                 push af
-                    push hl
-                    ld e,32
-CCb                 ld a,(hl)           ; coluna par (4000h)
-                    out (c),a
-                    set 5,h
-                    ld a,(hl)           ; coluna impar (6000h)
-                    out (c),a
-                    res 5,h
-                    inc l
-                    dec e
-                    jr nz,CCb
-                    pop hl
-                    pop af
-                    dec a
-                    jr nz,CCd
-                    inc h
-                    dec d
-                    jr nz,CCy
-                    ret
-NIVEL               macro c
-                    db ((c >> 1) & 1) * 0D7h, ((c >> 2) & 1) * 0D7h, (c & 1) * 0D7h
-                    endm
-CamCores            NIVEL CPAPEL        ; cor 1 = o papel, 2 = o papel, 3 = a tinta (R, G, B)
-                    NIVEL CPAPEL
-                    NIVEL CTINTA
+TxtExt              db "/BIN/NAVL.EXT",0
 CamOn               db 0
-CamProx             db 0
-CamVal              ds 24
-CamSoma             ds 48
+CamExt              db 0
+E3somb              db 0
                     ENDIF
 
 ; v44: acabou de ligar (TIMEX 2048) e o /SYS/NAV.CFG tem outra maquina: MaqAnt = essa (0 = nada)
@@ -5070,7 +4874,11 @@ PMUS                equ 41
 MusPag              ld a,80h+PMUS
                     out (0E3h),a
                     ret
-MusTira             xor a
+MusTira             IF CAML
+                    ld a,(E3somb)       ; v52: com o NAVL.EXT a correr, a pagina dele volta
+                    ELSE
+                    xor a
+                    ENDIF
                     out (0E3h),a
                     ret
 MusArranca          xor a
@@ -5215,7 +5023,8 @@ MLciclo             ld a,(MLh)
                     jr c,MLerro         ; nao cabe
                     ld (MLmax),hl
                     di
-                    call MusPag
+                    ld a,(MLpag)        ; v52: a pagina (PMUS, ou a do NAVL.EXT)
+                    out (0E3h),a
                     ld hl,TMP
                     ld de,(MLdest)
                     ldir
@@ -5320,6 +5129,7 @@ TxtMusGrande        db "PT3 grande demais para musica",0
 TxtMusLig           db "Musica ligada",0
 TxtMusDesl          db "Musica desligada",0
 MusOk               db 0
+MLpag               db 80h+PMUS         ; v52
 MusLiga             db 0
 MusPara             db 1                ; v22: 1 = a interrupcao nao toca
 MusMod              dw 0

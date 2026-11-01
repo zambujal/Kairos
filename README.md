@@ -81,7 +81,7 @@ cd timorphius/ferramentas && ./faz_cartao.sh /run/media/$USER/NOME_DO_CARTAO ~/T
 Resumindo, a raiz do cartão fica assim:
 
 ```
-BIN/        esxDOS + BPLUGINS/ do Bob Fossil (TAP, Z80, SNA, TRD, PT3...) + os nossos (BROWSE.BIN, NAVHR.BIN, NAVL.BIN,
+BIN/        esxDOS + BPLUGINS/ do Bob Fossil (TAP, Z80, SNA, TRD, PT3...) + os nossos (BROWSE.BIN, NAVHR.BIN, NAVL.BIN, NAVL.EXT,
             GO128, GO256, GO1024, GO2068, PENTA.BIN, NAVPT3.BIN, SOMNAV.BIN, BPLUGINS/MOD, BPLUGINS/PT3 (no lugar do do Bob Fossil), BPLUGINS/AY, BPLUGINS/CFG/MOD.CFG e MOD.INI)
             (opcionais: 128.rom, 2068.rom, GS105B.ROM, PLUG2068/TAP)
 SYS/        esxDOS + NMI.SYS do Bob Fossil + NAV.SOM + ROMS/TC2048.ROM + ROMS/ESXMMC.BIN
