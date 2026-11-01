@@ -65,8 +65,7 @@ Para os tirar todos (no cartao ou numa pasta do disco do PC):
     python3 cartao.py . --limpar --fazer
 
 e no cartao novo faz-se outra vez "python3 cartao.py . --fazer". Entra tudo, menos BIN, SYS, TMP e System Volume Information da raiz; em cada
-pasta aparecem primeiro as pastas ([up] para a de cima e, mais abaixo, [raiz]) e depois os ficheiros,
-por ordem. A maquina ([48K], [128K]...) so' aparece se ja' estiver no nome do ficheiro.
+pasta, numa lista so', aparecem [up] (a de cima), as pastas e depois os ficheiros, por ordem. A maquina ([48K], [128K]...) so' aparece se ja' estiver no nome do ficheiro.
 
 O config.ini (ao lado do cartao.py) so' tem duas coisas:
 
