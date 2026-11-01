@@ -273,9 +273,11 @@ that `ferramentas/cartao.py` writes in each folder of the card, on the PC, with 
 instantly. `cartao.py` **does not touch** names or order and **does not guess the machine**: the machine
 (`[48K]`, `[128K]`…) only shows if it is already in the file name. It only needs Python 3.
 
-1. In `ferramentas/config.ini`, under `[pastas]`, the folders that appear in the browser's bottom bar
-   (`FAVORI = FAVORITOS`); the same can be given on the command line with `--pasta`, which overrides
-   `config.ini`.
+1. `ferramentas/config.ini` only has two things: under `[pastas]`, the shortcuts in the browser's folder
+   bar (screen line 2, key 9; up to 8, `LABEL = FOLDER`, e.g. `FAVORI = FAVORITOS`; the folder by name or
+   by path, `MUSICA/PT3`); under `[opcoes]`, `normal = yes` cuts names to 17 letters for the 32-column
+   browser (with NAVHR it stays `no`). The `--pasta` option overrides `config.ini`. It can live in the
+   card root next to `cartao.py`: `python3 cartao.py . --fazer`.
 2. With the card in the PC, first just to see what it would do:
    - Linux: `python3 ferramentas/cartao.py /run/media/$USER/CARD_NAME`
    - Windows: `python ferramentas\cartao.py E:\` (the card's drive letter)

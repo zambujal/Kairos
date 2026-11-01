@@ -1,23 +1,76 @@
-O que vai no cartao (FAT32), por esta ordem:
+TIMORPHIUS - cartao para o Tang Nano 20K (Timex TC2048 / TC2068 / ZX Spectrum / Pentagon)
+https://github.com/zambujal/timorphius
+
+1. GRAVAR O CORE NO TANG
+------------------------
+O core esta' na pasta core/ deste cartao (timorphius_core75.fs). Grava-se uma vez, no PC, com o
+Tang ligado directamente a uma porta USB do PC (sem hub). Depois de gravar, desligar e voltar a ligar.
+
+Linux (openFPGALoader):
+    openFPGALoader -b tangnano20k -f timorphius_core75.fs
+    (Fedora: sudo dnf copr enable mobicarte/openFPGALoader && sudo dnf install openFPGALoader
+     Debian/Ubuntu: sudo apt install openfpgaloader
+     "unable to open ftdi device" = permissao de USB: com sudo, ou as regras udev do openFPGALoader)
+
+Windows (Gowin Programmer, do Gowin EDA Education, www.gowinsemi.com):
+    scan_device -> GW2AR-18C; duas vezes na linha do dispositivo:
+      Access Mode: External Flash Mode
+      Operation:   exFlash Erase, Program
+      FS File:     timorphius_core75.fs
+      External Flash: Generic Flash, endereco 0x000000
+    Program.
+
+Para jogar, o teclado (ou um hub com teclado, rato e comando) vai no USB-C do Tang.
+
+2. O QUE ESTA' NO CARTAO
+------------------------
+O cartao e' FAT32 e leva, por esta ordem:
   1. o esxDOS (BIN, SYS, TMP do pacote de www.esxdos.org)
-  2. por cima, o navegador do Bob Fossil inteiro (BROWSE_latest.zip: BIN/BPLUGINS e SYS/NMI.SYS)
-  3. por cima, isto:
+  2. por cima, o navegador do Bob Fossil (BROWSE_latest.zip: BIN/BPLUGINS e SYS/NMI.SYS)
+  3. por cima, o do Timorphius:
+     BIN/BROWSE.BIN, NAVHR.BIN   o navegador (normal e alta resolucao)
+     BIN/GO128, GO256, GO1024, GO2068   mudam de maquina (o navegador usa-os)
+     BIN/PENTA.BIN, NAVPT3.BIN, SOMNAV.BIN   Pentagon, leitor de PT3, musica de arranque
+     BIN/BPLUGINS/MOD, PT3, AY   plugins: MOD no General Sound, PT3 (AY e TurboSound), .AY
+     SYS/NAV.SOM                 a musica de arranque
+     SYS/ROMS/TC2048.ROM (16384 bytes) e ESXMMC.BIN (8192 bytes): o core le-os ao ligar
+  Opcionais em BIN/: 128.rom (modo 128K e Pentagon), 2068.rom (modo TC2068), GS105B.ROM (General
+  Sound), PLUG2068/TAP (TAP no TC2068).
 
+3. USAR
+-------
+- Liga sempre como TC2048. O botao do pino 87 do Tang e' o NMI: abre o navegador.
+- No navegador: ENTER corre o ficheiro, ESPACO volta, 9 vai para a barra das pastas, 1-4 abrem o menu
+  das maquinas. A ultima maquina fica gravada: no primeiro NMI depois de ligar pergunta se volta a ela.
+- Com rato USB: passar por cima escolhe a linha, clique esquerdo corre, clique direito = ESPACO, a roda
+  muda de pagina, clique no caminho (linha de cima) sobe uma pasta, clique no nome da maquina abre o
+  menu das maquinas, e no menu clica-se na maquina.
+- Placa ESP32 (opcional): o /SYS/WIFI.TXT de cada um (rede e senha) e' so' dele - nunca se copia de
+  outro cartao.
 
-BIN/BROWSE.BIN   o navegador (NAV), no lugar do do esxDOS; BIN/NAVHR.BIN e' o mesmo em alta resolucao
-BIN/GO128, GO256, GO1024, GO2068   comandos .go128 .go256 .go1024 .go2068 (mudam de maquina; o NAV usa-os)
-BIN/PENTA.BIN, NAVPT3.BIN, SOMNAV.BIN   usados pelo NAV (Pentagon, leitor de PT3, som de arranque)
-BIN/BPLUGINS/MOD (+ CFG/MOD.CFG, MOD.INI)   plugin: toca .MOD no General Sound
-BIN/BPLUGINS/PT3   plugin PT3 nosso (no lugar do do Bob Fossil): AY e TurboSound
-BIN/BPLUGINS/AY (+ CFG/AY.INI)   plugin .AY (ZXAYEMUL) nosso
-cartao.py, config.ini   na raiz: "python3 cartao.py . --fazer" faz os indices (_NAV) do cartao todo
-SYS/NAV.SOM      a musica de arranque (PT3) que o SOMNAV toca
-SYS/ROMS/        metes aqui TC2048.ROM (16384 bytes) e ESXMMC.BIN (8192 bytes, do pacote do esxDOS)
+4. OS INDICES (cartao.py e config.ini, na raiz)
+-----------------------------------------------
+Sem indices o navegador funciona, mas mostra os nomes curtos (JETSETW~1.TAP) e e' lento em pastas
+grandes. O cartao.py faz os indices (_NAV) de todas as pastas. Nao muda nomes, nao move ficheiros,
+nao cria pastas. Precisa de Python 3. Com o cartao no PC, na raiz dele:
 
-Opcional (com direitos, nao estao aqui):
-BIN/128.rom      ROM do ZX Spectrum 128 (32K = ROM 0 + ROM 1): modo 128K e Pentagon
-BIN/2068.rom     para o modo TC2068: 24K = ROM home do TC2068 (16K) + EXROM (8K); com mais 8K de esxDOS
-                 do 2068 (32K) tambem ha' esxDOS nesse modo (ver docs/)
-BIN/GS105B.ROM   firmware do General Sound 1.05b (32K; fontes em github.com/psbhlw/gs-firmware)
-BIN/PLUG2068/TAP plugin TAP para o TC2068, feito do plugin TAP do esxDOS: fontes/plug2068/faz_plug2068.py
-_NAV/            indices feitos pelo cartao.py (sem eles o NAV le a pasta directamente, com nomes 8.3)
+    python3 cartao.py . --fazer          (Windows: python cartao.py . --fazer)
+
+Sem --fazer so' mostra o que faria. Repete-se sempre que se juntam ou tiram ficheiros (so' reescreve
+os indices que mudaram). Entra tudo, menos BIN, SYS, TMP e System Volume Information da raiz; em cada
+pasta aparecem primeiro as pastas ([up] para a de cima e, mais abaixo, [raiz]) e depois os ficheiros,
+por ordem. A maquina ([48K], [128K]...) so' aparece se ja' estiver no nome do ficheiro.
+
+O config.ini (ao lado do cartao.py) so' tem duas coisas:
+
+    [pastas]
+    FAVORI = FAVORITOS
+        Atalhos na barra das pastas do navegador (a linha 2 do ecra; tecla 9), ate' 8, por esta ordem.
+        Cada linha: ROTULO = PASTA. O rotulo (ate' 6 letras) e' o que aparece: [FAVORI].
+        A pasta pode ser so' o nome (procura no cartao a menos funda com esse nome) ou o caminho
+        (MUSICA/PT3). So' o nome, sem "=", usa o proprio nome como rotulo. Sem nenhuma, a barra fica vazia.
+
+    [opcoes]
+    normal = no
+        yes = nomes cortados a 17 letras, para o navegador normal de 32 colunas (BROWSE). Com o
+        navegador de alta resolucao (NAVHR, o normal no Tang) fica no.

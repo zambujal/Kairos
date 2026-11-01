@@ -275,8 +275,11 @@ esquerda, e abre qualquer pasta num instante. O `cartao.py` **não mexe** em nom
 adivinha a máquina**: a máquina (`[48K]`, `[128K]`…) só aparece se já estiver no nome do ficheiro.
 Precisa só de Python 3.
 
-1. No `ferramentas/config.ini`, em `[pastas]`, as pastas que aparecem na barra de baixo do navegador
-   (`FAVORI = FAVORITOS`); o mesmo dá-se no comando com `--pasta`, que ganha ao `config.ini`.
+1. O `ferramentas/config.ini` só tem duas coisas: em `[pastas]`, os atalhos da barra das pastas do
+   navegador (linha 2 do ecrã, tecla 9; até 8, `ROTULO = PASTA`, por exemplo `FAVORI = FAVORITOS`;
+   a pasta pelo nome ou pelo caminho, `MUSICA/PT3`); em `[opcoes]`, `normal = yes` corta os nomes a 17
+   letras para o navegador de 32 colunas (no NAVHR fica `no`). O comando `--pasta` ganha ao `config.ini`.
+   Pode ficar na raiz do cartão, com o `cartao.py`: `python3 cartao.py . --fazer`.
 2. Com o cartão no PC, primeiro só a ver o que faria:
    - Linux: `python3 ferramentas/cartao.py /run/media/$USER/NOME_DO_CARTAO`
    - Windows: `python ferramentas\cartao.py E:\` (a letra do cartão)
