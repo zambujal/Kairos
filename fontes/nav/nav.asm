@@ -4839,6 +4839,18 @@ RTsem               ld a,2
 RTesq               push de             ; (a pilha como no RTini: o RTpaira olha para o 3.o endereco)
                     call RTpaira        ; v56: o clique escolhe a linha debaixo do ponteiro e depois ENTER
                     pop de
+                    ld a,(NoMenu)       ; v60: no menu das maquinas o clique escolhe a que esta' debaixo
+                    or a
+                    jr z,RTesq0
+                    call RTitem
+                    ld b,a
+                    ld a,0
+                    ret c               ; fora das maquinas: nada
+                    ld a,b
+                    ld (MenuSel),a
+                    ld a,13
+                    jr RTclq
+RTesq0
                     IF CAML
                     call RTcanto        ; o canto: troca a camada L / hi-res
                     ld a,0
@@ -4986,7 +4998,10 @@ RTohr               ld hl,(RatoX)       ; o hi-res do Timex a 720p: 12 x 24 a pa
                     ld d,a
                     ret
 ; o ponteiro mexeu: por cima de um ficheiro da lista (so' no Ciclo), escolhe-o
-RTpaira             ld hl,6             ; so' no Ciclo: o LeTecla volta a CicloVolta (pilha: Rato, DE, LeTecla, Ciclo)
+RTpaira             ld a,(NoMenu)       ; v60: no menu das maquinas, a que esta' debaixo do ponteiro
+                    or a
+                    jr nz,RTmenu
+                    ld hl,6             ; so' no Ciclo: o LeTecla volta a CicloVolta (pilha: Rato, DE, LeTecla, Ciclo)
                     add hl,sp
                     ld a,(hl)
                     inc hl
@@ -5061,6 +5076,54 @@ RTcanto             ld hl,(RatoX)
 RTcn                or 1                ; NZ
                     ret
                     ENDIF
+; v60: o menu das maquinas: a cor passa para a que esta' debaixo do ponteiro
+RTmenu              call RTitem
+                    ret c
+                    ld hl,MenuSel
+                    cp (hl)
+                    ret z
+                    push af
+                    ld a,(hl)
+                    ld c,A_FICH
+                    call MNcorLinha
+                    pop af
+                    ld (MenuSel),a
+                    ld c,A_SEL
+                    jp MNcorLinha
+; A = a maquina do menu debaixo do ponteiro (as da esquerda nas colunas 0-31, as da direita, so' na
+; Tang, nas 32-63, a partir da linha 3); CF = nenhuma
+RTitem              call RTonde
+                    ret c
+                    ld a,d
+                    sub 3
+                    ret c
+                    ld b,a
+                    ld a,e
+                    cp 32
+                    ld a,b
+                    jr nc,RTir
+                    cp MNESQ
+                    ccf
+                    ret c
+                    ld c,a
+                    ld a,(EhTang)       ; no clone so' ha' 6
+                    or a
+                    ld a,c
+                    ret nz
+                    cp 6
+                    ccf
+                    ret
+RTir                add a,MNESQ
+                    cp NMENU
+                    ccf
+                    ret c
+                    ld c,a
+                    ld a,(EhTang)       ; a coluna da direita so' na Tang
+                    or a
+                    ld a,c
+                    ret nz
+                    scf
+                    ret
 RatoIni             db 0
 RatoMexeu           db 0
 RatoClq             db 0
