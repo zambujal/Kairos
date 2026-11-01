@@ -266,20 +266,14 @@ que já tem os dois.)
 nomes aparecem curtos, em 8.3 (`JETSETW~1.TAP`), não há a coluna das letras nem a **barra de cima com a
 máquina** (onde o ENTER abre o menu das máquinas e das placas), e uma pasta com milhares de ficheiros
 demora a abrir. Sem índice, o menu das máquinas só se abre com as teclas 1 a 4. Os **índices** são ficheiros
-`_NAV/*.IDX` que o `ferramentas/cartao.py` escreve em cada pasta, no PC, com o nome comprido de cada
-jogo, o nome 8.3 e a máquina; com eles o navegador mostra os nomes inteiros, a máquina (`[48K]`,
-`[128K]`…), as letras na coluna da esquerda, e abre qualquer pasta num instante. De caminho o
-`cartao.py` arruma a colecção: separa por letra e título e mete a máquina no nome dos ficheiros.
+`_NAV/*.IDX` que o `ferramentas/cartao.py` escreve em cada pasta do cartão, no PC, com o nome comprido
+de cada ficheiro e o nome 8.3; com eles o navegador mostra os nomes inteiros, as letras na coluna da
+esquerda, e abre qualquer pasta num instante. O `cartao.py` **não mexe** em nomes nem na ordem e **não
+adivinha a máquina**: a máquina (`[48K]`, `[128K]`…) só aparece se já estiver no nome do ficheiro.
 Precisa só de Python 3.
 
-1. No `ferramentas/config.ini` dizes o que ele faz a cada pasta (nomes separados por espaços):
-   - `jogos = JOGOS DEMOS` — pastas de jogos: arruma-as, mete a máquina no nome e indexa-as
-     (`jogos =` vazio: nenhuma; sem a linha: todas as da raiz menos as do sistema e `FAVORITOS`);
-   - `indexar = FAVORITOS MUSICA` — pastas que só indexa, sem mexer nos nomes nem na ordem
-     (`tudo` = o cartão inteiro);
-   - em `[pastas]`, as que aparecem na barra de baixo do navegador (`FAVORI = FAVORITOS`).
-   O mesmo dá-se no comando, com `--pastas`, `--indexar` e `--pasta`, que ganham ao `config.ini`;
-   `--so-indices` faz só os índices do cartão todo.
+1. No `ferramentas/config.ini`, em `[pastas]`, as pastas que aparecem na barra de baixo do navegador
+   (`FAVORI = FAVORITOS`); o mesmo dá-se no comando com `--pasta`, que ganha ao `config.ini`.
 2. Com o cartão no PC, primeiro só a ver o que faria:
    - Linux: `python3 ferramentas/cartao.py /run/media/$USER/NOME_DO_CARTAO`
    - Windows: `python ferramentas\cartao.py E:\` (a letra do cartão)

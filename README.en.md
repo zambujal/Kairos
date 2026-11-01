@@ -265,19 +265,14 @@ with `fpga_companion_nano20k.bin` at address `0x40000`. (Or import `flash_nano20
 names show up short, in 8.3 (`JETSETW~1.TAP`), there is no letter column and no **top bar with the machine**
 (where ENTER opens the menu of machines and boards), and a folder with thousands of files takes a while to
 open. Without an index, the machine menu only opens with keys 1 to 4. The **indexes** are `_NAV/*.IDX` files
-that `ferramentas/cartao.py` writes in each folder, on the PC, with each game's long name, 8.3 name and
-machine; with them the browser shows the full names, the machine (`[48K]`, `[128K]`…), the letters in the
-left column, and opens any folder instantly. Along the way `cartao.py` tidies the collection: splits by
-letter and title and puts the machine in the file names. It only needs Python 3.
+that `ferramentas/cartao.py` writes in each folder of the card, on the PC, with each file's long name and
+8.3 name; with them the browser shows the full names, the letters in the left column, and opens any folder
+instantly. `cartao.py` **does not touch** names or order and **does not guess the machine**: the machine
+(`[48K]`, `[128K]`…) only shows if it is already in the file name. It only needs Python 3.
 
-1. In `ferramentas/config.ini` you say what it does with each folder (names separated by spaces):
-   - `jogos = GAMES DEMOS` — game folders: tidies them, puts the machine in the name and indexes them
-     (`jogos =` empty: none; line absent: all root folders except the system ones and `FAVORITOS`);
-   - `indexar = FAVORITOS MUSICA` — folders it only indexes, without touching names or order
-     (`tudo` = the whole card);
-   - under `[pastas]`, the ones that appear in the browser's bottom bar (`FAVORI = FAVORITOS`).
-   The same can be given on the command line, with `--pastas`, `--indexar` and `--pasta`, which override
-   `config.ini`; `--so-indices` only builds the indexes of the whole card.
+1. In `ferramentas/config.ini`, under `[pastas]`, the folders that appear in the browser's bottom bar
+   (`FAVORI = FAVORITOS`); the same can be given on the command line with `--pasta`, which overrides
+   `config.ini`.
 2. With the card in the PC, first just to see what it would do:
    - Linux: `python3 ferramentas/cartao.py /run/media/$USER/CARD_NAME`
    - Windows: `python ferramentas\cartao.py E:\` (the card's drive letter)
