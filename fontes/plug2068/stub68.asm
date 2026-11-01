@@ -1,7 +1,7 @@
 ; Acrescento ao plugin TAP do Bob Fossil (entra em 8071h no lugar de XOR A / RST 8 / DB 90h).
 ; Spectrum: o auto-load do esxDOS, como no original.
-; BASIC 128 (FLAGS bit 4: o menu do 128, .go128 -divmenu): abre o TAP e deixa um ENTER pendente (no menu: o Tape
-;   Loader, se for a opcao marcada); o auto-load do esxDOS ia para o BASIC 48.
+; ZX 128K do NAV (o menu da Sinclair, .go128 -divmenu): abre o TAP, faz reset para o menu e pede ao core um ENTER
+;   2 s depois (registo ZXUNO A5h): entra o Tape Loader e carrega. Vale no menu, no BASIC 128 e a meio de um jogo.
 ; TC2068 (CHANS = 6840h): o auto-load do esxDOS nao serve (reinicia com o ROM do 48K).
 ;   O NMI guardou a RAM 4000h-FFFFh nas paginas 5-10 do DivMMC e repoe-na a' saida:
 ;   escreve-se LOAD "" na linha de edicao dessa copia e deixa-se um ENTER pendente
@@ -19,14 +19,21 @@ FLAGS       equ 5C3Bh
 Inicio      ld a,(5C50h)        ; CHANS alto: 68h no TC2068
             cp 68h
             jr z,T68
-            ld hl,FLAGS         ; (2026-11-01) BASIC 128 (o menu e o editor do 128: FLAGS bit 4, posto
-            call LeByte         ; pela ROM 0 ao arrancar e tirado pelo USR 0): o auto-load reiniciava
-            push af             ; no BASIC 48. So' abre o TAP: carrega-se com o Tape Loader ou LOAD ""
+            ld a,80h+12         ; (2026-11-01b) a maquina do NAV (pagina 12: "MN", F3extra, maquina)
+            out (0E3h),a
+            ld hl,(3FFCh)
+            ld de,"MN"
+            or a
+            sbc hl,de
+            ld a,(3FFFh)
+            ld b,a
             xor a
             out (0E3h),a
-            pop af
-            bit 4,a
-            jp nz,So128
+            jr nz,NaoZX128
+            ld a,b
+            cp 3                ; ZX 128K (o menu da Sinclair): reset para o menu e o core carrega no
+            jp z,Reset128       ; ENTER 2 s depois (o Tape Loader, a opcao marcada): vale no menu, no
+NaoZX128                        ; BASIC 128 e a meio de um jogo (o FLAGS do jogo nao diz nada)
             xor a
             rst 8
             db 90h              ; auto-load (Spectrum)
@@ -106,18 +113,26 @@ SoAbre      xor a
             ld a,11h            ; OK + mensagem
             ld bc,TxtAberto
             ret
-So128       ld hl,LASTK         ; ENTER a' espera (na copia da RAM): no menu do 128 escolhe a opcao
-            ld a,0Dh            ; marcada (ao arrancar e' o Tape Loader); no BASIC 128 corre a linha
+Reset128    ld bc,0FC3Bh        ; ZXUNO A5h: o core carrega no ENTER daqui a 2 s, durante 0,15 s
+            ld a,0A5h
+            out (c),a
+            inc b
+            out (c),a
+            xor a               ; pagina 0 do esxDOS em 2000h
+            out (0E3h),a
+            ld hl,(2E61h)       ; o SP do programa no NMI (o esxDOS guarda-o ai'): [AF do 0066h][PC]
+            inc hl
+            inc hl
+            xor a               ; o regresso do NMI passa a ser 0000h (na copia da RAM)
             call PoeByte
-            ld hl,FLAGS
-            call LeByte
-            or 20h              ; KEYHIT
+            inc hl
             call PoeByte
             xor a
             out (0E3h),a
-            ld a,31h            ; OK + mensagem + 20h: sair do navegador
-            ld bc,TxtAb128
-            ret
+            ld (309Ah),a        ; o 7FFD que o NMI repoe: ROM 0, banco 0
+            ld a,31h            ; OK + mensagem + 20h: o navegador sai como sempre, o esxDOS acaba o NMI
+            ld bc,TxtRst        ; e o Z80 vai para 0: no menu do 128 o 0000h desmapeia o DivMMC e a ROM 0
+            ret                 ; reinicia (o TAP fica aberto); 2 s depois o ENTER escolhe o Tape Loader
 
 ; HL = endereco da RAM do BASIC -> HL = sitio na copia (2000h-3FFFh), pagina ligada
 Mapa        ld a,h
@@ -169,4 +184,4 @@ VELine      dw 0
 VStkend     dw 0
 TxtAberto   db ".TAP aberto: LOAD \"\"",0
 TxtLoad     db "LOAD \"\"",0
-TxtAb128    db "Tape Loader",0
+TxtRst      db "Tape Loader",0
