@@ -172,7 +172,9 @@ Linha               ld l,a
                     ld l,a
                     ret
 
-Espelho             ld b,2              ; 2 linhas vistas
+Espelho             call Tecla          ; (v53) com uma tecla carregada nao faz nada: o navegador responde ja'
+                    ret nz
+                    ld b,2              ; 2 linhas vistas
 ESv                 push bc
                     ld a,(Prox)
                     call Linha
@@ -227,7 +229,16 @@ ESnova              ld (hl),e
                     ld (hl),d
                     ld a,(Prox)
                     call Copia
-                    call ESprox
+                    jr nc,ESfeita
+                    ld a,(Prox)         ; (v53) parou a meio por uma tecla: fica por copiar (sem ESprox)
+                    ld c,a
+                    ld b,0
+                    ld hl,Val
+                    add hl,bc
+                    ld (hl),0
+                    pop bc
+                    ret
+ESfeita             call ESprox
                     pop bc
                     ret
 ESigual             call ESprox
@@ -291,10 +302,20 @@ CPout               out (c),a
                     dec a
                     ld (K),a
                     jr nz,CPk
+                    call Tecla          ; (v53) uma tecla: para (CF = 1, a linha fica por copiar)
+                    scf
+                    ret nz
                     ld a,(Y)
                     inc a
                     cp 16
                     jr c,CPy
+                    or a                ; CF = 0: feita
+                    ret
+; NZ = ha' uma tecla carregada (as 8 filas do teclado de uma vez)
+Tecla               xor a
+                    in a,(0FEh)
+                    cpl
+                    and 1Fh
                     ret
 CPraw               push hl             ; a celula do hi-res, linha y / 2
                     ld a,(de)           ; a coluna
