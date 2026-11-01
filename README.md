@@ -81,7 +81,7 @@ cd timorphius/ferramentas && ./faz_cartao.sh /run/media/$USER/NOME_DO_CARTAO ~/T
 Resumindo, a raiz do cartão fica assim:
 
 ```
-BIN/        esxDOS + BPLUGINS/ do Bob Fossil (TAP, Z80, SNA, TRD, PT3...) + os nossos (BROWSE.BIN, NAVHR.BIN, NAVL.BIN, NAVL.EXT,
+BIN/        esxDOS + BPLUGINS/ do Bob Fossil (TAP, Z80, SNA, TRD, PT3...) + os nossos (BROWSE.BIN, NAVHR.BIN,
             GO128, GO256, GO1024, GO2068, PENTA.BIN, NAVPT3.BIN, SOMNAV.BIN, BPLUGINS/MOD, BPLUGINS/PT3 (no lugar do do Bob Fossil), BPLUGINS/AY, BPLUGINS/CFG/MOD.CFG e MOD.INI)
             (opcionais: 128.rom, 2068.rom, GS105B.ROM, PLUG2068/TAP)
 SYS/        esxDOS + NMI.SYS do Bob Fossil + NAV.SOM + ROMS/TC2048.ROM + ROMS/ESXMMC.BIN
@@ -167,6 +167,9 @@ por isso é provável que precise de adaptações.
     (TAP, SNA, Z80, TRD, PT3 e outros formatos AY, MOD no General Sound; TZX não, só com a placa ESP); o menu das máquinas
     muda para 48K / 128K / Timex 128 / TC2068 / Pentagon e liga o General Sound. As
     teclas estão em `docs/teclas.md`.
+    Com um **rato USB** (navegador hi-res): passar por cima escolhe a linha, o clique esquerdo corre
+    (ENTER), o direito é o ESPAÇO, a roda muda de página, o clique no caminho (linha de cima) sobe uma
+    pasta, o clique na máquina abre o menu das máquinas e no menu escolhe-se com o rato.
   - o do **pino 88** anda numa lista de 16 escolhas, mostrada em binário nos 4 LEDs (que ficam acesos
     com o número escolhido). O botão do NMI faz então essa escolha em vez do NMI: 0 (LEDs apagados)
     NMI, 1 `.ls`, 2 `.go128`, 3 `.go128 -penta`, 4 `.go1024`, 5 `.go2068`, 6 RESET+NMI (volta ao

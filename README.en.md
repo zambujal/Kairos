@@ -82,7 +82,7 @@ cd timorphius/ferramentas && ./faz_cartao.sh /run/media/$USER/CARD_NAME ~/Downlo
 In short, the root of the card ends up like this:
 
 ```
-BIN/        esxDOS + Bob Fossil's BPLUGINS/ (TAP, Z80, SNA, TRD, PT3...) + ours (BROWSE.BIN, NAVHR.BIN, NAVL.BIN, NAVL.EXT,
+BIN/        esxDOS + Bob Fossil's BPLUGINS/ (TAP, Z80, SNA, TRD, PT3...) + ours (BROWSE.BIN, NAVHR.BIN,
             GO128, GO256, GO1024, GO2068, PENTA.BIN, NAVPT3.BIN, SOMNAV.BIN, BPLUGINS/MOD, BPLUGINS/PT3 (replacing Bob Fossil's), BPLUGINS/AY, BPLUGINS/CFG/MOD.CFG and MOD.INI)
             (optional: 128.rom, 2068.rom, GS105B.ROM, PLUG2068/TAP)
 SYS/        esxDOS + Bob Fossil's NMI.SYS + NAV.SOM + ROMS/TC2048.ROM + ROMS/ESXMMC.BIN
@@ -167,6 +167,9 @@ serializers, so it will probably need adapting.
     (TAP, SNA, Z80, TRD, PT3 and other AY formats, MOD on the General Sound; not TZX, which needs the ESP
     board); the machine menu switches to 48K / 128K / Timex 128 / TC2068 / Pentagon and turns on the General
     Sound. The keys are in `docs/teclas.md`.
+    With a **USB mouse** (hi-res browser): hovering selects the line, left click runs it (ENTER), right
+    click is SPACE, the wheel changes page, clicking the path (top line) goes up one folder, clicking the
+    machine opens the machine menu, and in the menu the mouse picks the machine.
   - the **pin 88** one steps through a list of 16 choices, shown in binary on the 4 LEDs (which stay lit
     with the chosen number). The NMI button then performs that choice instead of the NMI: 0 (LEDs off) NMI,
     1 `.ls`, 2 `.go128`, 3 `.go128 -penta`, 4 `.go1024`, 5 `.go2068`, 6 RESET+NMI (back to the TC2048),
