@@ -2348,7 +2348,10 @@ COplug              call MusCala        ; v20: o plugin fica com o AY (a musica 
                     or a
                     jr nz,COsemmsg
                     ld hl,TxtACorrer
-                    call MensagemSoEcra
+                    call EPveMod        ; v46: no MOD diz logo as teclas (o plugin fica a correr enquanto toca)
+                    jr nz,COmsg
+                    ld hl,TxtMod
+COmsg               call MensagemSoEcra
 COsemmsg            call SaiNav         ; o plugin abre o ficheiro pelo nome: pasta verdadeira
                     di
                     im 1
@@ -4576,7 +4579,6 @@ LLini               ex de,hl            ; DE = inicio
                     inc de
                     ldir
                     ret
-                    IF HIRES
 ; v45: Z = o plugin e' o MOD (o "/BIN/BPLUGINS/MOD"): fica o ecra do navegador enquanto toca
 EPveMod             ld hl,(TPlugin+14)
                     ld de,"OM"          ; "MO" (little-endian)
@@ -4588,7 +4590,6 @@ EPveMod             ld hl,(TPlugin+14)
                     or a
                     sbc hl,de
                     ret
-                    ENDIF
 ; v44: acabou de ligar (TIMEX 2048) e o /SYS/NAV.CFG tem outra maquina: MaqAnt = essa (0 = nada)
 VeAnt               call LeCfg
                     ld hl,Filtro
@@ -5514,6 +5515,11 @@ TxtPastas           db "/_NAV/PASTAS.IDX",0
 TxtAjuda            db "ENT corre SPC volta",0
                     ENDIF
 TxtACorrer          db "A carregar...",0
+                    IF HIRES
+TxtMod              db "MOD: N seguinte  BREAK para",0
+                    ELSE
+TxtMod              db "MOD: N segue BRK sai",0
+                    ENDIF
 TxtSemExt           db "Sem extensao",0
 TxtSemPlugin        db "Sem plugin para isto",0
 TxtErroPlugin       db "Erro no plugin",0
