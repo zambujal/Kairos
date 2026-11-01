@@ -5,7 +5,8 @@
 --     bit 2  hi-res 512: cada coluna mostra o byte de 4000 e depois o de 6000;
 --            tinta = FF bits 5-3, papel e borda = o inverso
 --   Horizontal em pontos de hi-res (512 por linha): ESC=2 -> 1 ponto HDMI por ponto
---   de hi-res (576p, exacto); ESC=3 -> 1,5 (720p: os pontos de hi-res alternam 2 e 1).
+--   de hi-res (576p, exacto); ESC=3 -> 1,5 (720p: os pontos de hi-res alternam 2 e 1; (70) o ponto
+--   do meio de cada 3 e' a media dos dois de hi-res quando sao diferentes).
 --   Vertical: cada linha do Timex ocupa ESC linhas HDMI.
 --   Memoria: um so' porto de leitura (14 bits desde 4000). Os 2 bytes de cada coluna
 --   (bitmap e atributo / 2.o bitmap) leem-se durante a coluna anterior.
@@ -180,9 +181,11 @@ begin
     variable c   : std_logic_vector(2 downto 0);
     variable br  : std_logic;
     variable at  : std_logic_vector(7 downto 0);
+    variable mist : boolean;
   begin
     if rising_edge(clk) then
       up1 <= ulap and not modo(2) and not m16c;     -- no hi-res e no 16C ficam as cores fixas
+      mist := false;
       if hon = '1' and von = '1' then
         if m16c = '1' then
           -- 16C: 8 pontos por coluna, 2 por byte: banco 4, banco 5, banco 4 + 2000h, banco 5 + 2000h;
@@ -199,6 +202,11 @@ begin
         elsif modo(2) = '1' then
           if hx(3) = '0' then byt := cb0; else byt := cb1; end if;
           px := byt(7 - to_integer(hx(2 downto 0)));
+          -- (70) 720p: de cada 2 pontos de hi-res saem 3 (o 1.o, o 1.o, o 2.o); o do meio passa a ser a
+          -- media dos dois quando sao diferentes (todos os pontos com a mesma largura a' vista)
+          if ESC = 3 and hacc = 2 and hx(0) = '0' then
+            mist := px /= byt(6 - to_integer(hx(2 downto 0)));
+          end if;
           if px = '1' then c := hcor; else c := not hcor; end if;
           br := '0';
           pal_r <= (others => '0');
@@ -219,7 +227,10 @@ begin
         br := '0';
         pal_r <= "001" & border;                                  -- borda: entrada 8 + cor
       end if;
-      if c = "000" and br = '1' and m2068 = '1' then
+      if mist then
+        -- tinta e papel sao o inverso um do outro: cada canal e' 00 num e D7 no outro -> 6B
+        r1 <= x"6B"; g1 <= x"6B"; b1 <= x"6B";
+      elsif c = "000" and br = '1' and m2068 = '1' then
         r1 <= PRETO_BR; g1 <= PRETO_BR; b1 <= PRETO_BR;
       else
         r1 <= nivel(c(1), br);
