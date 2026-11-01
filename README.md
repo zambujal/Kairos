@@ -281,7 +281,7 @@ Precisa só de Python 3.
    - Linux: `python3 ferramentas/cartao.py /run/media/$USER/NOME_DO_CARTAO`
    - Windows: `python ferramentas\cartao.py E:\` (a letra do cartão)
 3. Se estiver bem, o mesmo comando com `--fazer` no fim.
-   Entra tudo o que estiver no cartão, menos as pastas `BIN`, `SYS` e `TMP` da raiz (e os `_NAV`):
+   Entra tudo o que estiver no cartão, menos as pastas `BIN`, `SYS`, `TMP` e `System Volume Information` da raiz (e os `_NAV`):
    em cada pasta, primeiro as pastas (com `[up]` fora da raiz) e depois os ficheiros, por ordem.
    Se no Tang o navegador aparecer a preto e branco, com nomes curtos, é o do esxDOS: falta o `SYS/NMI.SYS`
    do Bob Fossil (secção 2, passo 3), ou a pasta `cartao/` não ficou por cima.
