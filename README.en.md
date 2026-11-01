@@ -83,7 +83,7 @@ In short, the root of the card ends up like this:
 
 ```
 BIN/        esxDOS + Bob Fossil's BPLUGINS/ (TAP, Z80, SNA, TRD, PT3...) + ours (BROWSE.BIN, NAVHR.BIN,
-            GO128, GO256, GO1024, GO2068, PENTA.BIN, NAVPT3.BIN, SOMNAV.BIN, BPLUGINS/MOD, BPLUGINS/CFG/MOD.CFG and MOD.INI)
+            GO128, GO256, GO1024, GO2068, PENTA.BIN, NAVPT3.BIN, SOMNAV.BIN, BPLUGINS/MOD, BPLUGINS/PT3 (replacing Bob Fossil's), BPLUGINS/CFG/MOD.CFG and MOD.INI)
             (optional: 128.rom, 2068.rom, GS105B.ROM, PLUG2068/TAP)
 SYS/        esxDOS + Bob Fossil's NMI.SYS + NAV.SOM + ROMS/TC2048.ROM + ROMS/ESXMMC.BIN
 TMP/        esxDOS

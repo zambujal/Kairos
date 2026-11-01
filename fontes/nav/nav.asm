@@ -4585,13 +4585,20 @@ LLini               ex de,hl            ; DE = inicio
                     ldir
                     ret
 ; v45: Z = o plugin e' o MOD (o "/BIN/BPLUGINS/MOD"): fica o ecra do navegador enquanto toca
+; v48: tambem o PT3 (o plugin nosso, com o leitor do NAVPT3)
 EPveMod             ld hl,(TPlugin+14)
                     ld de,"OM"          ; "MO" (little-endian)
                     or a
                     sbc hl,de
-                    ret nz
-                    ld hl,(TPlugin+16)
                     ld de,"D"           ; "D",0
+                    jr z,EPv2
+                    ld hl,(TPlugin+14)
+                    ld de,"TP"          ; "PT"
+                    or a
+                    sbc hl,de
+                    ret nz
+                    ld de,"3"           ; "3",0
+EPv2                ld hl,(TPlugin+16)
                     or a
                     sbc hl,de
                     ret
@@ -5521,9 +5528,9 @@ TxtAjuda            db "ENT corre SPC volta",0
                     ENDIF
 TxtACorrer          db "A carregar...",0
                     IF HIRES
-TxtMod              db "MOD: P pausa N seguinte B anterior BREAK para",0
+TxtMod              db "P pausa  N seguinte  B anterior  BREAK para",0
                     ELSE
-TxtMod              db "MOD P pausa N/B muda",0
+TxtMod              db "P pausa N/B muda",0
                     ENDIF
 TxtSemExt           db "Sem extensao",0
 TxtSemPlugin        db "Sem plugin para isto",0

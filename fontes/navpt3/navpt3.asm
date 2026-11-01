@@ -6,7 +6,9 @@
 ; 2009h: endereco do modulo (logo a seguir as variaveis); o modulo vai ate' 3FF7h
 ; (3FF8h-3FFFh: estado do navegador). Toca e Cala tem de ser chamados com DI (o leitor
 ; usa o SP para ler o modulo).
+                    IFNDEF PT3DENTRO    ; (2026-11-01) o plugin PT3 inclui este leitor (DEFINE PT3DENTRO) a seguir ao codigo dele
                     org 2000h
+                    ENDIF
                     jp Inicia
                     jp PLAY
                     jp MUTE
@@ -1735,4 +1737,6 @@ VAR0END: EQU VT_+16 ;INIT zeroes from VARS to VAR0END-1
 
 VARSEND: EQU $
 Modulo
+                    IFNDEF PT3DENTRO
                     assert Modulo < 3000h
+                    ENDIF
