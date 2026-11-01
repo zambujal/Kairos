@@ -392,7 +392,15 @@ PatchStub           ld a,0              ; (69g) -divmenu: o STUB em BF00h (banco
                     push af
                     or 8
                     ld (STUB+StubDD0-Stub0+1),a
-SemStub             pop af
+SemStub             push af             ; (69r) pagina 12, 3FFAh: 1 = menu do 128 (-divmenu), senao 0. O plugin do
+                    ld a,128+12         ; TAP le-o (a maquina que o NAV adivinha pela porta FF depende do jogo)
+                    out (DIVCTRL),a
+                    ld a,(CODIGO+PatchStub+1-CodigoEnRAM)
+                    ld (3FFAh),a
+                    xor a
+                    out (DIVCTRL),a
+                    pop af
+                    pop af
                     IFDEF GO1024
                     xor a               ; EFF7 = 0: 1024K ligado
                     ld bc,0EFF7h

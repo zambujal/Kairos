@@ -188,7 +188,7 @@ architecture rtl of core_timextenso is
   signal ent_on, ent_k, rst_pend : std_logic := '0';
   signal nmi_fura : std_logic := '0';                     -- (69o) o NMI ja' esperou 40 ms pela ROM 1
   signal nmi_esp  : unsigned(21 downto 0) := (others => '0');                       -- (69n) ENTER automatico pedido (ZXUNO A5h)
-  signal ent_t  : unsigned(26 downto 0) := (others => '0');
+  signal ent_t  : unsigned(27 downto 0) := (others => '0');
   -- DivTIESUS
   signal dv_q : std_logic_vector(7 downto 0);
   signal dv_oe, dv_romcs, dv_be_n, dv_ee_n, dv_oe_n, dv_we_n, dv_m128, dv_m2068 : std_logic;
@@ -442,7 +442,7 @@ begin
       if gs_parar = '1' then gs_rst <= '1'; end if;   -- o ESP para o General Sound (fora do OUT do Z80)
       -- (69n) o plugin do TAP no ZX 128K faz reset para o menu e pede o ENTER: 2 s depois, 0,15 s carregado
       if ent_on = '1' then
-        if ent_t = 116100000 then ent_on <= '0'; else ent_t <= ent_t + 1; end if;
+        if ent_t = 259200000 then ent_on <= '0'; else ent_t <= ent_t + 1; end if;   -- (69q) ate' 4,8 s
       end if;
       -- (69p) o plugin do TAP pediu o reset (A5h): quando o esxDOS se desmapear (o NMI acabou e o navegador saiu)
       -- faz o mesmo reset do botao (Z80 e DivTIESUS, ~1,2 ms): no ZX 128K volta ao menu da Sinclair. O ENTER conta
@@ -711,7 +711,8 @@ begin
   end process;
   dv_lento <= '1' when cart_t /= 0 else '0';
   dv_mapa <= dv_romcs;
-  ent_k <= '1' when ent_on = '1' and ent_t >= 108000000 else '0';
+  -- (69q) ENTER aos 3 s e aos 4,5 s (0,3 s cada): o menu do 128 demora a ficar a' espera de teclas
+  ent_k <= '1' when ent_on = '1' and ((ent_t >= 162000000 and ent_t < 178200000) or ent_t >= 243000000) else '0';
   -- (69m) no 128 com a ROM 0 (menu, 128 BASIC) o NMI espera pela ROM 1: a interrupcao da ROM 0 passa pela ROM 1
   -- (o KEYBOARD) a cada quadro, e o NMI entra ai', como no Tape Loader (na ROM 0 o NMI rebentava a partir do 2.o).
   -- O reset mestre (RESET+NMI) usa o botao directamente, sem esta espera.

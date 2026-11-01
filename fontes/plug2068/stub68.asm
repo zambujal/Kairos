@@ -20,21 +20,15 @@ FLAGS       equ 5C3Bh
 Inicio      ld a,(5C50h)        ; CHANS alto: 68h no TC2068
             cp 68h
             jr z,T68
-            ld a,80h+12         ; (2026-11-01b) a maquina do NAV (pagina 12: "MN", F3extra, maquina)
-            out (0E3h),a
-            ld hl,(3FFCh)
-            ld de,"MN"
-            or a
-            sbc hl,de
-            ld a,(3FFFh)
+            ld a,80h+12         ; (69r) o .go128 -divmenu deixa 1 em 3FFAh da pagina 12 (o menu do 128); os
+            out (0E3h),a        ; outros .go deixam 0
+            ld a,(3FFAh)
             ld b,a
             xor a
             out (0E3h),a
-            jr nz,NaoZX128
             ld a,b
-            cp 3                ; ZX 128K (o menu da Sinclair): reset para o menu e o core carrega no
-            jp z,Reset128       ; ENTER 2 s depois (o Tape Loader, a opcao marcada): vale no menu, no
-NaoZX128                        ; BASIC 128 e a meio de um jogo (o FLAGS do jogo nao diz nada)
+            cp 1
+            jp z,Reset128       ; reset (o do botao, pelo core) e ENTER: o Tape Loader
             xor a
             rst 8
             db 90h              ; auto-load (Spectrum)
