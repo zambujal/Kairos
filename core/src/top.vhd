@@ -236,6 +236,8 @@ architecture rtl of top is
   signal ay_vis : std_logic_vector(191 downto 0) := (others => '0');
   signal cs_d : std_logic_vector(15 downto 0);
   signal cs_livres : std_logic_vector(7 downto 0);
+  signal tp_wr, tp_limpa, tp_ativa, ca_wr, ca_limpa : std_logic;   -- (78) a fita na SDRAM (o plugin TZX), na mesma cassete
+  signal tp_d, ca_d : std_logic_vector(15 downto 0);
   signal k_gspara, k_ay3 : std_logic := '0';
   signal alt_k : std_logic := '0';
   signal maq_st : std_logic_vector(15 downto 0) := (others => '0');
@@ -450,7 +452,7 @@ begin
       port map (clk => clk54, clk_div => I_clk, vclk => pclk, ce => ce, ce35 => ce35, reset_n => cpu_rst_n,
                 nmi_n => nmi_core, mat => mat,
                 border => border_c, modo => modo_c, hcor => hcor_c, ecra7 => ecra7_c,
-                vid_a => ecra7_v & va, vid_q => vq, vid_a2 => va2, vid_q2 => vq2, m16c => m16c_c, turbo => turbo_c, sd_esp => sd_dado, sem_fita => fita_on, ear_in => cs_ear, mp_on => '0', mp_rate => mp_rate, mp_idx => mp_idx, mp_l => open, mp_r => open, ce_t => ce_t, dv_lento => dv_lento, dv_mapa => dv_mapa, ay_vis => ay_vis, rato_x => rato_xz, rato_y => rato_yz, rato_b => rato_bz, rato_w => rato_wz, joy => joy_k, pede_rnmi => pede_rnmi, arr_auto => arr_auto, arr_rapido => arr_rap, halt_n => halt_n,
+                vid_a => ecra7_v & va, vid_q => vq, vid_a2 => va2, vid_q2 => vq2, m16c => m16c_c, turbo => turbo_c, sd_esp => sd_dado, sem_fita => fita_on, ear_in => cs_ear, tp_wr => tp_wr, tp_d => tp_d, tp_limpa => tp_limpa, tp_livres => cs_livres, tp_ativa => tp_ativa, mp_on => '0', mp_rate => mp_rate, mp_idx => mp_idx, mp_l => open, mp_r => open, ce_t => ce_t, dv_lento => dv_lento, dv_mapa => dv_mapa, ay_vis => ay_vis, rato_x => rato_xz, rato_y => rato_yz, rato_b => rato_bz, rato_w => rato_wz, joy => joy_k, pede_rnmi => pede_rnmi, arr_auto => arr_auto, arr_rapido => arr_rap, halt_n => halt_n,
                 pronta => sd_pronta, sd_teste => sd_teste, sd_teste2 => sd_teste2,
                 sd_clk => open, sd_cke => O_sdram_cke, sd_cs_n => O_sdram_cs_n,
                 sd_ras_n => O_sdram_ras_n, sd_cas_n => O_sdram_cas_n, sd_we_n => O_sdram_wen_n,
@@ -728,6 +730,9 @@ begin
                                        k_in => mat_fis, k_cap => k_cap, k_turbo => k_turbo, k_gspara => k_gspara, k_ay3 => k_ay3, k_vel => vel_cod, cs_wr => cs_wr, cs_d => cs_d, cs_limpa => cs_limpa, cs_livres => cs_livres, cs_ativa => cs_ativa, k_joy => joy_usb, k_atal => atalho, k_ay => ay_vis, k_jcru => jcru, k_maq => maq_st,
                                        k_rato => rato_esp, k_vpede => vpede);   -- (76) o rato para o ESP; (77) a velocidade
   sem_kairos_g: if not KAIROS generate esp_ack <= '0'; esp_wack <= '0'; end generate;
-  cas: entity work.cassete port map (clk => clk54, t_ce => ce_t, limpa => cs_limpa, wr => cs_wr, d => cs_d,
+  ca_wr <= tp_wr when tp_ativa = '1' else cs_wr;
+  ca_d  <= tp_d when tp_ativa = '1' else cs_d;
+  ca_limpa <= cs_limpa or tp_limpa;
+  cas: entity work.cassete port map (clk => clk54, t_ce => ce_t, limpa => ca_limpa, wr => ca_wr, d => ca_d,
                                      livres => cs_livres, ativa => cs_ativa, ear => cs_ear);
 end architecture;

@@ -1,0 +1,7 @@
+v 4
+file . "cassete.vhd" "c55512749291ea1bc606df7dddb684a296f19faa" "20261102191322.898":
+  entity cassete at 7( 451) + 0 on 13;
+  architecture rtl of cassete at 24( 1028) + 0 on 14;
+file . "fita_sd.vhd" "66a37afd00c18d5ba4f68200d8e9affb6949ee97" "20261102191322.898":
+  entity fita_sd at 16( 1163) + 0 on 11;
+  architecture rtl of fita_sd at 45( 2280) + 0 on 12;

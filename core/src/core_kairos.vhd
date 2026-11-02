@@ -48,6 +48,12 @@ entity core_kairos is
     sem_fita : in  std_logic := '0';               -- (67) a cassete do ESP ligada: o LOAD le' o EAR (sem a fita do esxDOS)
     sd_esp   : in  std_logic := '0';               -- (63) 1 = o cartao e' do ESP: um IN/OUT a E7h/EBh espera (WAIT)
     ear_in   : in  std_logic := '0';               -- (2026-10-24) cassete do ESP: EAR (porta FE bit 6 e som)
+    -- (78) a fita na SDRAM (fita_sd, o plugin TZX): os impulsos para a mesma cassete do ESP
+    tp_wr    : out std_logic;
+    tp_d     : out std_logic_vector(15 downto 0);
+    tp_limpa : out std_logic;
+    tp_livres: in  std_logic_vector(7 downto 0) := x"FF";
+    tp_ativa : out std_logic;
     ce_t     : out std_logic;                      -- um T do Z80 sem espera (relogio da cassete)
     dv_lento : out std_logic;
     dv_mapa  : out std_logic;                      -- (69j) DivMMC mapeado (a 8 x o Z80 desce a 4 x, como antes)
@@ -268,6 +274,12 @@ architecture rtl of core_kairos is
   -- SDRAM com dois clientes: o Z80 (m_*, com prioridade) e o General Sound (g_*)
   signal m_sd_req, m_sd_we, sd_req_t, sd_we_t, g_req, g_ok, g_vez, dono, pend, livre_d : std_logic := '0';
   signal a_req, a_vez, a_acc, a_fim : std_logic := '0';
+  -- (78) a fita na SDRAM: o cliente t (o mais baixo)
+  signal t_req, t_we, t_vez, t_acc, t_rqv, t_ctl, t_dat, t_cs : std_logic := '0';
+  signal t_sa : std_logic_vector(22 downto 0);
+  signal t_sd, t_est : std_logic_vector(7 downto 0);
+  signal t_rq : std_logic_vector(31 downto 0) := (others => '0');
+  signal t_at, sem_fita_t : std_logic;
   signal a_acc_c : unsigned(26 downto 0) := (others => '0');
   signal a_i : unsigned(15 downto 0) := (others => '0');
   signal mpl, mpr : signed(15 downto 0) := (others => '0');
@@ -403,7 +415,7 @@ begin
               zxromcs => dv_romcs, mapeado => dv_mapeado, be_n => dv_be_n, nmi_n => cpu_nmi_n, nmi_button_n => nmi_n,
               sclk => mmc_sclk, mosi => mmc_mosi, miso => mmc_miso, sd_cs0 => mmc_cs_n,
               eeprom_oe_n => dv_ee_n, sram_oe_n => dv_oe_n, sram_we_n => dv_we_n,
-              sram_hiaddr => dv_hi, modo128 => dv_m128, modo2068 => dv_m2068, p1024 => m1024, sem_fita => sem_fita);
+              sram_hiaddr => dv_hi, modo128 => dv_m128, modo2068 => dv_m2068, p1024 => m1024, sem_fita => sem_fita_t);
 
   ---------------------------------------------------------------------------
   -- SCLD: portas (amostradas como no scld_regs: escrita do Z80 a meio do ciclo de E/S)
@@ -419,6 +431,15 @@ begin
   ua_wr  <= io_wr and ua_cs and not zx_reg(0);
   ua_rd  <= io_rd and ua_cs;
   ua_dat <= not zx_reg(0);                           -- C6 = ...0, C7 = ...1
+  -- (78) a fita na SDRAM: ZXUNO A6h (controlo / estado) e A7h (os bytes da lista); um ciclo por OUT
+  t_cs   <= '1' when a = x"FD3B" and zx_reg = x"A6" else '0';
+  t_ctl  <= io_wr and not io_wr_d and t_cs;
+  t_dat  <= io_wr and not io_wr_d when a = x"FD3B" and zx_reg = x"A7" else '0';
+  fsd: entity work.fita_sd port map (clk => clk, ctl_wr => t_ctl, dat_wr => t_dat, d => do_cpu, estado => t_est,
+             s_req => t_req, s_we => t_we, s_a => t_sa, s_d => t_sd, s_ack => t_acc, rq => t_rq, rq_v => t_rqv,
+             c_wr => tp_wr, c_d => tp_d, c_limpa => tp_limpa, c_livres => tp_livres, ativa => t_at);
+  tp_ativa <= t_at;
+  sem_fita_t <= sem_fita or t_at;                     -- (78) a tocar: o LOAD le' o EAR (sem as traps da fita do esxDOS)
   maq_st <= (not gs_rst) & ay3_ok & "000" & m1024 & dv_m2068 & modo128 & regf3;   -- (62) bit 2 do 79 = 1024K (DDh bit 2 e EFF7 bit 2 a 0)
   process(clk)
   begin
@@ -779,10 +800,13 @@ begin
   esp_ack  <= e_vgo;
   esp_wack <= e_acc;
   sd_be    <= esp_wbe when e_vez = '1' else "0000";
-  sd_req_t <= m_sd_req or o_vez or v_vez or g_vez or a_vez or e_vez;
-  sd_a     <= o_sa when o_vez = '1' else m_sd_a when m_sd_req = '1' else v_sa when v_vez = '1' else a_sa when a_vez = '1' else esp_wa(22 downto 2) & "00" when e_vez = '1' else g_sa;
-  sd_we_t  <= '0' when o_vez = '1' else m_sd_we when m_sd_req = '1' else '0' when v_vez = '1' else '0' when a_vez = '1' else '1' when e_vez = '1' else g_ok;
-  sd_d     <= do_cpu when m_sd_req = '1' else esp_d when e_vez = '1' else g_sd;
+  -- (78) a fita na SDRAM: depois de todos (um acesso a cada muitos ciclos)
+  t_vez    <= '1' when m_sd_req = '0' and o_vez = '0' and v_vez = '0' and g_vez = '0' and a_vez = '0' and e_vez = '0' and t_req = '1' and rf_t < 380 and fase < 7 else '0';
+  t_acc    <= '1' when t_vez = '1' and sd_livre = '1' and sd_rf = '0' else '0';
+  sd_req_t <= m_sd_req or o_vez or v_vez or g_vez or a_vez or e_vez or t_vez;
+  sd_a     <= o_sa when o_vez = '1' else m_sd_a when m_sd_req = '1' else v_sa when v_vez = '1' else a_sa when a_vez = '1' else esp_wa(22 downto 2) & "00" when e_vez = '1' else t_sa when t_vez = '1' else g_sa;
+  sd_we_t  <= '0' when o_vez = '1' else m_sd_we when m_sd_req = '1' else '0' when v_vez = '1' else '0' when a_vez = '1' else '1' when e_vez = '1' else t_we when t_vez = '1' else g_ok;
+  sd_d     <= do_cpu when m_sd_req = '1' else esp_d when e_vez = '1' else t_sd when t_vez = '1' else g_sd;
   -- refresh so' pelo tempo (8192 por 64 ms = 1 a cada ~7,8 us = 421 ciclos): a partir dos 380
   -- ciclos numa vaga segura (Z80 sem pedido, inicio do T), aos 511 de qualquer maneira
   sd_rf  <= '1' when (rf_t >= 380 and m_sd_req = '0' and fase < 4) or rf_t = 511 else '0';
@@ -801,7 +825,7 @@ begin
       -- o acesso acabou (a SDRAM voltou a ficar livre): guarda o dado de quem o pediu.
       -- Pode ser no mesmo ciclo em que a SDRAM aceita o pedido seguinte: os dois ifs sao
       -- independentes (o pend do pedido novo ganha, o dono antigo e' o que conta aqui).
-      g_fim <= '0'; v_fim <= '0'; lb_we_r <= '0'; a_fim <= '0';
+      g_fim <= '0'; v_fim <= '0'; lb_we_r <= '0'; a_fim <= '0'; t_rqv <= '0';
       -- (esp46) o relogio das amostras do ESP: mp_rate por segundo (54 MHz)
       if mp_on = '0' then
         a_acc_c <= (others => '0'); a_i <= (others => '0'); a_req <= '0'; a_voo <= '0';
@@ -841,13 +865,14 @@ begin
             if mp_on = '1' then mpf(to_integer(mp_fw(3 downto 0))) <= q_sd32; mp_fw <= mp_fw + 1; end if;
             a_fim <= '1';
           when "100"  => null;                                   -- rajada da camada: as palavras ja' foram
+          when "110"  => t_rq <= q_sd32; t_rqv <= '1';            -- (78) a fita na SDRAM
           when others => q_g <= q_sd; q_g32 <= q_sd32; g_fim <= '1';
         end case;
       end if;
       if sd_req_t = '1' and sd_livre = '1' and sd_rf = '0' then
         pend <= '1';
         if o_vez = '1' then dono2 <= "100"; elsif m_sd_req = '1' then dono2 <= "000"; z_voo <= '1';
-        elsif v_vez = '1' then dono2 <= "010"; elsif a_vez = '1' then dono2 <= "101"; elsif e_vez = '1' then dono2 <= "011"; else dono2 <= "001"; end if;
+        elsif v_vez = '1' then dono2 <= "010"; elsif a_vez = '1' then dono2 <= "101"; elsif e_vez = '1' then dono2 <= "011"; elsif t_vez = '1' then dono2 <= "110"; else dono2 <= "001"; end if;
       end if;
       if sd_rf = '1' and sd_livre = '1' then rf_t <= (others => '0');
       elsif rf_t /= 511 then rf_t <= rf_t + 1; end if;
@@ -936,6 +961,7 @@ begin
       di <= x"FF";                                     -- aceitacao da INT
     elsif iorq_n = '0' then
       if ua_cs = '1' then di <= ua_q;                  -- UART do ZX-UNO (C6/C7), pelo ESP
+      elsif t_cs = '1' then di <= t_est;               -- (78) a fita na SDRAM: o estado (A6h)
       elsif dv_oe = '1' then di <= dv_q;               -- DivTIESUS: EB (SPI), FD3B (registo DF)
       elsif mb_cs = '1' then di <= mb_q;               -- caixa de correio do ESP (EE3B / EF3B)
       elsif u_porta = '1' then di <= u_q;              -- ULAplus
