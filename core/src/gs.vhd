@@ -21,6 +21,7 @@
 --     E escrita: o estado (bit 0 pausa pedida, 1 parada, 2 parada ja'; bit 3 = (82) a camada L ligada pelo GS;
 --                bit 7 = acabou: o core repoe o GS)
 --     (82) D leitura bit 3 = a camada esta' com o ESP (o menu ou um aviso): o GS nao escreve nela
+--     (83c) D leitura bit 4 = o Z80 ja' passou pelo LD-BYTES da ROM (0556h), ou 6 s depois de a fita arrancar
 --     (82) as paginas 48-55 (porta 0) sao a camada L do ecra (SDRAM 600000h, 320 bytes por linha, 2 bits por ponto)
 --     F escrita: o bloco que esta' a tocar (para o canto do ecra)
 --   INT a 37,5 kHz. Saida: canais 1+2 a' esquerda, 3+4 a' direita (com sinal, 15 bits).
@@ -51,7 +52,8 @@ entity gs is
     -- (81) o leitor de cassete
     fita     : in  std_logic := '0';
     c_livres : in  std_logic_vector(7 downto 0) := (others => '0');
-    c_teclas : in  std_logic_vector(3 downto 0) := (others => '0');   -- F3, F4, a cassete a tocar, a camada no ESP
+    c_teclas : in  std_logic_vector(4 downto 0) := (others => '0');   -- F3, F4, a cassete a tocar, a camada no ESP,
+                                                                       -- (83c) o LOAD da ROM ja' comecou
     c_wr     : out std_logic;
     c_d      : out std_logic_vector(15 downto 0);
     c_est    : out std_logic_vector(3 downto 0);
@@ -188,7 +190,7 @@ begin
         p_b3 when iorq_n = '0' and rd_n = '0' and a(3 downto 0) = x"2" else
         (bit7 & "111111" & bit0) when iorq_n = '0' and rd_n = '0' and a(3 downto 0) = x"4" else
         c_livres when iorq_n = '0' and rd_n = '0' and a(3 downto 0) = x"C" else
-        "0000" & c_teclas when iorq_n = '0' and rd_n = '0' and a(3 downto 0) = x"D" else
+        "000" & c_teclas when iorq_n = '0' and rd_n = '0' and a(3 downto 0) = x"D" else
         x"FF";
 
   -- 4 canais: amostra (8 bits com sinal) x volume (0-63)

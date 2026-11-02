@@ -289,7 +289,9 @@ architecture rtl of core_kairos is
   signal t_tot, gs_blk : std_logic_vector(5 downto 0) := (others => '0');
   signal rep_cnt : unsigned(3 downto 0) := (others => '0');
   signal gs_est4 : std_logic_vector(3 downto 0);
-  signal gs_campag : std_logic;                          -- (82) o GS na camada L (paginas 48-55, so' no modo fita)
+  signal gs_campag : std_logic;
+  signal ld_visto : std_logic := '0';                      -- (83c) a fita so' comeca com o LOAD da ROM a correr
+  signal ld_t : unsigned(28 downto 0) := (others => '0');                          -- (82) o GS na camada L (paginas 48-55, so' no modo fita)
   signal a_acc_c : unsigned(26 downto 0) := (others => '0');
   signal a_i : unsigned(15 downto 0) := (others => '0');
   signal mpl, mpr : signed(15 downto 0) := (others => '0');
@@ -489,6 +491,14 @@ begin
         -- (2026-10-20: o A2h = 52h ja' nao faz o RESET+NMI: a DivTIESUS faz o master reset dos
         --  registos, como no clone, e o navegador arranca o TC2048 com jp 0)
       end if;
+      -- (83c) o LOAD da ROM: o Z80 em 0556h (LD-BYTES do 48K, do TC2048 e do 128K na ROM 1); ou 6 s depois de o
+      -- leitor arrancar (o TC2068 tem a rotina noutro sitio). Enquanto nao, o leitor do GS espera (com o Z80 a
+      -- 27 MHz o silencio do principio da fita passava antes de o LOAD estar escrito)
+      if gs_fita = '0' or gs_rst = '1' then ld_visto <= '0'; ld_t <= (others => '0');
+      else
+        if m1_n = '0' and mreq_n = '0' and a = x"0556" then ld_visto <= '1'; end if;
+        if ld_t = 324000000 then ld_visto <= '1'; else ld_t <= ld_t + 1; end if;
+      end if;
       -- (81) a fita do GS acabou (ou o plugin desistiu): o GS parado 15 ciclos, depois como estava antes
       t_limpa <= '0';
       if gs_cfim = '1' then rep_cnt <= x"F"; end if;
@@ -500,8 +510,8 @@ begin
       -- (69n) o plugin do TAP no ZX 128K faz reset para o menu e pede o ENTER: 2 s depois, 0,15 s carregado
       if ent_on = '1' then
         -- (69u) ate' 15 s, ou ate' o Tape Loader arrancar (opcode em 0562h da ROM 1: o LD-BYTES)
-        if ent_t = 810000000 or (m1_n = '0' and a = x"0562" and rom7 = '1') or (ent_ld = '1' and ent_t = 135000000) then ent_on <= '0';
-        else ent_t <= ent_t + 1; end if;
+        if ent_t = 810000000 or (m1_n = '0' and a = x"0562" and rom7 = '1') or (ent_ld = '1' and ent_t = 8750000) then ent_on <= '0';
+        elsif ent_ld = '0' or (ce = '1' and cpu_wait_n = '1') then ent_t <= ent_t + 1; end if;   -- (83c) o LOAD "" conta em T do Z80
         if ent_s = 53999999 then ent_s <= (others => '0'); else ent_s <= ent_s + 1; end if;
       end if;
       -- (69p) o plugin do TAP pediu o reset (A5h): quando o esxDOS se desmapear (o NMI acabou e o navegador saiu)
@@ -773,10 +783,11 @@ begin
   dv_mapa <= dv_romcs;
   -- (69u) ENTER 0,2 s em cada segundo a partir dos 2 s (o menu do 128 aceita-o quando estiver pronto)
   ent_k <= '1' when ent_on = '1' and ent_ld = '0' and ent_t >= 108000000 and ent_s < 10800000 else '0';
-  -- (83) no 48 (TC2048 / ZX 48K), 1,5 s depois do reset: J (LOAD), SS+P ("), SS+P ("), ENTER; 0,1 s cada, de 0,25 em 0,25 s
-  ek_j   <= '1' when ent_on = '1' and ent_ld = '1' and ent_t >= 81000000 and ent_t < 86400000 else '0';
-  ek_ssp <= '1' when ent_on = '1' and ent_ld = '1' and ((ent_t >= 94500000 and ent_t < 99900000) or (ent_t >= 108000000 and ent_t < 113400000)) else '0';
-  ek_ent <= '1' when ent_on = '1' and ent_ld = '1' and ent_t >= 121500000 and ent_t < 126900000 else '0';
+  -- (83) no 48 (TC2048 / ZX 48K), depois do reset: J (LOAD), SS+P ("), SS+P ("), ENTER. (83c) Em T do Z80 (a 27 MHz vai
+  -- 8 x mais depressa): a 3,5 MHz 1,5 s depois do reset, 0,1 s cada, de 0,25 em 0,25 s
+  ek_j   <= '1' when ent_on = '1' and ent_ld = '1' and ent_t >= 5250000 and ent_t < 5600000 else '0';
+  ek_ssp <= '1' when ent_on = '1' and ent_ld = '1' and ((ent_t >= 6125000 and ent_t < 6475000) or (ent_t >= 7000000 and ent_t < 7350000)) else '0';
+  ek_ent <= '1' when ent_on = '1' and ent_ld = '1' and ent_t >= 7875000 and ent_t < 8225000 else '0';
   -- (69m) no 128 com a ROM 0 (menu, 128 BASIC) o NMI espera pela ROM 1: a interrupcao da ROM 0 passa pela ROM 1
   -- (o KEYBOARD) a cada quadro, e o NMI entra ai', como no Tape Loader (na ROM 0 o NMI rebentava a partir do 2.o).
   -- O reset mestre (RESET+NMI) usa o botao directamente, sem esta espera.
@@ -1278,7 +1289,7 @@ begin
               cs_rd => gs_cs_rd, cs_wr => gs_cs_wr, a3 => a(3), din => do_cpu, dout => gs_q,
               m_a => gs_ma_c, m_rd => gs_rd_c, m_wr => gs_wr_c, m_d => gs_md_c, m_q => gs_mq, m_wait => gs_wait,
               out_l => gs_l, out_r => gs_r,
-              fita => gs_fita, c_livres => tp_livres, c_teclas => tp_esp & tp_cativa & tp_para & tp_pausak,
+              fita => gs_fita, c_livres => tp_livres, c_teclas => ld_visto & tp_esp & tp_cativa & tp_para & tp_pausak,
               c_wr => tp_wr, c_d => tp_d, c_est => gs_est4, c_fim => gs_cfim, c_bloco => gs_blk);
 
   ---------------------------------------------------------------------------

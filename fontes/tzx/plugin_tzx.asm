@@ -105,14 +105,7 @@ ICab                call GetB
                     ; antes da fita: o EAR a 0 e uma pausa (no 128K o reset e o menu demoram)
                     ld hl,0C000h
                     call PutW
-                    ld hl,500
-                    ld a,(Maq)
-                    or a
-                    jr z,IPausa
-                    ld hl,3000
-                    dec a
-                    jr z,IPausa
-                    ld hl,3000          ; (83) no 48: o reset, o esxDOS e o LOAD "" escrito pelo core (~2,4 s)
+                    ld hl,300           ; (83c) o leitor do GS so' comeca quando o Z80 entra no LOAD da ROM
 IPausa              call PausaMs
 ; ---------------------------------------------------------------- os blocos
 Bloco               call GetB0

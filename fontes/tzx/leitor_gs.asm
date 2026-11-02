@@ -35,6 +35,12 @@
                     ld (ClrP),a
                     ld de,8000h
                     ld (ClrA),de
+LDesp               in a,(0Dh)          ; (83c) espera que o Z80 entre no LOAD da ROM (o core diz: D bit 4)
+                    and 10h
+                    jr nz,Ciclo
+                    call Teclas
+                    call Ecra           ; entretanto limpa a camada e desenha o painel
+                    jr LDesp
 ; ---------------------------------------------------------------- as palavras
 Ciclo               call GetW           ; DE = a palavra
                     ld a,d
