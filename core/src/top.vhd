@@ -137,6 +137,10 @@ architecture rtl of top is
   signal rato_x, rato_y : std_logic_vector(7 downto 0);
   signal rato_b : std_logic_vector(2 downto 0);
   signal rato_w : std_logic_vector(3 downto 0);
+  signal rato_esp : std_logic_vector(23 downto 0);   -- (76) X, Y e o FADF (botoes e roda) para o menu do ESP
+  signal rato_xz, rato_yz : std_logic_vector(7 downto 0) := (others => '0');   -- (76) o rato que o Z80 ve': parado com o
+  signal rato_bz : std_logic_vector(2 downto 0) := (others => '0');           -- menu do ESP aberto (k_cap), como o teclado
+  signal rato_wz : std_logic_vector(3 downto 0) := (others => '1');
   signal joy_k, joy_usb : std_logic_vector(7 downto 0);
   signal pede_rnmi : std_logic := '0';
   signal fita_on : std_logic := '0';   -- (67) a cassete do ESP ligada: sem as traps da fita na DivMMC
@@ -261,6 +265,7 @@ architecture rtl of top is
   signal k_mat : std_logic_vector(39 downto 0) := (others => '0');
   signal c_sd_cs_n, c_sd_clk, c_sd_mosi, c_sd_miso : std_logic;
 begin
+  rato_esp <= rato_w & '1' & not rato_b(2) & not rato_b(0) & not rato_b(1) & rato_y & rato_x;
   -- 480p: 27 x 14 / 3 = 126 MHz (VCO 504).
   -- 576p: 27 x 5 / 1 = 135 MHz (VCO 540).  720p: 27 x 55 / 4 = 371,25 MHz (VCO 742,5).
   -- (valores confirmados com o gowin_pll do apicula)
@@ -436,7 +441,7 @@ begin
       port map (clk => clk54, clk_div => I_clk, vclk => pclk, ce => ce, ce35 => ce35, reset_n => cpu_rst_n,
                 nmi_n => nmi_core, mat => mat,
                 border => border_c, modo => modo_c, hcor => hcor_c, ecra7 => ecra7_c,
-                vid_a => ecra7_v & va, vid_q => vq, vid_a2 => va2, vid_q2 => vq2, m16c => m16c_c, turbo => turbo_c, sd_esp => sd_dado, sem_fita => fita_on, ear_in => cs_ear, mp_on => '0', mp_rate => mp_rate, mp_idx => mp_idx, mp_l => open, mp_r => open, ce_t => ce_t, dv_lento => dv_lento, dv_mapa => dv_mapa, ay_vis => ay_vis, rato_x => rato_x, rato_y => rato_y, rato_b => rato_b, rato_w => rato_w, joy => joy_k, pede_rnmi => pede_rnmi, arr_auto => arr_auto, arr_rapido => arr_rap, halt_n => halt_n,
+                vid_a => ecra7_v & va, vid_q => vq, vid_a2 => va2, vid_q2 => vq2, m16c => m16c_c, turbo => turbo_c, sd_esp => sd_dado, sem_fita => fita_on, ear_in => cs_ear, mp_on => '0', mp_rate => mp_rate, mp_idx => mp_idx, mp_l => open, mp_r => open, ce_t => ce_t, dv_lento => dv_lento, dv_mapa => dv_mapa, ay_vis => ay_vis, rato_x => rato_xz, rato_y => rato_yz, rato_b => rato_bz, rato_w => rato_wz, joy => joy_k, pede_rnmi => pede_rnmi, arr_auto => arr_auto, arr_rapido => arr_rap, halt_n => halt_n,
                 pronta => sd_pronta, sd_teste => sd_teste, sd_teste2 => sd_teste2,
                 sd_clk => open, sd_cke => O_sdram_cke, sd_cs_n => O_sdram_cs_n,
                 sd_ras_n => O_sdram_ras_n, sd_cas_n => O_sdram_cas_n, sd_we_n => O_sdram_wen_n,
@@ -536,6 +541,12 @@ begin
       d => mcu_d, q => mcu_hid_q, mat => mat_usb, f11 => usb_f11, cad => usb_cad,
       rato_x => rato_x, rato_y => rato_y, rato_b => rato_b, rato_w => rato_w, joy => joy_usb, atalho => atalho, alt => alt_k, jcru => jcru);
   joy_k <= joy_usb when k_cap = '0' else x"00";   -- menu do ESP aberto: o joystick so' para o ESP
+  process(clk54) begin   -- (76) e o rato tambem: o Z80 fica com a ultima posicao e sem botoes
+    if rising_edge(clk54) then
+      if k_cap = '0' then rato_xz <= rato_x; rato_yz <= rato_y; rato_bz <= rato_b; rato_wz <= rato_w;
+      else rato_bz <= "000"; end if;
+    end if;
+  end process;
   -- k_mat: teclas carregadas pelo ESP; com k_cap = 1 o teclado so' vai para o ESP (menu do ESP aberto)
   mat_fis <= mat_auto or mat_usb or mat_arr;
   mat <= (mat_fis or k_mat) when k_cap = '0' else k_mat;
@@ -705,7 +716,8 @@ begin
                                        sd_meu => sd_meu, sd_dado => sd_dado, fita_on => fita_on, esp_vivo => esp_vivo, sd_cs_n => esp_cs_n, sd_sclk => esp_sclk, sd_mosi => esp_mosi, sd_miso => I_sd_miso,
                                        k_mat => k_mat, k_rst => k_rst, k_nmi => k_nmi,
                                        z_wr => mb_wr, z_rd => mb_rd, z_sel => mb_sel, z_cam => mb_cam, z_d => mb_d, z_q => mb_q, u_wr => ua_wr, u_rd => ua_rd, u_dat => ua_dat, u_q => ua_q,
-                                       k_in => mat_fis, k_cap => k_cap, k_turbo => k_turbo, k_gspara => k_gspara, k_ay3 => k_ay3, k_vel => vel_cod, cs_wr => cs_wr, cs_d => cs_d, cs_limpa => cs_limpa, cs_livres => cs_livres, cs_ativa => cs_ativa, k_joy => joy_usb, k_atal => atalho, k_ay => ay_vis, k_jcru => jcru, k_maq => maq_st);
+                                       k_in => mat_fis, k_cap => k_cap, k_turbo => k_turbo, k_gspara => k_gspara, k_ay3 => k_ay3, k_vel => vel_cod, cs_wr => cs_wr, cs_d => cs_d, cs_limpa => cs_limpa, cs_livres => cs_livres, cs_ativa => cs_ativa, k_joy => joy_usb, k_atal => atalho, k_ay => ay_vis, k_jcru => jcru, k_maq => maq_st,
+                                       k_rato => rato_esp);   -- (76) o rato para o ESP
   sem_kairos_g: if not KAIROS generate esp_ack <= '0'; esp_wack <= '0'; end generate;
   cas: entity work.cassete port map (clk => clk54, t_ce => ce_t, limpa => cs_limpa, wr => cs_wr, d => cs_d,
                                      livres => cs_livres, ativa => cs_ativa, ear => cs_ear);

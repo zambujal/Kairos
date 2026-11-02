@@ -158,6 +158,7 @@ entity ponte_esp is
     k_ay    : in    std_logic_vector(191 downto 0) := (others => '0');   -- (2026-10-24) os AY 1 e 2 (registo 24)   -- joystick 0 tal como vem do BL616
     k_maq   : in    std_logic_vector(15 downto 0) := (others => '0');   -- a maquina (core: maq_st)
     k_vel   : in    std_logic_vector(3 downto 0) := "0001";             -- MHz do Z80 / 3,5 (1, 2, 4 ou 8)
+    k_rato  : in    std_logic_vector(23 downto 0) := (others => '0');   -- (76) o rato: X, Y (Kempston) e botoes/roda (o FADF)
     -- cassete (2026-10-24): 6E = impulsos (byte baixo, byte alto; o endereco nao avanca),
     -- 6F escrita bit 0 = parar e esvaziar; leitura 6F = lugares livres, 6E bit 0 = a tocar
     cs_wr    : out   std_logic;
@@ -227,6 +228,7 @@ architecture rtl of ponte_esp is
   signal joy_s : std_logic_vector(7 downto 0) := (others => '0');
   signal atal_s, atal_l : std_logic_vector(20 downto 0) := (others => '0');
   signal jcru_s : std_logic_vector(31 downto 0) := (others => '0');
+  signal rato_s : std_logic_vector(23 downto 0) := (others => '0');
   signal maq_s : std_logic_vector(15 downto 0) := (others => '0');
   signal vel_s : std_logic_vector(3 downto 0) := "0001";
   signal cs_lo : std_logic_vector(7 downto 0) := (others => '0');
@@ -363,7 +365,7 @@ begin
       d_s1 <= esp_d; d_s2 <= d_s1;
       -- caixa de correio, lado do Z80: OUT no inicio, IN avanca no fim
       atal_l <= atal_l or atal_s;                    -- (v6) guardado ate' o ESP ler
-      kin_s <= k_in; joy_s <= k_joy; atal_s <= k_atal; jcru_s <= k_jcru; maq_s <= k_maq; vel_s <= k_vel; ay_s <= k_ay; cs_liv_s <= cs_livres; cs_atv_s <= cs_ativa;
+      kin_s <= k_in; joy_s <= k_joy; atal_s <= k_atal; jcru_s <= k_jcru; rato_s <= k_rato; maq_s <= k_maq; vel_s <= k_vel; ay_s <= k_ay; cs_liv_s <= cs_livres; cs_atv_s <= cs_ativa;
       zw_d <= z_wr; zr_d <= z_rd;
       if z_rd = '1' then zr_sel <= z_sel; end if;
       if z_wr = '1' and zw_d = '0' and z_cam = '1' then
@@ -542,6 +544,9 @@ begin
                 when x"7A" => v := "0000" & vel_s;
                 when x"6E" => v := "0000000" & cs_atv_s;
                 when x"6F" => v := cs_liv_s;
+                when x"5B" => v := rato_s(7 downto 0);     -- (76) o rato para o menu do ESP: X (FBDF)
+                when x"5C" => v := rato_s(15 downto 8);    -- Y (FFDF)
+                when x"5D" => v := rato_s(23 downto 16);   -- botoes e roda (FADF)
                 when x"74" => v := jcru_s(7 downto 0);
                 when x"75" => v := jcru_s(15 downto 8);
                 when x"76" => v := jcru_s(23 downto 16);
@@ -587,6 +592,11 @@ begin
                 when x"4C" => wy_r(7 downto 0) <= d_s2;
                 when x"4D" => wy_r(9 downto 8) <= d_s2(1 downto 0);
                 when x"50" => sd_ctl <= d_s2(2 downto 0);
+                when x"15" => ptr_x(7 downto 0) <= d_s2;   -- (76) o ponteiro do rato tambem pelo ESP (o menu)
+                when x"16" => ptr_x(10 downto 8) <= d_s2(2 downto 0);
+                when x"17" => ptr_y(7 downto 0) <= d_s2;
+                when x"18" => ptr_y(9 downto 8) <= d_s2(1 downto 0);
+                when x"19" => ptr_on <= d_s2(0);
                 when x"53" => sd_lo <= d_s2;
                 when x"54" => sd_n <= unsigned(d_s2) & unsigned(sd_lo);
                 when x"37" => vr_lo <= d_s2;
