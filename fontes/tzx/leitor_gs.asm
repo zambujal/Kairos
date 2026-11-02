@@ -124,11 +124,12 @@ Fim                 in a,(0Dh)
                     jr $
 ; ---------------------------------------------------------------- a cassete
 ; manda a palavra DE (espera lugar na fila; trata das teclas)
-Envia               call Teclas
-                    in a,(0Ch)
-                    cp 5
-                    jr c,Envia
-                    ld a,e
+Envia               in a,(0Ch)          ; (as teclas so' enquanto espera: a fila esta' quase sempre cheia, e
+                    cp 5                ; assim o leitor aguenta a cassete a 27 MHz)
+                    jr nc,EnvOk
+                    call Teclas
+                    jr Envia
+EnvOk               ld a,e
                     out (0Ch),a
                     ld a,d
                     out (0Dh),a
