@@ -238,6 +238,7 @@ architecture rtl of top is
   signal cs_livres : std_logic_vector(7 downto 0);
   signal tp_wr, tp_limpa, tp_ativa, ca_wr, ca_limpa : std_logic;   -- (78) a fita na SDRAM (o plugin TZX), na mesma cassete
   signal tp_d, ca_d : std_logic_vector(15 downto 0);
+  signal tpa_d : std_logic := '0';
   signal k_gspara, k_ay3 : std_logic := '0';
   signal alt_k : std_logic := '0';
   signal maq_st : std_logic_vector(15 downto 0) := (others => '0');
@@ -364,6 +365,9 @@ begin
       at_d <= atalho(19) & atalho(20);
       if atalho(20) = '1' and at_d(0) = '0' and vel_r /= 8 then vel_r <= vel_r * 2; end if;
       if atalho(19) = '1' and at_d(1) = '0' and vel_r /= 1 then vel_r <= vel_r / 2; end if;
+      -- (80) a fita da SDRAM acabou (tocou no maximo): o Z80 fica a 3,5 MHz para o jogo
+      tpa_d <= tp_ativa;
+      if tp_ativa = '0' and tpa_d = '1' then vel_r <= 1; end if;
       -- (77) o menu do ESP (o botao da velocidade): um pedido de cada vez (o bit 4 muda)
       vpede_d <= vpede(4);
       if vpede(4) /= vpede_d then
