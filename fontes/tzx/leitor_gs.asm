@@ -347,7 +347,7 @@ EDc                 call TxtLin         ; IX = o texto da linha, (TabC) = a cor
 EDl                 push af
                     ld a,(DLin)         ; COff = (48 + linha x 16) x 320 + DPos x 4
                     ld b,a
-                    ld hl,15360
+                    ld hl,15360+8       ; (32 pontos da esquerda: a TV corta a margem)
                     ld de,5120
                     inc b
 EDo                 dec b
