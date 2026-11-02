@@ -339,6 +339,9 @@ FimFich             ld hl,0FFFFh        ; (um ciclo sem o fim: fica como foi lid
                     ld a,0A6h
                     out (c),a
                     inc b
+                    ld a,(NBloc)        ; (core 80) quantos blocos: A6h = 80h + n
+                    or 80h
+                    out (c),a
                     ld a,1
                     out (c),a
                     call SelA7          ; o registo A6h nao fica escolhido (um OUT FD3B a seguir parava a fita)
@@ -485,7 +488,12 @@ DGrande             ld de,8000h         ; Len -= 32K
                     call Bocado
                     jr DOk
 ; HL bytes, C = bits do ultimo
-Bocado              push hl
+Bocado              ld a,(NBloc)        ; (core 80) os blocos de dados, para o canto do ecra (ate' 63)
+                    cp 63
+                    jr nc,BocN
+                    inc a
+                    ld (NBloc),a
+BocN                push hl
                     push bc
                     ld hl,0F002h
                     call PutW
@@ -922,5 +930,6 @@ Bit0                dw 0
 Bit1                dw 0
 Usados              db 0
 Impar               db 0
+NBloc               db 0
 VELine              dw 0
 VStkend             dw 0

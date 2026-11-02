@@ -41,17 +41,24 @@ entity fita_sd is
     c_limpa : out std_logic;
     c_livres: in  std_logic_vector(7 downto 0);
     c_ativa : in  std_logic := '0';               -- (79) a cassete ainda a tocar (no fim: para sozinha quando esvazia)
-    para    : in  std_logic := '0';               -- (80) o F4 do teclado USB: para a fita (como o A6h = 0)
-    pausa_k : in  std_logic := '0';               -- (80) o F3 do teclado USB: pausa / continua
-    pausa   : out std_logic;                      -- (80) em pausa: a cassete fica parada (o t_ce dela desligado)
+    para    : in  std_logic := '0';               -- (80) o F4 do teclado USB: para ja' (a cassete fica parada no sitio,
+                                                  -- a meio do que estiver a tocar); outro F4 (ou F3) continua
+    pausa_k : in  std_logic := '0';               -- (80) o F3 do teclado USB: pausa / continua. A pausa so' comeca
+                                                  -- na pausa seguinte da fita (depois dos dados do bloco a tocar)
+    pausa   : out std_logic_vector(2 downto 0);   -- (80) bit 0 pausa pedida, bit 1 ja' parada (a espera),
+                                                  -- bit 2 parada ja' (F4: o t_ce da cassete desligado)
     ativa   : out std_logic;                      -- 1 = a fita e' nossa (a tocar)
-    rapido  : out std_logic                       -- (80) o Z80 a 14 MHz (A6h bit 2)
+    rapido  : out std_logic;                      -- (80) o Z80 a 14 MHz (A6h bit 2)
+    -- (80) os blocos de dados (para o canto do ecra): o total (o plugin escreve A6h = 80h + n, ate' 63) e
+    -- quantos ja' comecaram a tocar
+    blocos  : out std_logic_vector(11 downto 0)
   );
 end entity;
 
 architecture rtl of fita_sd is
   constant BASE : unsigned(22 downto 0) := to_unsigned(16#080000#, 23);
-  signal toca, acabou, rap, para_d, pau, pau_d : std_logic := '0';
+  signal toca, acabou, rap, para_d, pau, pau_d, parado, gelo : std_logic := '0';
+  signal b_tot, b_atual : unsigned(5 downto 0) := (others => '0');
   signal wa : unsigned(18 downto 0) := (others => '0');    -- o endereco de escrita (byte, desde BASE)
   signal ra : unsigned(16 downto 0) := (others => '0');    -- a palavra de 32 bits seguinte a ler (desde BASE)
   signal w_pend, r_pend, r_voo : std_logic := '0';
@@ -80,7 +87,8 @@ begin
   estado <= "00000" & w_pend & acabou & toca;
   ativa <= toca;
   rapido <= rap;
-  pausa <= pau and toca;
+  blocos <= std_logic_vector(b_tot) & std_logic_vector(b_atual);
+  pausa <= (gelo and toca) & (parado and toca) & (pau and toca);
   c_wr <= cwr; c_d <= cd; c_limpa <= limpa_r;
   cabe <= '1' when unsigned(c_livres) > 4 and cwr = '0' else '0';
   s_req <= w_pend or r_pend;
@@ -94,16 +102,20 @@ begin
     if rising_edge(clk) then
       cwr <= '0'; limpa_r <= '0'; usa := '0';
       para_d <= para;
-      if para = '1' and para_d = '0' and toca = '1' then toca <= '0'; limpa_r <= '1'; end if;   -- (80) F4
       pau_d <= pausa_k;
-      if toca = '0' then pau <= '0';
-      elsif pausa_k = '1' and pau_d = '0' then pau <= not pau; end if;                         -- (80) F3
+      if toca = '0' then pau <= '0'; parado <= '0'; gelo <= '0';
+      elsif para = '1' and para_d = '0' then gelo <= not gelo; pau <= '0';                    -- (80) F4: ja'
+      elsif pausa_k = '1' and pau_d = '0' then                                                  -- (80) F3
+        if gelo = '1' then gelo <= '0'; else pau <= not pau; end if;
+      end if;
       -- o Z80
-      if ctl_wr = '1' then
+      if ctl_wr = '1' and d(7) = '1' then
+        b_tot <= unsigned(d(5 downto 0));
+      elsif ctl_wr = '1' then
         if d(1) = '1' then wa <= (others => '0'); end if;
         rap <= d(2);
         if d(0) = '1' then
-          toca <= '1'; acabou <= '0'; ra <= (others => '0'); buf_ok <= '0'; pal_ok <= '0'; e <= E_CMD;
+          toca <= '1'; acabou <= '0'; ra <= (others => '0'); buf_ok <= '0'; pal_ok <= '0'; e <= E_CMD; b_atual <= (others => '0');
           r_pend <= '0'; r_voo <= '0';
         else
           toca <= '0'; limpa_r <= '1';
@@ -130,8 +142,11 @@ begin
             if pal_ok = '1' then
               if pal = x"FFFF" then e <= E_FIM; usa := '1';
               elsif pal = x"F001" then e <= E_REP_L; usa := '1';
-              elsif pal = x"F002" then e <= E_D_B0; usa := '1';
+              elsif pal = x"F002" then e <= E_D_B0; usa := '1'; if b_atual /= 63 then b_atual <= b_atual + 1; end if;
+              elsif pau = '1' and pal(15 downto 14) = "10" then
+                parado <= '1';                    -- (80) a pausa pedida: fica aqui (os dados antes ja' foram)
               elsif cabe = '1' then
+                parado <= '0';
                 if pal(15 downto 12) /= x"F" then cd <= pal; cwr <= '1'; end if;   -- (outros Fxxx: ignorados)
                 usa := '1';
               end if;
