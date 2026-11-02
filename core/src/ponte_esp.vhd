@@ -159,6 +159,8 @@ entity ponte_esp is
     k_maq   : in    std_logic_vector(15 downto 0) := (others => '0');   -- a maquina (core: maq_st)
     k_vel   : in    std_logic_vector(3 downto 0) := "0001";             -- MHz do Z80 / 3,5 (1, 2, 4 ou 8)
     k_rato  : in    std_logic_vector(23 downto 0) := (others => '0');   -- (76) o rato: X, Y (Kempston) e botoes/roda (o FADF)
+    k_vpede : out   std_logic_vector(4 downto 0);                       -- (77) o ESP pede a velocidade do Z80: bit 4 muda (cada pedido),
+                                                                        -- bits 3-0 = 1, 2, 4 ou 8 (3,5 / 7 / 14 / 27 MHz)
     -- cassete (2026-10-24): 6E = impulsos (byte baixo, byte alto; o endereco nao avanca),
     -- 6F escrita bit 0 = parar e esvaziar; leitura 6F = lugares livres, 6E bit 0 = a tocar
     cs_wr    : out   std_logic;
@@ -229,6 +231,7 @@ architecture rtl of ponte_esp is
   signal atal_s, atal_l : std_logic_vector(20 downto 0) := (others => '0');
   signal jcru_s : std_logic_vector(31 downto 0) := (others => '0');
   signal rato_s : std_logic_vector(23 downto 0) := (others => '0');
+  signal vpede_r : std_logic_vector(4 downto 0) := (others => '0');
   signal maq_s : std_logic_vector(15 downto 0) := (others => '0');
   signal vel_s : std_logic_vector(3 downto 0) := "0001";
   signal cs_lo : std_logic_vector(7 downto 0) := (others => '0');
@@ -287,6 +290,7 @@ architecture rtl of ponte_esp is
   signal uw_d, ud_d, urd_sel, ur_tem : std_logic := '0';
 begin
   c_pon <= ptr_on; c_px <= ptr_x; c_py <= ptr_y;
+  k_vpede <= vpede_r;
   c_lig <= r40(0); c_sel <= r40(1); c_jan <= r40(3); c_2x <= r40(4); c_meio <= r4e; mp_on <= mp_on_r; mp_alto <= mp_alto_r; mp_rate <= mp_rate_r;
   c_w16 <= r4f(0); c_wsep <= r4f(1); c_widx <= r4f(3 downto 2); c_wx <= wx_r; c_wy <= wy_r;
   c_cor1 <= cores(0) & cores(1) & cores(2);
@@ -597,6 +601,7 @@ begin
                 when x"17" => ptr_y(7 downto 0) <= d_s2;
                 when x"18" => ptr_y(9 downto 8) <= d_s2(1 downto 0);
                 when x"19" => ptr_on <= d_s2(0);
+                when x"5E" => vpede_r <= not vpede_r(4) & d_s2(3 downto 0);   -- (77) a velocidade do Z80 pelo menu do ESP
                 when x"53" => sd_lo <= d_s2;
                 when x"54" => sd_n <= unsigned(d_s2) & unsigned(sd_lo);
                 when x"37" => vr_lo <= d_s2;

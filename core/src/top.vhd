@@ -137,6 +137,7 @@ architecture rtl of top is
   signal rato_x, rato_y : std_logic_vector(7 downto 0);
   signal rato_b : std_logic_vector(2 downto 0);
   signal rato_w : std_logic_vector(3 downto 0);
+  signal vpede : std_logic_vector(4 downto 0); signal vpede_d : std_logic := '0';   -- (77) a velocidade pedida pelo ESP
   signal rato_esp : std_logic_vector(23 downto 0);   -- (76) X, Y e o FADF (botoes e roda) para o menu do ESP
   signal rato_xz, rato_yz : std_logic_vector(7 downto 0) := (others => '0');   -- (76) o rato que o Z80 ve': parado com o
   signal rato_bz : std_logic_vector(2 downto 0) := (others => '0');           -- menu do ESP aberto (k_cap), como o teclado
@@ -361,6 +362,14 @@ begin
       at_d <= atalho(19) & atalho(20);
       if atalho(20) = '1' and at_d(0) = '0' and vel_r /= 8 then vel_r <= vel_r * 2; end if;
       if atalho(19) = '1' and at_d(1) = '0' and vel_r /= 1 then vel_r <= vel_r / 2; end if;
+      -- (77) o menu do ESP (o botao da velocidade): um pedido de cada vez (o bit 4 muda)
+      vpede_d <= vpede(4);
+      if vpede(4) /= vpede_d then
+        case vpede(3 downto 0) is
+          when "0001" => vel_r <= 1; when "0010" => vel_r <= 2; when "0100" => vel_r <= 4; when "1000" => vel_r <= 8;
+          when others => null;
+        end case;
+      end if;
       -- (2026-10-24) 8 x = 27 MHz: um ce de 2 em 2 ciclos certos (nunca dois seguidos: o .sdc da' 2 ciclos ao Z80)
       -- (68c) o ce do Z80 sai do acumulador do quadro (acc35), sempre desfasado do ce35: 1 x na passagem por DEN/2,
       -- 2 x em DEN/4 e 3 DEN/4, 4 x nos oitavos impares. Multiplos certos da velocidade da maquina, em fase fixa com o
@@ -717,7 +726,7 @@ begin
                                        k_mat => k_mat, k_rst => k_rst, k_nmi => k_nmi,
                                        z_wr => mb_wr, z_rd => mb_rd, z_sel => mb_sel, z_cam => mb_cam, z_d => mb_d, z_q => mb_q, u_wr => ua_wr, u_rd => ua_rd, u_dat => ua_dat, u_q => ua_q,
                                        k_in => mat_fis, k_cap => k_cap, k_turbo => k_turbo, k_gspara => k_gspara, k_ay3 => k_ay3, k_vel => vel_cod, cs_wr => cs_wr, cs_d => cs_d, cs_limpa => cs_limpa, cs_livres => cs_livres, cs_ativa => cs_ativa, k_joy => joy_usb, k_atal => atalho, k_ay => ay_vis, k_jcru => jcru, k_maq => maq_st,
-                                       k_rato => rato_esp);   -- (76) o rato para o ESP
+                                       k_rato => rato_esp, k_vpede => vpede);   -- (76) o rato para o ESP; (77) a velocidade
   sem_kairos_g: if not KAIROS generate esp_ack <= '0'; esp_wack <= '0'; end generate;
   cas: entity work.cassete port map (clk => clk54, t_ce => ce_t, limpa => cs_limpa, wr => cs_wr, d => cs_d,
                                      livres => cs_livres, ativa => cs_ativa, ear => cs_ear);
