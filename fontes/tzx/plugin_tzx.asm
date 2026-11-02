@@ -49,10 +49,16 @@ Inicio              di                  ; sem interrupcoes enquanto escreve a li
                     ld (Nome),hl        ; HL = o nome do ficheiro
                     call Maquina        ; Maq: 0 = linha de edicao, 1 = ZX 128K (reset + ENTER)
                     ld a,(Maq)
-                    or a
-                    jr nz,IAbre
+                    cp 1
+                    jr z,IAbre          ; ZX 128K: reset + ENTER
                     call VeLinha        ; a linha de edicao tem de estar vazia (o BASIC parado)
-                    jp c,ErroJogo
+                    jr nc,ILinha
+                    ld a,(Maq)          ; (83b) no 48 com um jogo a correr (ou pelo .browse): reset e o core escreve
+                    cp 2                ; o LOAD ""; nos outros nao da'
+                    jp nz,ErroJogo
+                    jr IAbre
+ILinha              xor a               ; (83b) o BASIC parado: o LOAD "" na linha de edicao, logo (sem reset)
+                    ld (Maq),a
 IAbre               ld hl,(Nome)
                     ld a,'*'
                     ld b,FA_READ
