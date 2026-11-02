@@ -495,7 +495,7 @@ begin
         rep_cnt <= rep_cnt - 1; gs_fita <= '0'; t_limpa <= '1';
         if rep_cnt = 1 then gs_rst <= not gs_tinha; else gs_rst <= '1'; end if;
       end if;
-      if gs_parar = '1' then gs_rst <= '1'; end if;   -- o ESP para o General Sound (fora do OUT do Z80)
+      if gs_parar = '1' and gs_fita = '0' then gs_rst <= '1'; end if;   -- o ESP para o General Sound (82c: nao a meio da fita)
       -- (69n) o plugin do TAP no ZX 128K faz reset para o menu e pede o ENTER: 2 s depois, 0,15 s carregado
       if ent_on = '1' then
         -- (69u) ate' 15 s, ou ate' o Tape Loader arrancar (opcode em 0562h da ROM 1: o LD-BYTES)

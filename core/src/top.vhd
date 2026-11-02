@@ -749,7 +749,7 @@ begin
   sem_kairos_g: if not KAIROS generate esp_ack <= '0'; esp_wack <= '0'; end generate;
   ca_wr <= tp_wr when tp_ativa = '1' else cs_wr;
   ca_d  <= tp_d when tp_ativa = '1' else cs_d;
-  ca_limpa <= cs_limpa or tp_limpa;
+  ca_limpa <= (cs_limpa and not tp_ativa) or tp_limpa;   -- (82c) o F4 do ESP nao esvazia a fita do GS (era um buraco)
   ca_ce <= ce_t and not tp_pau(2);                    -- (80) F4: a cassete do core parada no sitio
   cas: entity work.cassete port map (clk => clk54, t_ce => ca_ce, limpa => ca_limpa, wr => ca_wr, d => ca_d,
                                      livres => cs_livres, ativa => cs_ativa, ear => cs_ear);
