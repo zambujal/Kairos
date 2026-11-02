@@ -78,15 +78,14 @@ ICab                call GetB
                     inc hl
                     djnz ICab
                     call GetW
-                    ; antes da fita: o EAR a 0 e uma pausa (no 128K o reset e o menu demoram). Core 79+: a fita toca a
-                    ; 27 MHz (8 x): 4 s de fita = 0,5 s; no 128K 24 s de fita = 3 s (o ENTER do core e' 2 s depois)
+                    ; antes da fita: o EAR a 0 e uma pausa (no 128K o reset e o menu demoram)
                     ld hl,0C000h
                     call PutW
-                    ld hl,4000
+                    ld hl,500
                     ld a,(Maq)
                     or a
                     jr z,IPausa
-                    ld hl,24000
+                    ld hl,3000
 IPausa              call PausaMs
 ; ---------------------------------------------------------------- os blocos
 Bloco               call GetB0

@@ -238,7 +238,6 @@ architecture rtl of top is
   signal cs_livres : std_logic_vector(7 downto 0);
   signal tp_wr, tp_limpa, tp_ativa, ca_wr, ca_limpa : std_logic;   -- (78) a fita na SDRAM (o plugin TZX), na mesma cassete
   signal tp_d, ca_d : std_logic_vector(15 downto 0);
-  signal tpa_d : std_logic := '0';
   signal k_gspara, k_ay3 : std_logic := '0';
   signal alt_k : std_logic := '0';
   signal maq_st : std_logic_vector(15 downto 0) := (others => '0');
@@ -365,9 +364,6 @@ begin
       at_d <= atalho(19) & atalho(20);
       if atalho(20) = '1' and at_d(0) = '0' and vel_r /= 8 then vel_r <= vel_r * 2; end if;
       if atalho(19) = '1' and at_d(1) = '0' and vel_r /= 1 then vel_r <= vel_r / 2; end if;
-      -- (80) a fita da SDRAM acabou (tocou no maximo): o Z80 fica a 3,5 MHz para o jogo
-      tpa_d <= tp_ativa;
-      if tp_ativa = '0' and tpa_d = '1' then vel_r <= 1; end if;
       -- (77) o menu do ESP (o botao da velocidade): um pedido de cada vez (o bit 4 muda)
       vpede_d <= vpede(4);
       if vpede(4) /= vpede_d then
@@ -388,9 +384,8 @@ begin
       -- (69h/69j) perto dos acessos ao cartao (dv_lento) sempre a 1 x, mesmo em turbo, no arranque rapido e nas
       -- mudancas de maquina do ESP (suspeita: escritas a 14 MHz estragavam o cartao)
       if dv_lento = '1' then ce <= to_std(c1);
-      -- (79) a tocar a fita da SDRAM (o plugin TZX): sempre no maximo (a fita conta em T do Z80: carrega 8 x mais depressa)
-      elsif k_turbo = '1' or arr_rap = '1' or vel_r = 4 or ((vel_r = 8 or tp_ativa = '1') and dv_mapa = '1') then ce <= to_std(c4);
-      elsif vel_r = 8 or tp_ativa = '1' then ce <= not ce;
+      elsif k_turbo = '1' or arr_rap = '1' or vel_r = 4 or (vel_r = 8 and dv_mapa = '1') then ce <= to_std(c4);
+      elsif vel_r = 8 then ce <= not ce;
       elsif vel_r = 2 then ce <= to_std(c2);
       else ce <= to_std(c1); end if;
       if acc35 + n1_r >= DEN then acc35 <= acc35 + n1_r - DEN; ce35 <= '1';
@@ -604,7 +599,7 @@ begin
   O_led_ofs <= not std_logic_vector(ofs_r) when CAP_TESTE else
                not (arr_esc(3 downto 1) or atalho(2 downto 0)) when KAIROS else "11" & not dbg_hid;   -- LEDs 4-6: Win+J, Win+S, Win+C
 
-  turbo_c <= '0' when vel_r = 1 and k_turbo = '0' and arr_rap = '0' and tp_ativa = '0' else '1';
+  turbo_c <= '0' when vel_r = 1 and k_turbo = '0' and arr_rap = '0' else '1';
   vel_cod <= "0100" when k_turbo = '1' else std_logic_vector(to_unsigned(vel_r, 4));
 
   -- borda e modo passam para o relogio do ponto (2 registos; mudam raramente)
