@@ -226,6 +226,9 @@ Teclas              push bc
                     ld (TAnt),a
                     bit 1,c             ; F4: para ja' / continua
                     jr z,TF3
+                    ld a,(Par)          ; em pausa (F3, parada entre blocos): o F4 tira a fita (acaba aqui)
+                    or a
+                    jp nz,Fim
                     ld a,(Gelo)
                     xor 1
                     ld (Gelo),a
@@ -596,7 +599,7 @@ TCas                db "CASSETE TZX ",0
 TBl                 db "BLOCO 00/00 ",0
 TToca               db "A TOCAR     ",0
 TPed                db "PAUSA PEDIDA",0
-TPausa              db "EM PAUSA    ",0
+TPausa              db "PAUSA F4 SAI",0
 TParada             db "PARADA      ",0
 TF3a                db "F3 PAUSA NO ",0
 TF3b                db "FIM DO BLOCO",0
