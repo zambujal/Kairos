@@ -1,10 +1,11 @@
 -- fita_sd.vhd - (78) a fita na SDRAM: o TZX sem o ESP.
 -- O plugin TZX (Z80) converte o ficheiro para uma lista de palavras de 16 bits (little-endian) e escreve-a
--- na SDRAM a partir de 100000h (ZXUNO A7h, um byte de cada vez, o endereco avanca sozinho). Depois liga a
+-- na SDRAM em 080000h-0FFFFFh (512 KB, livres) (ZXUNO A7h, um byte de cada vez, o endereco avanca sozinho). Depois liga a
 -- fita (A6h = 1) e o core manda os impulsos para a cassete (a mesma fila do ESP) enquanto o jogo carrega.
 --   ZXUNO A6h, escrita: bit 0 = 1 toca desde o principio; 0 = para (esvazia a cassete); bit 1 = 1 poe o endereco
 --                       de escrita no principio (antes de escrever a lista)
---   ZXUNO A6h, leitura: bit 0 = a tocar, bit 1 = acabou (chegou ao FFFFh)
+--   ZXUNO A6h ou A7h, leitura: bit 0 = a tocar, bit 1 = acabou (chegou ao FFFFh), bit 2 = o ultimo byte
+--                       escrito ainda nao foi para a SDRAM (esperar antes do seguinte)
 --   ZXUNO A7h, escrita: o byte seguinte da lista
 -- Palavras da lista:
 --   0000h-EFFFh  vao para a cassete como estao (impulso, pausa, nivel: ver cassete.vhd)
@@ -43,10 +44,10 @@ entity fita_sd is
 end entity;
 
 architecture rtl of fita_sd is
-  constant BASE : unsigned(22 downto 0) := to_unsigned(16#100000#, 23);
+  constant BASE : unsigned(22 downto 0) := to_unsigned(16#080000#, 23);
   signal toca, acabou : std_logic := '0';
-  signal wa : unsigned(19 downto 0) := (others => '0');    -- o endereco de escrita (byte, desde BASE)
-  signal ra : unsigned(17 downto 0) := (others => '0');    -- a palavra de 32 bits seguinte a ler (desde BASE)
+  signal wa : unsigned(18 downto 0) := (others => '0');    -- o endereco de escrita (byte, desde BASE)
+  signal ra : unsigned(16 downto 0) := (others => '0');    -- a palavra de 32 bits seguinte a ler (desde BASE)
   signal w_pend, r_pend, r_voo : std_logic := '0';
   signal w_byte : std_logic_vector(7 downto 0) := (others => '0');
   -- as palavras de 16 bits lidas: buf guarda a 2.a metade
@@ -70,13 +71,13 @@ architecture rtl of fita_sd is
   signal limpa_r : std_logic := '0';
   signal cabe : std_logic;
 begin
-  estado <= "000000" & acabou & toca;
+  estado <= "00000" & w_pend & acabou & toca;
   ativa <= toca;
   c_wr <= cwr; c_d <= cd; c_limpa <= limpa_r;
   cabe <= '1' when unsigned(c_livres) > 4 and cwr = '0' else '0';
   s_req <= w_pend or r_pend;
   s_we  <= w_pend;
-  s_a   <= std_logic_vector(BASE + resize(wa, 23)) when w_pend = '1' else std_logic_vector(BASE + (resize(ra, 21) & "00"));
+  s_a   <= std_logic_vector(BASE + resize(wa, 23)) when w_pend = '1' else std_logic_vector(BASE + resize(ra & "00", 23));
   s_d   <= w_byte;
 
   process(clk)

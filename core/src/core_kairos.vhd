@@ -275,7 +275,7 @@ architecture rtl of core_kairos is
   signal m_sd_req, m_sd_we, sd_req_t, sd_we_t, g_req, g_ok, g_vez, dono, pend, livre_d : std_logic := '0';
   signal a_req, a_vez, a_acc, a_fim : std_logic := '0';
   -- (78) a fita na SDRAM: o cliente t (o mais baixo)
-  signal t_req, t_we, t_vez, t_acc, t_rqv, t_ctl, t_dat, t_cs : std_logic := '0';
+  signal t_req, t_we, t_vez, t_acc, t_rqv, t_ctl, t_dat, t_cs, t_cs7 : std_logic := '0';
   signal t_sa : std_logic_vector(22 downto 0);
   signal t_sd, t_est : std_logic_vector(7 downto 0);
   signal t_rq : std_logic_vector(31 downto 0) := (others => '0');
@@ -434,7 +434,8 @@ begin
   -- (78) a fita na SDRAM: ZXUNO A6h (controlo / estado) e A7h (os bytes da lista); um ciclo por OUT
   t_cs   <= '1' when a = x"FD3B" and zx_reg = x"A6" else '0';
   t_ctl  <= io_wr and not io_wr_d and t_cs;
-  t_dat  <= io_wr and not io_wr_d when a = x"FD3B" and zx_reg = x"A7" else '0';
+  t_cs7  <= '1' when a = x"FD3B" and zx_reg = x"A7" else '0';
+  t_dat  <= io_wr and not io_wr_d and t_cs7;
   fsd: entity work.fita_sd port map (clk => clk, ctl_wr => t_ctl, dat_wr => t_dat, d => do_cpu, estado => t_est,
              s_req => t_req, s_we => t_we, s_a => t_sa, s_d => t_sd, s_ack => t_acc, rq => t_rq, rq_v => t_rqv,
              c_wr => tp_wr, c_d => tp_d, c_limpa => tp_limpa, c_livres => tp_livres, ativa => t_at);
@@ -961,7 +962,7 @@ begin
       di <= x"FF";                                     -- aceitacao da INT
     elsif iorq_n = '0' then
       if ua_cs = '1' then di <= ua_q;                  -- UART do ZX-UNO (C6/C7), pelo ESP
-      elsif t_cs = '1' then di <= t_est;               -- (78) a fita na SDRAM: o estado (A6h)
+      elsif t_cs = '1' or t_cs7 = '1' then di <= t_est;   -- (78) a fita na SDRAM: o estado (A6h / A7h)
       elsif dv_oe = '1' then di <= dv_q;               -- DivTIESUS: EB (SPI), FD3B (registo DF)
       elsif mb_cs = '1' then di <= mb_q;               -- caixa de correio do ESP (EE3B / EF3B)
       elsif u_porta = '1' then di <= u_q;              -- ULAplus
