@@ -60,6 +60,8 @@ entity core_kairos is
     tp_para  : in  std_logic := '0';                      -- (80) o F4 (teclado USB): para ja' / continua
     tp_pausak: in  std_logic := '0';                      -- (80) o F3: pausa / continua
     tp_pausa : out std_logic_vector(2 downto 0);          -- (80) a fita: bit 0 pausa pedida, 1 parada, 2 parada ja' (F4)
+    tp_cam   : out std_logic;                             -- (82) o GS (a fita) escreve na camada L: liga-a sem o ESP
+    tp_esp   : in  std_logic := '0';                      -- (82) a camada L ligada pelo ESP
     ce_t     : out std_logic;                      -- um T do Z80 sem espera (relogio da cassete)
     dv_lento : out std_logic;
     dv_mapa  : out std_logic;                      -- (69j) DivMMC mapeado (a 8 x o Z80 desce a 4 x, como antes)
@@ -285,6 +287,8 @@ architecture rtl of core_kairos is
   signal t_ctl, t_cs, t_at, sem_fita_t, t_rap, gs_fita, gs_tinha, gs_cfim, t_limpa : std_logic := '0';
   signal t_tot, gs_blk : std_logic_vector(5 downto 0) := (others => '0');
   signal rep_cnt : unsigned(3 downto 0) := (others => '0');
+  signal gs_est4 : std_logic_vector(3 downto 0);
+  signal gs_campag : std_logic;                          -- (82) o GS na camada L (paginas 48-55, so' no modo fita)
   signal a_acc_c : unsigned(26 downto 0) := (others => '0');
   signal a_i : unsigned(15 downto 0) := (others => '0');
   signal mpl, mpr : signed(15 downto 0) := (others => '0');
@@ -1220,11 +1224,14 @@ begin
     end if;
   end process;
   -- GS 512 (como o original): so' as paginas 0-15; as outras leem FFh, sem esperar
-  gs_alto <= '1' when gs_ma(20 downto 19) /= "00" else '0';
+  gs_campag <= '1' when gs_fita = '1' and gs_ma(20 downto 18) = "110" else '0';
+  gs_alto <= '1' when gs_ma(20 downto 19) /= "00" and gs_campag = '0' else '0';
+  tp_pausa <= gs_est4(2 downto 0);
+  tp_cam <= gs_est4(3) and t_at;
   gs_acc  <= (gs_rd or gs_wr) and not gs_alto;
   -- cache: indice A7-A2, etiqueta A18-A8 (512K); uma leitura que acerta nao vai a' SDRAM
   c_idx  <= to_integer(unsigned(gs_ma(7 downto 2)));
-  c_hit  <= '1' when c_val(c_idx) = '1' and c_tag(c_idx) = gs_ma(18 downto 8) else '0';
+  c_hit  <= '1' when c_val(c_idx) = '1' and c_tag(c_idx) = gs_ma(18 downto 8) and gs_campag = '0' else '0';
   c_ler  <= gs_rd and not gs_alto and c_hit;
   with gs_ma(1 downto 0) select c_byte <=
     c_dat(c_idx)(7 downto 0)   when "00",
@@ -1241,7 +1248,7 @@ begin
       if gs_rst = '1' then
         c_val <= (others => '0');                         -- ROM nova: cache vazia
       elsif g_emcurso = '1' and g_fim = '1' then
-        if gs_rd = '1' then                               -- leitura da SDRAM: enche a linha
+        if gs_rd = '1' and gs_campag = '0' then          -- leitura da SDRAM: enche a linha (a camada L nao)
           c_dat(c_idx) <= q_g32; c_tag(c_idx) <= gs_ma(18 downto 8); c_val(c_idx) <= '1';
         elsif gs_wr = '1' and c_hit = '1' then            -- escrita: actualiza o byte na linha
           w := c_dat(c_idx); b := to_integer(unsigned(gs_ma(1 downto 0)));
@@ -1252,7 +1259,8 @@ begin
     end if;
   end process;
   g_ok    <= '1' when gs_rst = '1' else gs_wr;
-  g_sa    <= "10" & "00" & std_logic_vector(gs_lp) when gs_rst = '1' else "10" & gs_ma;
+  g_sa    <= "10" & "00" & std_logic_vector(gs_lp) when gs_rst = '1' else
+             "11000" & gs_ma(17 downto 0) when gs_campag = '1' else "10" & gs_ma;   -- (82) a camada L em 600000h
   g_sd    <= ld_d when gs_rst = '1' else gs_md;
   gs_mq <= x"FF" when gs_alto = '1' else c_byte when c_ler = '1' else q_g;
   gs_cs_rd <= '1' when io_rd = '1' and (a(7 downto 0) = x"BB" or a(7 downto 0) = x"B3") else '0';
@@ -1262,8 +1270,8 @@ begin
               cs_rd => gs_cs_rd, cs_wr => gs_cs_wr, a3 => a(3), din => do_cpu, dout => gs_q,
               m_a => gs_ma_c, m_rd => gs_rd_c, m_wr => gs_wr_c, m_d => gs_md_c, m_q => gs_mq, m_wait => gs_wait,
               out_l => gs_l, out_r => gs_r,
-              fita => gs_fita, c_livres => tp_livres, c_teclas => tp_cativa & tp_para & tp_pausak,
-              c_wr => tp_wr, c_d => tp_d, c_est => tp_pausa, c_fim => gs_cfim, c_bloco => gs_blk);
+              fita => gs_fita, c_livres => tp_livres, c_teclas => tp_esp & tp_cativa & tp_para & tp_pausak,
+              c_wr => tp_wr, c_d => tp_d, c_est => gs_est4, c_fim => gs_cfim, c_bloco => gs_blk);
 
   ---------------------------------------------------------------------------
   -- quadro e INT: 48K 69888 T (INT 32 T); 128K 70908 T (228 x 311, INT 36 T);

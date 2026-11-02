@@ -259,6 +259,10 @@ architecture rtl of top is
   signal c_wx : std_logic_vector(10 downto 0);
   signal c_wy : std_logic_vector(9 downto 0);
   signal c_cor1, c_cor2, c_cor3 : std_logic_vector(23 downto 0);
+  -- (82) os avisos da fita (o GS escreve na camada L com o ESP longe dela): cores fixas, a 3 meio transparente
+  signal tp_cam, cam_gs : std_logic := '0';
+  signal c_cor1_e, c_cor2_e, c_cor3_e : std_logic_vector(23 downto 0);
+  signal c_meio_e : std_logic_vector(2 downto 0);
   signal lb_a, lb_ra : std_logic_vector(8 downto 0) := (others => '0');
   signal lb_d, lb_q : std_logic_vector(31 downto 0) := (others => '0');
   -- (v3) cartao SD partilhado, leitura da RAM de video, teclas / reset / NMI do ESP
@@ -310,6 +314,11 @@ begin
 
   -- (80) a fita do core no canto do ecra (dois registos para o relogio do video)
   process(pclk) begin if rising_edge(pclk) then fita_s1 <= tp_pau & tp_ativa; fita_v <= fita_s1; blc_s1 <= tp_blc; blc_v <= blc_s1; end if; end process;
+  cam_gs <= tp_cam and not c_lig;
+  c_cor1_e <= x"FFFFFF" when cam_gs = '1' else c_cor1;     -- branco
+  c_cor2_e <= x"FFD800" when cam_gs = '1' else c_cor2;     -- amarelo
+  c_cor3_e <= x"000000" when cam_gs = '1' else c_cor3;     -- o fundo das letras (meio transparente)
+  c_meio_e <= "100" when cam_gs = '1' else c_meio;
   vid: entity work.video_timex
     generic map (
       H_ACT => m(640, 1280, 720), H_FP => m(16, 440, 12),
@@ -328,7 +337,7 @@ begin
               clkb => pclk, b => pal_ra, bq => pal_rq);
   cam: entity work.camada_esp
     generic map (H_ACT => m(640, 1280, 720), V_ACT => m(480, 720, 576), SYNC_POS => MODO720 and not MODO480)
-    port map (clk => pclk, ligada => c_lig, janela => c_jan, dobro => c_2x, meio => c_meio, w16 => c_w16, wx => c_wx, wy => c_wy, sel_in => c_sel, sel_out => c_selq, wsep_in => c_wsep, widx_in => c_widx, wsep_out => c_wsepq, widx_out => c_widxq, cor1 => c_cor1, cor2 => c_cor2, cor3 => c_cor3,
+    port map (clk => pclk, ligada => c_lig or cam_gs, janela => c_jan, dobro => c_2x, meio => c_meio_e, w16 => c_w16, wx => c_wx, wy => c_wy, sel_in => c_sel and not cam_gs, sel_out => c_selq, wsep_in => c_wsep, widx_in => c_widx, wsep_out => c_wsepq, widx_out => c_widxq, cor1 => c_cor1_e, cor2 => c_cor2_e, cor3 => c_cor3_e,
               ri => rv, gi => gv, bi => bv, dei => dev, hsi => hsv, vsi => vsv,
               ro => r, go => g, bo => b, deo => de, hso => hs, vso => vs,
               pede_l => ovl_pede_l, lin_l => ovl_lin_l, pede_w => ovl_pede_w, lin_w => ovl_lin_w, lb_a => lb_ra, lb_q => lb_q,
@@ -459,7 +468,7 @@ begin
       port map (clk => clk54, clk_div => I_clk, vclk => pclk, ce => ce, ce35 => ce35, reset_n => cpu_rst_n,
                 nmi_n => nmi_core, mat => mat,
                 border => border_c, modo => modo_c, hcor => hcor_c, ecra7 => ecra7_c,
-                vid_a => ecra7_v & va, vid_q => vq, vid_a2 => va2, vid_q2 => vq2, m16c => m16c_c, turbo => turbo_c, sd_esp => sd_dado, sem_fita => fita_on, ear_in => cs_ear, tp_wr => tp_wr, tp_d => tp_d, tp_limpa => tp_limpa, tp_livres => cs_livres, tp_ativa => tp_ativa, tp_cativa => cs_ativa, tp_rapido => tp_rap, tp_para => atalho(14), tp_blocos => tp_blc, tp_pausak => atalho(13), tp_pausa => tp_pau, mp_on => '0', mp_rate => mp_rate, mp_idx => mp_idx, mp_l => open, mp_r => open, ce_t => ce_t, dv_lento => dv_lento, dv_mapa => dv_mapa, ay_vis => ay_vis, rato_x => rato_xz, rato_y => rato_yz, rato_b => rato_bz, rato_w => rato_wz, joy => joy_k, pede_rnmi => pede_rnmi, arr_auto => arr_auto, arr_rapido => arr_rap, halt_n => halt_n,
+                vid_a => ecra7_v & va, vid_q => vq, vid_a2 => va2, vid_q2 => vq2, m16c => m16c_c, turbo => turbo_c, sd_esp => sd_dado, sem_fita => fita_on, ear_in => cs_ear, tp_wr => tp_wr, tp_d => tp_d, tp_limpa => tp_limpa, tp_livres => cs_livres, tp_ativa => tp_ativa, tp_cativa => cs_ativa, tp_rapido => tp_rap, tp_para => atalho(14), tp_cam => tp_cam, tp_esp => c_lig, tp_blocos => tp_blc, tp_pausak => atalho(13), tp_pausa => tp_pau, mp_on => '0', mp_rate => mp_rate, mp_idx => mp_idx, mp_l => open, mp_r => open, ce_t => ce_t, dv_lento => dv_lento, dv_mapa => dv_mapa, ay_vis => ay_vis, rato_x => rato_xz, rato_y => rato_yz, rato_b => rato_bz, rato_w => rato_wz, joy => joy_k, pede_rnmi => pede_rnmi, arr_auto => arr_auto, arr_rapido => arr_rap, halt_n => halt_n,
                 pronta => sd_pronta, sd_teste => sd_teste, sd_teste2 => sd_teste2,
                 sd_clk => open, sd_cke => O_sdram_cke, sd_cs_n => O_sdram_cs_n,
                 sd_ras_n => O_sdram_ras_n, sd_cas_n => O_sdram_cas_n, sd_we_n => O_sdram_wen_n,

@@ -18,7 +18,10 @@
 --   programa do leitor, posto pelo plugin com o A1h) e a ROM fica intacta. Portas so' para o leitor:
 --     C escrita: byte baixo da palavra da cassete   D escrita: byte alto (e a palavra vai para a fila)
 --     C leitura: lugares livres na fila da cassete  D leitura: bit 0 F3, bit 1 F4 (teclado USB), bit 2 a cassete a tocar
---     E escrita: o estado (bit 0 pausa pedida, 1 parada, 2 parada ja'; bit 7 = acabou: o core repoe o GS)
+--     E escrita: o estado (bit 0 pausa pedida, 1 parada, 2 parada ja'; bit 3 = (82) a camada L ligada pelo GS;
+--                bit 7 = acabou: o core repoe o GS)
+--     (82) D leitura bit 3 = a camada esta' com o ESP (o menu ou um aviso): o GS nao escreve nela
+--     (82) as paginas 48-55 (porta 0) sao a camada L do ecra (SDRAM 600000h, 320 bytes por linha, 2 bits por ponto)
 --     F escrita: o bloco que esta' a tocar (para o canto do ecra)
 --   INT a 37,5 kHz. Saida: canais 1+2 a' esquerda, 3+4 a' direita (com sinal, 15 bits).
 library ieee;
@@ -48,10 +51,10 @@ entity gs is
     -- (81) o leitor de cassete
     fita     : in  std_logic := '0';
     c_livres : in  std_logic_vector(7 downto 0) := (others => '0');
-    c_teclas : in  std_logic_vector(2 downto 0) := (others => '0');   -- F3, F4, a cassete a tocar
+    c_teclas : in  std_logic_vector(3 downto 0) := (others => '0');   -- F3, F4, a cassete a tocar, a camada no ESP
     c_wr     : out std_logic;
     c_d      : out std_logic_vector(15 downto 0);
-    c_est    : out std_logic_vector(2 downto 0);
+    c_est    : out std_logic_vector(3 downto 0);
     c_fim    : out std_logic;
     c_bloco  : out std_logic_vector(5 downto 0)
   );
@@ -75,7 +78,7 @@ architecture rtl of gs is
   signal ol, orr : signed(14 downto 0) := (others => '0');
   signal c_lo : std_logic_vector(7 downto 0) := (others => '0');
   signal cd_r : std_logic_vector(15 downto 0) := (others => '0');
-  signal cest_r : std_logic_vector(2 downto 0) := (others => '0');
+  signal cest_r : std_logic_vector(3 downto 0) := (others => '0');
   signal cblo_r : std_logic_vector(5 downto 0) := (others => '0');
   signal cwr_r, cfim_r, iow_d : std_logic := '0';
 begin
@@ -136,7 +139,7 @@ begin
           case a(3 downto 0) is
             when x"C" => c_lo <= do_c;
             when x"D" => cd_r <= do_c & c_lo; cwr_r <= '1';
-            when x"E" => cest_r <= do_c(2 downto 0); cfim_r <= do_c(7);
+            when x"E" => cest_r <= do_c(3 downto 0); cfim_r <= do_c(7);
             when x"F" => cblo_r <= do_c(5 downto 0);
             when others => null;
           end case;
@@ -185,7 +188,7 @@ begin
         p_b3 when iorq_n = '0' and rd_n = '0' and a(3 downto 0) = x"2" else
         (bit7 & "111111" & bit0) when iorq_n = '0' and rd_n = '0' and a(3 downto 0) = x"4" else
         c_livres when iorq_n = '0' and rd_n = '0' and a(3 downto 0) = x"C" else
-        "00000" & c_teclas when iorq_n = '0' and rd_n = '0' and a(3 downto 0) = x"D" else
+        "0000" & c_teclas when iorq_n = '0' and rd_n = '0' and a(3 downto 0) = x"D" else
         x"FF";
 
   -- 4 canais: amostra (8 bits com sinal) x volume (0-63)
