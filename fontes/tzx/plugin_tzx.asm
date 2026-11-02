@@ -44,15 +44,15 @@ FLAGS               equ 5C3Bh
 Inicio              push ix
                     push iy
                     ld (SPerro),sp
-                    push hl
+                    ld (Nome),hl        ; HL = o nome do ficheiro
                     call Maquina        ; Maq: 0 = linha de edicao, 1 = ZX 128K (reset + ENTER)
-                    pop hl
                     ld a,(Maq)
                     or a
                     jr nz,IAbre
                     call VeLinha        ; a linha de edicao tem de estar vazia (o BASIC parado)
                     jp c,ErroJogo
-IAbre               ld a,'*'            ; HL = nome do ficheiro
+IAbre               ld hl,(Nome)
+                    ld a,'*'
                     ld b,FA_READ
                     rst 08h
                     db F_OPEN
@@ -340,6 +340,7 @@ FimFich             ld hl,0FFFFh        ; (um ciclo sem o fim: fica como foi lid
                     inc b
                     ld a,1
                     out (c),a
+                    call SelA7          ; o registo A6h nao fica escolhido (um OUT FD3B a seguir parava a fita)
                     ld a,(Maq)
                     or a
                     jp nz,Reset128
@@ -826,6 +827,7 @@ TxtJogo             db "TZX: so' no BASIC (faz reset)",0
 TxtLoad             db "LOAD \"\" (TZX)",0
 TxtRst              db "Tape Loader (TZX)",0
 SPerro              dw 0
+Nome                dw 0
 FH                  db 0
 Aberto              db 0
 Maq                 db 0
