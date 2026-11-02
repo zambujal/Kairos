@@ -41,7 +41,8 @@ FLAGS               equ 5C3Bh
                     db 0                ; flags2
                     db "TZX (core 78) - Kairos",0
 
-Inicio              push ix
+Inicio              di                  ; sem interrupcoes enquanto escreve a lista
+                    push ix
                     push iy
                     ld (SPerro),sp
                     ld (Nome),hl        ; HL = o nome do ficheiro
@@ -382,6 +383,8 @@ ErroCorte           ld hl,TxtCorte
 ErroLe              ld hl,TxtLe
                     jr Erro
 ErroJogo            ld hl,TxtJogo
+                    jr Erro
+ErroCore            ld hl,TxtCore
 Erro                ld sp,(SPerro)
                     push hl
                     ld a,(Aberto)
@@ -554,23 +557,36 @@ PutW                ld a,l
                     call PutB
                     ld a,h
 ; um byte para a lista (registo A7h ja' escolhido): espera que o anterior tenha ido para a SDRAM
+; (o registo A7h escolhido outra vez a cada byte; sem resposta do core em ~65000 voltas: erro, nao pendura)
 PutB                push bc
+                    push de
                     push af
-                    ld bc,0FD3Bh
-PBesp               in a,(c)
-                    and 4
-                    jr nz,PBesp
+                    call Espera
                     pop af
                     out (c),a
+                    pop de
                     pop bc
                     ret
 EsperaW             push bc
-                    ld bc,0FD3Bh
-EWl                 in a,(c)
-                    and 4
-                    jr nz,EWl
+                    push de
+                    call Espera
+                    pop de
                     pop bc
                     ret
+; BC = FD3Bh com o A7h escolhido, o ultimo byte ja' na SDRAM (muda A, DE)
+Espera              ld bc,0FC3Bh
+                    ld a,0A7h
+                    out (c),a
+                    inc b
+                    ld de,0
+EWl                 in a,(c)
+                    and 4
+                    ret z
+                    dec de
+                    ld a,d
+                    or e
+                    jr nz,EWl
+                    jp ErroCore
 SelA7               push bc
                     push af
                     ld bc,0FC3Bh
@@ -657,7 +673,7 @@ Enche               ld a,(FH)
                     rst 08h
                     db F_READ
                     jp c,ErroLe
-                    call SelA7          ; (o esxDOS podia ter mudado o registo ZXUNO)
+                    di                  ; (o esxDOS podia ter ligado as interrupcoes)
                     ld hl,BUF
                     ld (BufP),hl
                     ld (BufN),bc
@@ -823,6 +839,7 @@ TxtCiclo            db "TZX: ciclo dentro de ciclo",0
 TxtGrande           db "TZX: ciclo maior que 8K",0
 TxtCorte            db "TZX: o ficheiro acaba a meio",0
 TxtLe               db "TZX: erro a ler",0
+TxtCore             db "TZX: o core nao responde (core 78+)",0
 TxtJogo             db "TZX: so' no BASIC (faz reset)",0
 TxtLoad             db "LOAD \"\" (TZX)",0
 TxtRst              db "Tape Loader (TZX)",0
