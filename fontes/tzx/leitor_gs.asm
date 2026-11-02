@@ -327,10 +327,10 @@ EDm2                ld a,c
                     ld a,(DLin)
                     cp 1
                     jr nz,EDc
-                    ld ix,TBl+6         ; o bloco: "BLOCO nn DE nn"
+                    ld ix,TBl+6         ; o bloco: "BLOCO nn/nn"
                     ld a,(Bloco)
                     call Dois
-                    ld ix,TBl+12
+                    ld ix,TBl+9
                     ld a,(Tot)
                     call Dois
 EDc                 call TxtLin         ; IX = o texto da linha, (TabC) = a cor
@@ -347,7 +347,7 @@ EDc                 call TxtLin         ; IX = o texto da linha, (TabC) = a cor
 EDl                 push af
                     ld a,(DLin)         ; COff = (48 + linha x 16) x 320 + DPos x 4
                     ld b,a
-                    ld hl,15360+8       ; (32 pontos da esquerda: a TV corta a margem)
+                    ld hl,15360+16      ; (64 pontos da esquerda: a TV corta a margem)
                     ld de,5120
                     inc b
 EDo                 dec b
@@ -541,15 +541,15 @@ CT2b                ld a,d
 ; 2 pontos (b1 b0 da letra) -> 1 byte: 1 a branco (01), 2 a amarelo (10), 3 o fundo (11)
 TabB                db 0FFh,0F5h,05Fh,055h
 TabA                db 0FFh,0FAh,0AFh,0AAh
-TCas                db "CASSETE (TZX)   ",0
-TBl                 db "BLOCO 00 DE 00  ",0
-TToca               db "A TOCAR         ",0
-TPed                db "PAUSA PEDIDA    ",0
-TPausa              db "EM PAUSA (F3)   ",0
-TParada             db "PARADA (F4)     ",0
-TF3a                db "F3 PAUSA NO FIM ",0
-TF3b                db "   DO BLOCO     ",0
-TF4                 db "F4 PARA JA      ",0
+TCas                db "CASSETE TZX ",0
+TBl                 db "BLOCO 00/00 ",0
+TToca               db "A TOCAR     ",0
+TPed                db "PAUSA PEDIDA",0
+TPausa              db "EM PAUSA    ",0
+TParada             db "PARADA      ",0
+TF3a                db "F3 PAUSA NO ",0
+TF3b                db "FIM DO BLOCO",0
+TF4                 db "F4 PARA JA  ",0
 Fonte               incbin "../nav/font8ibm.bin"   ; 8x8, 32-127 (font8x8 de Daniel Hepper, dominio publico)
 
 Lista                                   ; a lista comeca aqui (o plugin escreve-a logo a seguir)

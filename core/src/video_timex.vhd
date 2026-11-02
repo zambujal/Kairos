@@ -45,7 +45,7 @@ entity video_timex is
     -- (core 62) modo TC2068: o preto com BRIGHT 1 sai cinzento escuro, como no 2068 verdadeiro
     --   (no Spectrum e no TC2048 fica preto)
     m2068  : in  std_logic := '0';
-    -- (80) a fita do core (o plugin TZX): um quadrado no canto de cima a' esquerda (32 pontos para dentro: a TV corta a margem), por cima da borda:
+    -- (80) a fita do core (o plugin TZX): um quadrado no canto de cima a' esquerda (64 pontos para dentro: a TV corta a margem), por cima da borda:
     --   verde a tocar, amarelo a piscar com a pausa pedida (ainda nos dados), amarelo parada (F3),
     --   vermelho parada ja' (F4). Aparece 3 s ao comecar e a cada bloco novo, e fica enquanto estiver em pausa; (fita: bit 0 a tocar, bit 1 pausa pedida, bit 2 parada, bit 3 parada ja')
     fita   : in  std_logic_vector(3 downto 0) := "0000";
@@ -253,9 +253,9 @@ begin
         br := '0';
         pal_r <= "001" & border;                                  -- borda: entrada 8 + cor
       end if;
-      hm := hc - 96;
-      hv := hc - (H_ACT - 104);
-      if v_vis /= 0 and vc >= 8 and vc < 40 and hc >= H_ACT - 104 and hc < H_ACT - 40 and hv(3 downto 2) /= "11" then
+      hm := hc - 128;
+      hv := hc - (H_ACT - 72);
+      if v_vis /= 0 and vc >= 16 and vc < 48 and hc >= H_ACT - 72 and hc < H_ACT - 8 and hv(3 downto 2) /= "11" then
         if hv(5 downto 4) < v_niv then
           case hv(5 downto 4) is
             when "00" => r1 <= x"00"; g1 <= x"D0"; b1 <= x"00";
@@ -264,11 +264,11 @@ begin
             when others => r1 <= x"FF"; g1 <= x"00"; b1 <= x"00";
           end case;
         else r1 <= x"50"; g1 <= x"50"; b1 <= x"50"; end if;
-      elsif f_ve = '1' and vc >= 8 and vc < 40 and hc >= 96 and hm(11 downto 4) < unsigned(fita_b(11 downto 6)) and hm(3 downto 2) /= "11" then
+      elsif f_ve = '1' and vc >= 16 and vc < 48 and hc >= 128 and hm(11 downto 4) < unsigned(fita_b(11 downto 6)) and hm(3 downto 2) /= "11" then
         if hm(9 downto 4) + 1 < unsigned(fita_b(5 downto 0)) then r1 <= x"00"; g1 <= x"C0"; b1 <= x"00";
         elsif hm(9 downto 4) + 1 = unsigned(fita_b(5 downto 0)) then r1 <= x"FF"; g1 <= x"FF"; b1 <= x"FF";
         else r1 <= x"50"; g1 <= x"50"; b1 <= x"50"; end if;
-      elsif f_ve = '1' and hc >= 32 and hc < 80 and vc >= 8 and vc < 40 and (fita(1) = '0' or fita(2) = '1' or fita(3) = '1' or frames(4) = '1') then
+      elsif f_ve = '1' and hc >= 64 and hc < 112 and vc >= 16 and vc < 48 and (fita(1) = '0' or fita(2) = '1' or fita(3) = '1' or frames(4) = '1') then
         r1 <= x"E0" and (7 downto 0 => (fita(1) or fita(3))); g1 <= x"E0" and (7 downto 0 => not fita(3)); b1 <= x"00";
       elsif mist then
         -- tinta e papel sao o inverso um do outro: cada canal e' 00 num e D7 no outro -> 6B
