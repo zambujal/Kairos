@@ -787,22 +787,23 @@ begin
   o_acc    <= '1' when o_vez = '1' and sd_livre = '1' and sd_rf = '0' else '0';
   z_acc    <= '1' when m_sd_req = '1' and o_vez = '0' and sd_livre = '1' and sd_rf = '0' else '0';
   o_sa     <= std_logic_vector(ol_base + (ol_k & "00000")) when ol_req = '1' else std_logic_vector(ow_base + (ow_k & "00000"));
-  v_vez    <= '1' when m_sd_req = '0' and o_vez = '0' and v_req = '1' and rf_t < 380 and fase < 7 else '0';
-  g_vez    <= '1' when m_sd_req = '0' and o_vez = '0' and v_vez = '0' and g_req = '1' and rf_t < 380 and fase < 7 else '0';
+  -- (79) a fita na SDRAM logo a seguir ao Z80 e a' camada: e' um acesso de vez em quando, mas sem vez nenhuma
+  -- ficava sem SDRAM em turbo (o NAV a 14 MHz, com o GS a correr: o GS levava as vagas todas)
+  t_vez    <= '1' when m_sd_req = '0' and o_vez = '0' and t_req = '1' and rf_t < 380 and fase < 7 else '0';
+  v_vez    <= '1' when m_sd_req = '0' and o_vez = '0' and t_vez = '0' and v_req = '1' and rf_t < 380 and fase < 7 else '0';
+  g_vez    <= '1' when m_sd_req = '0' and o_vez = '0' and t_vez = '0' and v_vez = '0' and g_req = '1' and rf_t < 380 and fase < 7 else '0';
   e_req    <= esp_wreq;
   -- (esp46) o som do ESP: uma palavra a cada amostra (~1 por 1200 ciclos), antes das escritas do ESP
-  a_vez    <= '1' when m_sd_req = '0' and o_vez = '0' and v_vez = '0' and g_vez = '0' and a_req = '1' and rf_t < 380 and fase < 7 else '0';
+  a_vez    <= '1' when m_sd_req = '0' and o_vez = '0' and t_vez = '0' and v_vez = '0' and g_vez = '0' and a_req = '1' and rf_t < 380 and fase < 7 else '0';
   a_acc    <= '1' when a_vez = '1' and sd_livre = '1' and sd_rf = '0' else '0';
   a_sa     <= "11111" & std_logic_vector(a_i) & "00";
   mp_idx   <= std_logic_vector(a_i);
   mp_l <= std_logic_vector(mpl); mp_r <= std_logic_vector(mpr);
-  e_vez    <= '1' when m_sd_req = '0' and o_vez = '0' and v_vez = '0' and g_vez = '0' and a_vez = '0' and e_req = '1' and rf_t < 380 and fase < 7 else '0';
+  e_vez    <= '1' when m_sd_req = '0' and o_vez = '0' and t_vez = '0' and v_vez = '0' and g_vez = '0' and a_vez = '0' and e_req = '1' and rf_t < 380 and fase < 7 else '0';
   e_acc    <= '1' when e_vez = '1' and sd_livre = '1' and sd_rf = '0' else '0';
   esp_ack  <= e_vgo;
   esp_wack <= e_acc;
   sd_be    <= esp_wbe when e_vez = '1' else "0000";
-  -- (78) a fita na SDRAM: depois de todos (um acesso a cada muitos ciclos)
-  t_vez    <= '1' when m_sd_req = '0' and o_vez = '0' and v_vez = '0' and g_vez = '0' and a_vez = '0' and e_vez = '0' and t_req = '1' and rf_t < 380 and fase < 7 else '0';
   t_acc    <= '1' when t_vez = '1' and sd_livre = '1' and sd_rf = '0' else '0';
   sd_req_t <= m_sd_req or o_vez or v_vez or g_vez or a_vez or e_vez or t_vez;
   sd_a     <= o_sa when o_vez = '1' else m_sd_a when m_sd_req = '1' else v_sa when v_vez = '1' else a_sa when a_vez = '1' else esp_wa(22 downto 2) & "00" when e_vez = '1' else t_sa when t_vez = '1' else g_sa;

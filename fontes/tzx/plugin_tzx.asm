@@ -691,6 +691,13 @@ Maquina             xor a
                     ld a,(5C50h)        ; TC2068 (CHANS alto 68h): linha de edicao
                     cp 68h
                     ret z
+                    ld bc,0FC3Bh        ; o modo 128K ligado (registo DFh bit 7, como o Ve128 do NAV): no 48 a
+                    ld a,0DFh           ; pagina 39 pode ainda ter o "M8" de quando se esteve no 128
+                    out (c),a
+                    inc b
+                    in a,(c)
+                    rlca
+                    ret nc
                     ld a,80h+39
                     out (0E3h),a
                     ld hl,(2000h)
