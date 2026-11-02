@@ -510,7 +510,7 @@ begin
       -- (69n) o plugin do TAP no ZX 128K faz reset para o menu e pede o ENTER: 2 s depois, 0,15 s carregado
       if ent_on = '1' then
         -- (69u) ate' 15 s, ou ate' o Tape Loader arrancar (opcode em 0562h da ROM 1: o LD-BYTES)
-        if ent_t = 810000000 or (m1_n = '0' and a = x"0562" and rom7 = '1') or (ent_ld = '1' and ent_t = 7600000) then ent_on <= '0';
+        if ent_t = 810000000 or (m1_n = '0' and a = x"0562" and rom7 = '1') or (ent_ld = '1' and ent_t = 6600000) then ent_on <= '0';
         elsif ent_ld = '0' or (ce = '1' and cpu_wait_n = '1') then ent_t <= ent_t + 1; end if;   -- (83c) o LOAD "" conta em T do Z80
         if ent_s = 53999999 then ent_s <= (others => '0'); else ent_s <= ent_s + 1; end if;
       end if;
@@ -784,11 +784,10 @@ begin
   -- (69u) ENTER 0,2 s em cada segundo a partir dos 2 s (o menu do 128 aceita-o quando estiver pronto)
   ent_k <= '1' when ent_on = '1' and ent_ld = '0' and ent_t >= 108000000 and ent_s < 10800000 else '0';
   -- (83) no 48 (TC2048 / ZX 48K), depois do reset: J (LOAD), SS+P ("), SS+P ("), ENTER. (83c) Em T do Z80 (a 27 MHz vai
-  -- 8 x mais depressa): a 3,5 MHz 1,5 s depois do reset; cada tecla 3 imagens carregada e 6 largada (a ROM so'
-  -- aceita a mesma tecla outra vez depois de 5 imagens sem ela: o SS+P duas vezes)
-  ek_j   <= '1' when ent_on = '1' and ent_ld = '1' and ent_t >= 5250000 and ent_t < 5460000 else '0';
-  ek_ssp <= '1' when ent_on = '1' and ent_ld = '1' and ((ent_t >= 5880000 and ent_t < 6090000) or (ent_t >= 6510000 and ent_t < 6720000)) else '0';
-  ek_ent <= '1' when ent_on = '1' and ent_ld = '1' and ent_t >= 7140000 and ent_t < 7350000 else '0';
+  -- 8 x mais depressa): a 3,5 MHz 1,5 s depois do reset; 0,1 s cada tecla (0,04 s carregada, 0,06 s largada)
+  ek_j   <= '1' when ent_on = '1' and ent_ld = '1' and ent_t >= 5250000 and ent_t < 5390000 else '0';
+  ek_ssp <= '1' when ent_on = '1' and ent_ld = '1' and ((ent_t >= 5600000 and ent_t < 5740000) or (ent_t >= 5950000 and ent_t < 6090000)) else '0';
+  ek_ent <= '1' when ent_on = '1' and ent_ld = '1' and ent_t >= 6300000 and ent_t < 6440000 else '0';
   -- (69m) no 128 com a ROM 0 (menu, 128 BASIC) o NMI espera pela ROM 1: a interrupcao da ROM 0 passa pela ROM 1
   -- (o KEYBOARD) a cada quadro, e o NMI entra ai', como no Tape Loader (na ROM 0 o NMI rebentava a partir do 2.o).
   -- O reset mestre (RESET+NMI) usa o botao directamente, sem esta espera.
