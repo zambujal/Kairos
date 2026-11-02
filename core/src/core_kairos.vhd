@@ -202,6 +202,7 @@ architecture rtl of core_kairos is
   signal cpu_nmi_n : std_logic;
   signal cpu_nmi_g : std_logic;   -- (69m) o NMI que chega ao Z80
   signal ent_on, ent_k, rst_pend : std_logic := '0';
+  signal ent_ld, ent_ld_p, ek_j, ek_ssp, ek_ent : std_logic := '0';   -- (83) o reset do plugin TZX no 48: LOAD "" sozinho
   signal dv_mapeado : std_logic;                          -- (69t) o DivMMC mapeado (o dv_romcs no 128 esta' sempre a 1: a ROM vem da SRAM)
   signal nmi_fura : std_logic := '0';                     -- (69o) o NMI ja' esperou 40 ms pela ROM 1
   signal nmi_esp  : unsigned(21 downto 0) := (others => '0');                       -- (69n) ENTER automatico pedido (ZXUNO A5h)
@@ -480,7 +481,7 @@ begin
         if t_ctl = '1' then                          -- (81) A6h
           if do_cpu(7) = '1' then t_tot <= do_cpu(5 downto 0); else t_rap <= do_cpu(2); end if;
         end if;
-        if a = x"FD3B" and zx_reg = x"A5" then rst_pend <= '1'; end if;   -- (69p) reset quando o NMI acabar, depois o ENTER
+        if a = x"FD3B" and zx_reg = x"A5" then rst_pend <= '1'; if do_cpu = x"4C" then ent_ld_p <= '1'; else ent_ld_p <= '0'; end if; end if;   -- (69p) reset quando o NMI acabar, depois o ENTER; (83) 4Ch: LOAD "" e ENTER
         if a = x"FD3B" and zx_reg = x"A4" and carga = '1' then      -- (esp61) programa de arranque
           carga_alvo <= do_cpu(0);
           if do_cpu(7) = '1' then carga <= '0'; carga_rst <= (others => '1'); auto_on <= do_cpu(6); rap_on <= '1'; auto_t <= (others => '0'); end if;
@@ -499,7 +500,7 @@ begin
       -- (69n) o plugin do TAP no ZX 128K faz reset para o menu e pede o ENTER: 2 s depois, 0,15 s carregado
       if ent_on = '1' then
         -- (69u) ate' 15 s, ou ate' o Tape Loader arrancar (opcode em 0562h da ROM 1: o LD-BYTES)
-        if ent_t = 810000000 or (m1_n = '0' and a = x"0562" and rom7 = '1') then ent_on <= '0';
+        if ent_t = 810000000 or (m1_n = '0' and a = x"0562" and rom7 = '1') or (ent_ld = '1' and ent_t = 243000000) then ent_on <= '0';
         else ent_t <= ent_t + 1; end if;
         if ent_s = 53999999 then ent_s <= (others => '0'); else ent_s <= ent_s + 1; end if;
       end if;
@@ -507,7 +508,7 @@ begin
       -- faz o mesmo reset do botao (Z80 e DivTIESUS, ~1,2 ms): no ZX 128K volta ao menu da Sinclair. O ENTER conta
       -- 2 s a partir daqui.
       if rst_pend = '1' and dv_mapeado = '0' then   -- (69t) era o dv_romcs: no modo 128 nunca descia
-        rst_pend <= '0'; carga_rst <= (others => '1'); ent_on <= '1'; ent_t <= (others => '0'); ent_s <= (others => '0');
+        rst_pend <= '0'; carga_rst <= (others => '1'); ent_on <= '1'; ent_t <= (others => '0'); ent_s <= (others => '0'); ent_ld <= ent_ld_p;
       end if;
       if carga_rst(16) = '1' then carga_rst <= carga_rst - 1; end if;   -- (esp61) ~1,2 ms de reset no fim da carga
       -- (64) NMI automatico: 20 ms, 1,5 s depois do fim da carga (o TC2048 e o esxDOS ja' arrancaram)
@@ -771,7 +772,11 @@ begin
   dv_lento <= '1' when cart_t /= 0 else '0';
   dv_mapa <= dv_romcs;
   -- (69u) ENTER 0,2 s em cada segundo a partir dos 2 s (o menu do 128 aceita-o quando estiver pronto)
-  ent_k <= '1' when ent_on = '1' and ent_t >= 108000000 and ent_s < 10800000 else '0';
+  ent_k <= '1' when ent_on = '1' and ent_ld = '0' and ent_t >= 108000000 and ent_s < 10800000 else '0';
+  -- (83) no 48 (TC2048 / ZX 48K), 3 s depois do reset: J (LOAD), SS+P ("), SS+P ("), ENTER; 0,15 s cada, 0,4 s entre elas
+  ek_j   <= '1' when ent_on = '1' and ent_ld = '1' and ent_t >= 162000000 and ent_t < 170100000 else '0';
+  ek_ssp <= '1' when ent_on = '1' and ent_ld = '1' and ((ent_t >= 183600000 and ent_t < 191700000) or (ent_t >= 205200000 and ent_t < 213300000)) else '0';
+  ek_ent <= '1' when ent_on = '1' and ent_ld = '1' and ent_t >= 226800000 and ent_t < 234900000 else '0';
   -- (69m) no 128 com a ROM 0 (menu, 128 BASIC) o NMI espera pela ROM 1: a interrupcao da ROM 0 passa pela ROM 1
   -- (o KEYBOARD) a cada quadro, e o NMI entra ai', como no Tape Loader (na ROM 0 o NMI rebentava a partir do 2.o).
   -- O reset mestre (RESET+NMI) usa o botao directamente, sem esta espera.
@@ -971,14 +976,17 @@ begin
   end process;
 
   -- teclado: filas com A8-A15 a 0, 0 = carregada
-  process(a, mat, ent_k)
+  process(a, mat, ent_k, ek_j, ek_ssp, ek_ent)
     variable v : std_logic_vector(4 downto 0);
   begin
     v := (others => '0');
     for f in 0 to 7 loop
       if a(8 + f) = '0' then v := v or mat(f*5 + 4 downto f*5); end if;
     end loop;
-    if ent_k = '1' and a(14) = '0' then v(0) := '1'; end if;   -- (69n) ENTER (fila BFFEh, bit 0)
+    if (ent_k = '1' or ek_ent = '1') and a(14) = '0' then v(0) := '1'; end if;   -- (69n) ENTER (fila BFFEh, bit 0)
+    if ek_j = '1' and a(14) = '0' then v(3) := '1'; end if;                        -- (83) J (fila BFFEh, bit 3)
+    if ek_ssp = '1' and a(15) = '0' then v(1) := '1'; end if;                      -- (83) SYMBOL SHIFT (7FFEh, bit 1)
+    if ek_ssp = '1' and a(13) = '0' then v(0) := '1'; end if;                      -- (83) P (DFFEh, bit 0)
     teclas <= not v;
   end process;
 

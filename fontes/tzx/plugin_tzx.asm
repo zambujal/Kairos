@@ -104,6 +104,9 @@ ICab                call GetB
                     or a
                     jr z,IPausa
                     ld hl,3000
+                    dec a
+                    jr z,IPausa
+                    ld hl,5000          ; (83) no 48: o reset, o esxDOS e o LOAD "" escrito pelo core (~3,6 s)
 IPausa              call PausaMs
 ; ---------------------------------------------------------------- os blocos
 Bloco               call GetB0
@@ -380,12 +383,23 @@ FimFich             ld hl,0FFFFh        ; (um ciclo sem o fim: fica como foi lid
                     out (c),a
                     ld (Comecou),a
                     ld a,(Maq)
+                    cp 2
+                    jr z,Reset48
                     or a
                     jp nz,Reset128
                     call PoeLoad        ; LOAD "" e o ENTER pendente, na copia da RAM
                     ld bc,TxtLoad
                     ld a,31h            ; OK + mensagem + 20h: sair do navegador
                     jp Fim
+Reset48             ld bc,0FC3Bh        ; (83) ZXUNO A5h = 4Ch: o reset quando o NMI acabar e o core escreve LOAD "" e o ENTER
+                    ld a,0A5h
+                    out (c),a
+                    inc b
+                    ld a,4Ch
+                    out (c),a
+                    ld bc,TxtRst48
+                    ld a,31h
+                    jr Fim
 Reset128            ld bc,0FC3Bh        ; ZXUNO A5h: o core faz o reset quando o NMI acabar e carrega no ENTER
                     ld a,0A5h           ; 2 s depois: o Tape Loader do menu da Sinclair
                     out (c),a
@@ -766,8 +780,11 @@ Maquina             xor a
                     inc b
                     in a,(c)
                     rlca
-                    ret nc
-                    ld a,80h+39
+                    jr c,MQ128
+                    ld a,2              ; (83) 48 (TC2048 / ZX 48K): reset e o core escreve LOAD "" (vale a meio de um jogo)
+                    ld (Maq),a
+                    ret
+MQ128               ld a,80h+39
                     out (0E3h),a
                     ld hl,(2000h)
                     xor a
@@ -917,6 +934,7 @@ TxtCorte            db "TZX: o ficheiro acaba a meio",0
 TxtLe               db "TZX: erro a ler",0
 TxtJogo             db "TZX: so' no BASIC (faz reset)",0
 TxtLoad             db "LOAD \"\" (TZX)",0
+TxtRst48            db "reset, LOAD \"\" (TZX)",0
 TxtRst              db "Tape Loader (TZX)",0
 SPerro              dw 0
 Nome                dw 0
