@@ -241,6 +241,7 @@ architecture rtl of top is
   signal tp_rap : std_logic := '0';
   signal tp_pau : std_logic_vector(2 downto 0) := "000";
   signal ca_ce : std_logic;
+  signal vel_s1, vel_v : std_logic_vector(3 downto 0) := "0001";   -- (82b) a velocidade para o video (pclk)
   signal tp_blc, blc_s1, blc_v : std_logic_vector(11 downto 0) := (others => '0');
   signal fita_s1, fita_v : std_logic_vector(3 downto 0) := "0000";   -- (80) o estado da fita para o video (pclk)                  -- (80) o plugin TZX a escrever a lista: 14 MHz
   signal k_gspara, k_ay3 : std_logic := '0';
@@ -313,7 +314,7 @@ begin
   end process;
 
   -- (80) a fita do core no canto do ecra (dois registos para o relogio do video)
-  process(pclk) begin if rising_edge(pclk) then fita_s1 <= tp_pau & tp_ativa; fita_v <= fita_s1; blc_s1 <= tp_blc; blc_v <= blc_s1; end if; end process;
+  process(pclk) begin if rising_edge(pclk) then fita_s1 <= tp_pau & tp_ativa; fita_v <= fita_s1; blc_s1 <= tp_blc; blc_v <= blc_s1; vel_s1 <= vel_cod; vel_v <= vel_s1; end if; end process;
   cam_gs <= tp_cam and not c_lig;
   c_cor1_e <= x"FFFFFF" when cam_gs = '1' else c_cor1;     -- branco
   c_cor2_e <= x"FFD800" when cam_gs = '1' else c_cor2;     -- amarelo
@@ -330,7 +331,7 @@ begin
     port map (clk => pclk, border => border, r => rv, g => gv, b => bv, de => dev, hs => hsv, vs => vsv,
               modo => modo, hcor => hcor, va => va, vq => vq, sinc => fsinc and to_std(PENTA50),
               ulap => ulap_v, pal_a => pal_ra, pal_q => pal_rq, m16c => m16c_v, va2 => va2, vq2 => vq2,
-              m2068 => maq_st(9), fita => fita_v, fita_b => blc_v);   -- (62) bit 9 = modo TC2068 (quase estatico; passa de relogio sem mal)
+              m2068 => maq_st(9), fita => fita_v, fita_b => blc_v, vel => vel_v);   -- (62) bit 9 = modo TC2068 (quase estatico; passa de relogio sem mal)
   -- paleta da ULAplus em LUTs (2026-10-22: o bloco de BSRAM ficou para o buffer de linhas da camada do ESP)
   pal: entity work.ram_lut generic map (AW => 6)
     port map (clk => clk54, a => pal_wa, we => pal_we, d => pal_wd, q => pal_wq,

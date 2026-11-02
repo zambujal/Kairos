@@ -51,7 +51,10 @@ entity video_timex is
     fita   : in  std_logic_vector(3 downto 0) := "0000";
     -- os blocos de dados a' direita do quadrado: um de 12 x 32 pontos por bloco (de 16 em 16): verde os que ja'
     -- tocaram, branco o que esta' a tocar, cinzento os que faltam (fita_b: total 11-6, o que toca 5-0)
-    fita_b : in  std_logic_vector(11 downto 0) := (others => '0')
+    fita_b : in  std_logic_vector(11 downto 0) := (others => '0');
+    -- (82b) a velocidade do Z80 (1, 2, 4, 8 = 3,5 / 7 / 14 / 27 MHz): 4 barras no canto de cima a' direita,
+    -- 3 s depois de cada mudanca; acesas ate' a' velocidade (verde, amarelo, laranja, vermelho), as outras cinzentas
+    vel    : in  std_logic_vector(3 downto 0) := "0001"
   );
 end entity;
 
@@ -66,6 +69,9 @@ architecture rtl of video_timex is
   signal f_vis : unsigned(7 downto 0) := (others => '0');   -- (80) a fita no canto: quadros que faltam a mostrar
   signal f_bant : std_logic_vector(5 downto 0) := (others => '0');
   signal f_ant, f_ve : std_logic := '0';
+  signal v_vis : unsigned(7 downto 0) := (others => '0');
+  signal v_ant : std_logic_vector(3 downto 0) := "0001";
+  signal v_niv : unsigned(2 downto 0) := "001";
 
   signal hon, von : std_logic := '0';
   signal hx : unsigned(8 downto 0) := (others => '0');     -- ponto de hi-res 0..511
@@ -112,6 +118,10 @@ begin
       if fita_b(5 downto 0) /= f_bant or (fita(0) = '1' and f_ant = '0') then f_vis <= to_unsigned(150, 8);
       elsif hc = H_TOT - 1 and vc = V_TOT - 1 and f_vis /= 0 then f_vis <= f_vis - 1; end if;
       if fita(0) = '1' and (f_vis /= 0 or fita(3 downto 1) /= "000") then f_ve <= '1'; else f_ve <= '0'; end if;
+      v_ant <= vel;
+      if vel /= v_ant then v_vis <= to_unsigned(150, 8);
+      elsif hc = H_TOT - 1 and vc = V_TOT - 1 and v_vis /= 0 then v_vis <= v_vis - 1; end if;
+      case vel is when "0010" => v_niv <= "010"; when "0100" => v_niv <= "011"; when "1000" => v_niv <= "100"; when others => v_niv <= "001"; end case;
       -- acerto com o quadro do Z80: se o core acabou a linha 0 e o ecra nao esta' para
       -- comecar (mais de 2 linhas de diferenca), salta para o fim da linha antes da imagem.
       -- Com os relogios presos isto so' acontece uma vez.
@@ -197,7 +207,7 @@ begin
     variable br  : std_logic;
     variable at  : std_logic_vector(7 downto 0);
     variable mist : boolean;
-    variable hm  : unsigned(11 downto 0);
+    variable hm, hv : unsigned(11 downto 0);
   begin
     if rising_edge(clk) then
       up1 <= ulap and not modo(2) and not m16c;     -- no hi-res e no 16C ficam as cores fixas
@@ -244,7 +254,17 @@ begin
         pal_r <= "001" & border;                                  -- borda: entrada 8 + cor
       end if;
       hm := hc - 64;
-      if f_ve = '1' and vc < 32 and hc >= 64 and hm(11 downto 4) < unsigned(fita_b(11 downto 6)) and hm(3 downto 2) /= "11" then
+      hv := hc - (H_ACT - 72);
+      if v_vis /= 0 and vc < 32 and hc >= H_ACT - 72 and hc < H_ACT - 8 and hv(3 downto 2) /= "11" then
+        if hv(5 downto 4) < v_niv then
+          case hv(5 downto 4) is
+            when "00" => r1 <= x"00"; g1 <= x"D0"; b1 <= x"00";
+            when "01" => r1 <= x"F0"; g1 <= x"E0"; b1 <= x"00";
+            when "10" => r1 <= x"FF"; g1 <= x"80"; b1 <= x"00";
+            when others => r1 <= x"FF"; g1 <= x"00"; b1 <= x"00";
+          end case;
+        else r1 <= x"50"; g1 <= x"50"; b1 <= x"50"; end if;
+      elsif f_ve = '1' and vc < 32 and hc >= 64 and hm(11 downto 4) < unsigned(fita_b(11 downto 6)) and hm(3 downto 2) /= "11" then
         if hm(9 downto 4) + 1 < unsigned(fita_b(5 downto 0)) then r1 <= x"00"; g1 <= x"C0"; b1 <= x"00";
         elsif hm(9 downto 4) + 1 = unsigned(fita_b(5 downto 0)) then r1 <= x"FF"; g1 <= x"FF"; b1 <= x"FF";
         else r1 <= x"50"; g1 <= x"50"; b1 <= x"50"; end if;
