@@ -281,11 +281,10 @@ architecture rtl of core_kairos is
   signal m_sd_req, m_sd_we, sd_req_t, sd_we_t, g_req, g_ok, g_vez, dono, pend, livre_d : std_logic := '0';
   signal a_req, a_vez, a_acc, a_fim : std_logic := '0';
   -- (78) a fita na SDRAM: o cliente t (o mais baixo)
-  signal t_req, t_we, t_vez, t_acc, t_rqv, t_ctl, t_dat, t_cs, t_cs7 : std_logic := '0';
-  signal t_sa : std_logic_vector(22 downto 0);
-  signal t_sd, t_est : std_logic_vector(7 downto 0);
-  signal t_rq : std_logic_vector(31 downto 0) := (others => '0');
-  signal t_at, sem_fita_t : std_logic;
+  -- (81) a fita pelo Z80 do GS (o plugin TZX)
+  signal t_ctl, t_cs, t_at, sem_fita_t, t_rap, gs_fita, gs_tinha, gs_cfim, t_limpa : std_logic := '0';
+  signal t_tot, gs_blk : std_logic_vector(5 downto 0) := (others => '0');
+  signal rep_cnt : unsigned(3 downto 0) := (others => '0');
   signal a_acc_c : unsigned(26 downto 0) := (others => '0');
   signal a_i : unsigned(15 downto 0) := (others => '0');
   signal mpl, mpr : signed(15 downto 0) := (others => '0');
@@ -348,7 +347,7 @@ architecture rtl of core_kairos is
   signal sid_div : integer range 0 to 53 := 0;             -- leitura do Z80 ja' em q_m
   -- General Sound
   signal gs_rst : std_logic := '1';                                 -- ZX-UNO A0h bit 0: GS parado (ate' haver ROM)
-  signal gs_lp : unsigned(14 downto 0) := (others => '0');           -- carga da ROM (ZX-UNO A1h)
+  signal gs_lp : unsigned(18 downto 0) := (others => '0');           -- carga da ROM (ZX-UNO A1h); (81) 512K
   signal ld_pend, io_wr_d : std_logic := '0';
   signal ld_d : std_logic_vector(7 downto 0) := (others => '0');
   signal gs_ce : std_logic := '0';
@@ -437,15 +436,18 @@ begin
   ua_wr  <= io_wr and ua_cs and not zx_reg(0);
   ua_rd  <= io_rd and ua_cs;
   ua_dat <= not zx_reg(0);                           -- C6 = ...0, C7 = ...1
-  -- (78) a fita na SDRAM: ZXUNO A6h (controlo / estado) e A7h (os bytes da lista); um ciclo por OUT
+  -- (81) a fita do plugin TZX toca-a o Z80 do GS (gs.vhd, "fita"): o plugin poe o programa do leitor e a lista
+  -- na pagina 2 e seguintes da memoria do GS (A0h = 3: GS parado, ponteiro do A1h na pagina 2; A1h os bytes;
+  -- A0h = 2 arranca o leitor; A0h = 4 desiste). No fim o leitor escreve a porta E com o bit 7 e o GS volta a
+  -- como estava (a ROM do GS nunca e' tocada: com ROM recomeca do principio, sem ROM fica parado).
+  -- ZXUNO A6h: bit 2 = o Z80 a 14 MHz enquanto o plugin escreve; com o bit 7, os bits 5-0 = quantos blocos.
   t_cs   <= '1' when a = x"FD3B" and zx_reg = x"A6" else '0';
   t_ctl  <= io_wr and not io_wr_d and t_cs;
-  t_cs7  <= '1' when a = x"FD3B" and zx_reg = x"A7" else '0';
-  t_dat  <= io_wr and not io_wr_d and t_cs7;
-  fsd: entity work.fita_sd port map (clk => clk, ctl_wr => t_ctl, dat_wr => t_dat, d => do_cpu, estado => t_est,
-             s_req => t_req, s_we => t_we, s_a => t_sa, s_d => t_sd, s_ack => t_acc, rq => t_rq, rq_v => t_rqv,
-             c_wr => tp_wr, c_d => tp_d, c_limpa => tp_limpa, c_livres => tp_livres, c_ativa => tp_cativa, ativa => t_at, rapido => tp_rapido, para => tp_para, pausa_k => tp_pausak, pausa => tp_pausa, blocos => tp_blocos);
+  t_at   <= gs_fita and not gs_rst;
   tp_ativa <= t_at;
+  tp_rapido <= t_rap;
+  tp_limpa <= t_limpa;
+  tp_blocos <= t_tot & gs_blk;
   sem_fita_t <= sem_fita or t_at;                     -- (78) a tocar: o LOAD le' o EAR (sem as traps da fita do esxDOS)
   maq_st <= (not gs_rst) & ay3_ok & "000" & m1024 & dv_m2068 & modo128 & regf3;   -- (62) bit 2 do 79 = 1024K (DDh bit 2 e EFF7 bit 2 a 0)
   process(clk)
@@ -463,7 +465,17 @@ begin
         if a = x"FC3B" then zx_reg <= do_cpu; end if;
         if a = x"FD3B" and zx_reg = x"DD" then dd1024 <= do_cpu(2); end if;
         if a = x"EFF7" then eff7b2 <= do_cpu(2); eff7b0 <= do_cpu(0); end if;
-        if a = x"FD3B" and zx_reg = x"A0" and io_wr_d = '0' then gs_rst <= do_cpu(0); end if;
+        if a = x"FD3B" and zx_reg = x"A0" and io_wr_d = '0' then
+          if do_cpu(2) = '1' then                    -- (81) desiste da fita: o GS como estava
+            rep_cnt <= x"F";
+          else
+            if do_cpu(1) = '1' and gs_fita = '0' then gs_tinha <= not gs_rst; end if;   -- (81) o GS corria?
+            gs_rst <= do_cpu(0); gs_fita <= do_cpu(1);
+          end if;
+        end if;
+        if t_ctl = '1' then                          -- (81) A6h
+          if do_cpu(7) = '1' then t_tot <= do_cpu(5 downto 0); else t_rap <= do_cpu(2); end if;
+        end if;
         if a = x"FD3B" and zx_reg = x"A5" then rst_pend <= '1'; end if;   -- (69p) reset quando o NMI acabar, depois o ENTER
         if a = x"FD3B" and zx_reg = x"A4" and carga = '1' then      -- (esp61) programa de arranque
           carga_alvo <= do_cpu(0);
@@ -471,6 +483,13 @@ begin
         end if;
         -- (2026-10-20: o A2h = 52h ja' nao faz o RESET+NMI: a DivTIESUS faz o master reset dos
         --  registos, como no clone, e o navegador arranca o TC2048 com jp 0)
+      end if;
+      -- (81) a fita do GS acabou (ou o plugin desistiu): o GS parado 15 ciclos, depois como estava antes
+      t_limpa <= '0';
+      if gs_cfim = '1' then rep_cnt <= x"F"; end if;
+      if rep_cnt /= 0 then
+        rep_cnt <= rep_cnt - 1; gs_fita <= '0'; t_limpa <= '1';
+        if rep_cnt = 1 then gs_rst <= not gs_tinha; else gs_rst <= '1'; end if;
       end if;
       if gs_parar = '1' then gs_rst <= '1'; end if;   -- o ESP para o General Sound (fora do OUT do Z80)
       -- (69n) o plugin do TAP no ZX 128K faz reset para o menu e pede o ENTER: 2 s depois, 0,15 s carregado
@@ -795,26 +814,24 @@ begin
   o_sa     <= std_logic_vector(ol_base + (ol_k & "00000")) when ol_req = '1' else std_logic_vector(ow_base + (ow_k & "00000"));
   -- (79) a fita na SDRAM logo a seguir ao Z80 e a' camada: e' um acesso de vez em quando, mas sem vez nenhuma
   -- ficava sem SDRAM em turbo (o NAV a 14 MHz, com o GS a correr: o GS levava as vagas todas)
-  t_vez    <= '1' when m_sd_req = '0' and o_vez = '0' and t_req = '1' and rf_t < 380 and fase < 7 else '0';
-  v_vez    <= '1' when m_sd_req = '0' and o_vez = '0' and t_vez = '0' and v_req = '1' and rf_t < 380 and fase < 7 else '0';
-  g_vez    <= '1' when m_sd_req = '0' and o_vez = '0' and t_vez = '0' and v_vez = '0' and g_req = '1' and rf_t < 380 and fase < 7 else '0';
+  v_vez    <= '1' when m_sd_req = '0' and o_vez = '0' and v_req = '1' and rf_t < 380 and fase < 7 else '0';
+  g_vez    <= '1' when m_sd_req = '0' and o_vez = '0' and v_vez = '0' and g_req = '1' and rf_t < 380 and fase < 7 else '0';
   e_req    <= esp_wreq;
   -- (esp46) o som do ESP: uma palavra a cada amostra (~1 por 1200 ciclos), antes das escritas do ESP
-  a_vez    <= '1' when m_sd_req = '0' and o_vez = '0' and t_vez = '0' and v_vez = '0' and g_vez = '0' and a_req = '1' and rf_t < 380 and fase < 7 else '0';
+  a_vez    <= '1' when m_sd_req = '0' and o_vez = '0' and v_vez = '0' and g_vez = '0' and a_req = '1' and rf_t < 380 and fase < 7 else '0';
   a_acc    <= '1' when a_vez = '1' and sd_livre = '1' and sd_rf = '0' else '0';
   a_sa     <= "11111" & std_logic_vector(a_i) & "00";
   mp_idx   <= std_logic_vector(a_i);
   mp_l <= std_logic_vector(mpl); mp_r <= std_logic_vector(mpr);
-  e_vez    <= '1' when m_sd_req = '0' and o_vez = '0' and t_vez = '0' and v_vez = '0' and g_vez = '0' and a_vez = '0' and e_req = '1' and rf_t < 380 and fase < 7 else '0';
+  e_vez    <= '1' when m_sd_req = '0' and o_vez = '0' and v_vez = '0' and g_vez = '0' and a_vez = '0' and e_req = '1' and rf_t < 380 and fase < 7 else '0';
   e_acc    <= '1' when e_vez = '1' and sd_livre = '1' and sd_rf = '0' else '0';
   esp_ack  <= e_vgo;
   esp_wack <= e_acc;
   sd_be    <= esp_wbe when e_vez = '1' else "0000";
-  t_acc    <= '1' when t_vez = '1' and sd_livre = '1' and sd_rf = '0' else '0';
-  sd_req_t <= m_sd_req or o_vez or v_vez or g_vez or a_vez or e_vez or t_vez;
-  sd_a     <= o_sa when o_vez = '1' else m_sd_a when m_sd_req = '1' else v_sa when v_vez = '1' else a_sa when a_vez = '1' else esp_wa(22 downto 2) & "00" when e_vez = '1' else t_sa when t_vez = '1' else g_sa;
-  sd_we_t  <= '0' when o_vez = '1' else m_sd_we when m_sd_req = '1' else '0' when v_vez = '1' else '0' when a_vez = '1' else '1' when e_vez = '1' else t_we when t_vez = '1' else g_ok;
-  sd_d     <= do_cpu when m_sd_req = '1' else esp_d when e_vez = '1' else t_sd when t_vez = '1' else g_sd;
+  sd_req_t <= m_sd_req or o_vez or v_vez or g_vez or a_vez or e_vez;
+  sd_a     <= o_sa when o_vez = '1' else m_sd_a when m_sd_req = '1' else v_sa when v_vez = '1' else a_sa when a_vez = '1' else esp_wa(22 downto 2) & "00" when e_vez = '1' else g_sa;
+  sd_we_t  <= '0' when o_vez = '1' else m_sd_we when m_sd_req = '1' else '0' when v_vez = '1' else '0' when a_vez = '1' else '1' when e_vez = '1' else g_ok;
+  sd_d     <= do_cpu when m_sd_req = '1' else esp_d when e_vez = '1' else g_sd;
   -- refresh so' pelo tempo (8192 por 64 ms = 1 a cada ~7,8 us = 421 ciclos): a partir dos 380
   -- ciclos numa vaga segura (Z80 sem pedido, inicio do T), aos 511 de qualquer maneira
   sd_rf  <= '1' when (rf_t >= 380 and m_sd_req = '0' and fase < 4) or rf_t = 511 else '0';
@@ -833,7 +850,7 @@ begin
       -- o acesso acabou (a SDRAM voltou a ficar livre): guarda o dado de quem o pediu.
       -- Pode ser no mesmo ciclo em que a SDRAM aceita o pedido seguinte: os dois ifs sao
       -- independentes (o pend do pedido novo ganha, o dono antigo e' o que conta aqui).
-      g_fim <= '0'; v_fim <= '0'; lb_we_r <= '0'; a_fim <= '0'; t_rqv <= '0';
+      g_fim <= '0'; v_fim <= '0'; lb_we_r <= '0'; a_fim <= '0';
       -- (esp46) o relogio das amostras do ESP: mp_rate por segundo (54 MHz)
       if mp_on = '0' then
         a_acc_c <= (others => '0'); a_i <= (others => '0'); a_req <= '0'; a_voo <= '0';
@@ -873,14 +890,13 @@ begin
             if mp_on = '1' then mpf(to_integer(mp_fw(3 downto 0))) <= q_sd32; mp_fw <= mp_fw + 1; end if;
             a_fim <= '1';
           when "100"  => null;                                   -- rajada da camada: as palavras ja' foram
-          when "110"  => t_rq <= q_sd32; t_rqv <= '1';            -- (78) a fita na SDRAM
           when others => q_g <= q_sd; q_g32 <= q_sd32; g_fim <= '1';
         end case;
       end if;
       if sd_req_t = '1' and sd_livre = '1' and sd_rf = '0' then
         pend <= '1';
         if o_vez = '1' then dono2 <= "100"; elsif m_sd_req = '1' then dono2 <= "000"; z_voo <= '1';
-        elsif v_vez = '1' then dono2 <= "010"; elsif a_vez = '1' then dono2 <= "101"; elsif e_vez = '1' then dono2 <= "011"; elsif t_vez = '1' then dono2 <= "110"; else dono2 <= "001"; end if;
+        elsif v_vez = '1' then dono2 <= "010"; elsif a_vez = '1' then dono2 <= "101"; elsif e_vez = '1' then dono2 <= "011"; else dono2 <= "001"; end if;
       end if;
       if sd_rf = '1' and sd_livre = '1' then rf_t <= (others => '0');
       elsif rf_t /= 511 then rf_t <= rf_t + 1; end if;
@@ -969,7 +985,7 @@ begin
       di <= x"FF";                                     -- aceitacao da INT
     elsif iorq_n = '0' then
       if ua_cs = '1' then di <= ua_q;                  -- UART do ZX-UNO (C6/C7), pelo ESP
-      elsif t_cs = '1' or t_cs7 = '1' then di <= t_est;   -- (78) a fita na SDRAM: o estado (A6h / A7h)
+      elsif t_cs = '1' then di <= "0000000" & t_at;   -- (81) A6h: bit 0 = a fita a tocar (pelo GS)
       elsif dv_oe = '1' then di <= dv_q;               -- DivTIESUS: EB (SPI), FD3B (registo DF)
       elsif mb_cs = '1' then di <= mb_q;               -- caixa de correio do ESP (EE3B / EF3B)
       elsif u_porta = '1' then di <= u_q;              -- ULAplus
@@ -1188,7 +1204,7 @@ begin
       gs_ce <= not gs_cnt(0);                                          -- 27 MHz, como o MiSTer (28): as esperas
                                                                        -- da SDRAM deixam-no perto dos 12 MHz do GS
       if io_wr = '1' and io_wr_d = '0' and a = x"FD3B" then
-        if zx_reg = x"A0" then gs_lp <= (others => '0'); end if;
+        if zx_reg = x"A0" then gs_lp <= (others => '0'); gs_lp(16) <= do_cpu(1); end if;   -- (81) A0h bit 1: na pagina 2
         if zx_reg = x"A1" and gs_rst = '1' then ld_pend <= '1'; ld_d <= do_cpu; end if;
       end if;
       if ld_pend = '1' and g_vez = '1' and sd_livre = '1' and sd_rf = '0' then
@@ -1236,7 +1252,7 @@ begin
     end if;
   end process;
   g_ok    <= '1' when gs_rst = '1' else gs_wr;
-  g_sa    <= "10" & "000000" & std_logic_vector(gs_lp) when gs_rst = '1' else "10" & gs_ma;
+  g_sa    <= "10" & "00" & std_logic_vector(gs_lp) when gs_rst = '1' else "10" & gs_ma;
   g_sd    <= ld_d when gs_rst = '1' else gs_md;
   gs_mq <= x"FF" when gs_alto = '1' else c_byte when c_ler = '1' else q_g;
   gs_cs_rd <= '1' when io_rd = '1' and (a(7 downto 0) = x"BB" or a(7 downto 0) = x"B3") else '0';
@@ -1245,7 +1261,9 @@ begin
     port map (clk => clk, reset_n => rst_n_i and not gs_rst, ce => gs_ce,
               cs_rd => gs_cs_rd, cs_wr => gs_cs_wr, a3 => a(3), din => do_cpu, dout => gs_q,
               m_a => gs_ma_c, m_rd => gs_rd_c, m_wr => gs_wr_c, m_d => gs_md_c, m_q => gs_mq, m_wait => gs_wait,
-              out_l => gs_l, out_r => gs_r);
+              out_l => gs_l, out_r => gs_r,
+              fita => gs_fita, c_livres => tp_livres, c_teclas => tp_cativa & tp_para & tp_pausak,
+              c_wr => tp_wr, c_d => tp_d, c_est => tp_pausa, c_fim => gs_cfim, c_bloco => gs_blk);
 
   ---------------------------------------------------------------------------
   -- quadro e INT: 48K 69888 T (INT 32 T); 128K 70908 T (228 x 311, INT 36 T);

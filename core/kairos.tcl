@@ -38,7 +38,6 @@ add_file src/hid_teclado.vhd
 add_file src/ponte_rapida.vhd
 add_file src/ponte_esp.vhd
 add_file src/cassete.vhd
-add_file src/fita_sd.vhd
 add_file src/top.vhd
 add_file mem.v
 add_file kairos.cst

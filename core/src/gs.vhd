@@ -14,6 +14,12 @@
 --   Memoria: 0000-3FFF os primeiros 16K da ROM; 4000-7FFF os primeiros 16K da pagina 1;
 --            8000-FFFF a pagina da porta 0. As leituras em 6000h-7FFFh vao tambem para os
 --            canais (A9-A8 = canal).
+--   (81) Leitor de cassete (o plugin TZX): com "fita" = 1, 0000-3FFF passa a ser o principio da pagina 2 (RAM: o
+--   programa do leitor, posto pelo plugin com o A1h) e a ROM fica intacta. Portas so' para o leitor:
+--     C escrita: byte baixo da palavra da cassete   D escrita: byte alto (e a palavra vai para a fila)
+--     C leitura: lugares livres na fila da cassete  D leitura: bit 0 F3, bit 1 F4 (teclado USB), bit 2 a cassete a tocar
+--     E escrita: o estado (bit 0 pausa pedida, 1 parada, 2 parada ja'; bit 7 = acabou: o core repoe o GS)
+--     F escrita: o bloco que esta' a tocar (para o canto do ecra)
 --   INT a 37,5 kHz. Saida: canais 1+2 a' esquerda, 3+4 a' direita (com sinal, 15 bits).
 library ieee;
 use ieee.std_logic_1164.all;
@@ -38,7 +44,16 @@ entity gs is
     m_d     : out std_logic_vector(7 downto 0);
     m_q     : in  std_logic_vector(7 downto 0);
     m_wait  : in  std_logic;                      -- 1 = o acesso ainda nao acabou
-    out_l, out_r : out signed(14 downto 0)
+    out_l, out_r : out signed(14 downto 0);
+    -- (81) o leitor de cassete
+    fita     : in  std_logic := '0';
+    c_livres : in  std_logic_vector(7 downto 0) := (others => '0');
+    c_teclas : in  std_logic_vector(2 downto 0) := (others => '0');   -- F3, F4, a cassete a tocar
+    c_wr     : out std_logic;
+    c_d      : out std_logic_vector(15 downto 0);
+    c_est    : out std_logic_vector(2 downto 0);
+    c_fim    : out std_logic;
+    c_bloco  : out std_logic_vector(5 downto 0)
   );
 end entity;
 
@@ -58,6 +73,11 @@ architecture rtl of gs is
   signal ler, esc : std_logic;
   signal oa, ob, oc, od : signed(14 downto 0) := (others => '0');
   signal ol, orr : signed(14 downto 0) := (others => '0');
+  signal c_lo : std_logic_vector(7 downto 0) := (others => '0');
+  signal cd_r : std_logic_vector(15 downto 0) := (others => '0');
+  signal cest_r : std_logic_vector(2 downto 0) := (others => '0');
+  signal cblo_r : std_logic_vector(5 downto 0) := (others => '0');
+  signal cwr_r, cfim_r, iow_d : std_logic := '0';
 begin
   cpu: entity work.T80se
     generic map (Mode => 0, T2Write => 1, IOWait => 1)
@@ -104,10 +124,23 @@ begin
   process(clk)
   begin
     if rising_edge(clk) then
+      cwr_r <= '0'; cfim_r <= '0';
+      iow_d <= not (iorq_n or wr_n or not m1_n);
       if reset_n = '0' then
         p_bb <= (others => '0'); p_b3 <= (others => '0');
         p_00 <= (others => '0'); p_03 <= (others => '0');
+        cest_r <= (others => '0'); cblo_r <= (others => '0');
       else
+        -- (81) as portas do leitor de cassete (uma vez por OUT)
+        if iorq_n = '0' and wr_n = '0' and m1_n = '1' and iow_d = '0' and fita = '1' then
+          case a(3 downto 0) is
+            when x"C" => c_lo <= do_c;
+            when x"D" => cd_r <= do_c & c_lo; cwr_r <= '1';
+            when x"E" => cest_r <= do_c(2 downto 0); cfim_r <= do_c(7);
+            when x"F" => cblo_r <= do_c(5 downto 0);
+            when others => null;
+          end case;
+        end if;
         if cs_wr = '1' then
           if a3 = '1' then p_bb <= din; else p_b3 <= din; end if;
         end if;
@@ -136,9 +169,10 @@ begin
   end process;
 
   dout <= (bit7 & "111111" & bit0) when a3 = '1' else p_03;
+  c_wr <= cwr_r; c_d <= cd_r; c_est <= cest_r; c_fim <= cfim_r; c_bloco <= cblo_r;
 
   -- memoria
-  pag  <= p_00 when a(15) = '1' else "00000" & a(14);
+  pag  <= p_00 when a(15) = '1' else "000010" when fita = '1' and a(14) = '0' else "00000" & a(14);
   ler  <= '1' when mreq_n = '0' and rfsh_n = '1' and rd_n = '0' else '0';
   esc  <= '1' when mreq_n = '0' and rfsh_n = '1' and wr_n = '0' and pag /= "000000" else '0';   -- ROM so' de leitura
   m_a  <= pag & (a(15) and a(14)) & a(13 downto 0);
@@ -150,6 +184,8 @@ begin
         p_bb when iorq_n = '0' and rd_n = '0' and a(3 downto 0) = x"1" else
         p_b3 when iorq_n = '0' and rd_n = '0' and a(3 downto 0) = x"2" else
         (bit7 & "111111" & bit0) when iorq_n = '0' and rd_n = '0' and a(3 downto 0) = x"4" else
+        c_livres when iorq_n = '0' and rd_n = '0' and a(3 downto 0) = x"C" else
+        "00000" & c_teclas when iorq_n = '0' and rd_n = '0' and a(3 downto 0) = x"D" else
         x"FF";
 
   -- 4 canais: amostra (8 bits com sinal) x volume (0-63)

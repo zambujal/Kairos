@@ -1,13 +1,14 @@
-; TZX: plugin do navegador (formato dos plugins do Bob Fossil) que carrega um .TZX sem o ESP (core 78+).
+; TZX: plugin do navegador (formato dos plugins do Bob Fossil) que carrega um .TZX sem o ESP (core 81+).
 ; So' le' o cartao (nunca escreve nada nele).
-;   1. le' o .TZX e converte-o numa lista de impulsos, escrita na SDRAM pelo core (ZXUNO A7h, um byte de
-;      cada vez; formato em core/src/fita_sd.vhd):
+;   1. poe na memoria do General Sound (pagina 2 e seguintes, ZXUNO A0h = 3 e A1h) o leitor (leitor_gs.asm) e
+;      a lista de impulsos feita do .TZX:
 ;        0000h-7FFFh impulso de n T (e muda o EAR), 8000h+n pausa de n x 64 T, C000h / E000h EAR a 0 / a 1,
 ;        F001h L N  N impulsos de L T,  F002h B0 B1 N U  N bytes (U bits no ultimo), 2 por palavra,  FFFFh fim
-;   2. liga a fita (A6h = 1): o core enche a cassete enquanto o jogo carrega (o EAR, sem as traps do esxDOS)
+;   2. arranca o leitor no Z80 do GS (A0h = 2): enche a cassete do core enquanto o jogo carrega (o EAR, sem as
+;      traps do esxDOS); F3 pausa no fim dos dados, F4 para ja'. No fim o GS volta a como estava.
 ;   3. faz o LOAD "" como o stub68 (fontes/plug2068): no ZX 128K (o menu da Sinclair) o reset e o ENTER pelo
 ;      core (A5h); nos outros escreve LOAD "" na linha de edicao da copia da RAM do NMI e deixa um ENTER
-;      pendente. Se a linha de edicao nao estiver vazia (um jogo a correr), nao liga a fita e diz porque.
+;      pendente. Se a linha de edicao nao estiver vazia (um jogo a correr), nao toca e diz porque.
 ; Blocos: 10 11 12 13 14 20 21 22 24 25 (ate' 8 KB dentro do ciclo) 2B, e os de texto / informacao
 ; (2A 30 31 32 33 34 35 5A 23 26 27 28) saltam-se. 15 18 19 e outros: erro (nao converte).
 ; A pausa 0 (bloco 20, "parar a fita") nao para: a fita continua.
@@ -61,14 +62,31 @@ IAbre               ld hl,(Nome)
                     ld (FH),a
                     ld a,1
                     ld (Aberto),a
-                    ; a fita: parada, escrever do principio; (core 80) o Z80 a 14 MHz ate' ligar a fita
+                    ; (core 81) o Z80 a 14 MHz enquanto escreve (A6h = 4); o GS parado no modo fita, a escrever na
+                    ; pagina 2 (A0h = 3); primeiro o programa do leitor, depois a lista
                     ld bc,0FC3Bh
                     ld a,0A6h
                     out (c),a
                     inc b
-                    ld a,6
+                    ld a,4
                     out (c),a
-                    call SelA7
+                    dec b
+                    ld a,0A0h
+                    out (c),a
+                    inc b
+                    ld a,3
+                    out (c),a
+                    ld a,1
+                    ld (Comecou),a
+                    ld hl,Leitor
+                    ld de,LeitorFim-Leitor
+ILeit               ld a,(hl)
+                    call PutB
+                    inc hl
+                    dec de
+                    ld a,d
+                    or e
+                    jr nz,ILeit
                     ; o cabecalho: "ZXTape!",1Ah, versao (2)
                     ld hl,Assin
                     ld b,8
@@ -329,22 +347,31 @@ Nada                ret
 ; ---------------------------------------------------------------- o fim do ficheiro
 FimFich             ld hl,0FFFFh        ; (um ciclo sem o fim: fica como foi lido)
                     call PutW
-                    call EsperaW
                     ld a,(FH)
                     rst 08h
                     db F_CLOSE
                     xor a
                     ld (Aberto),a
-                    ld bc,0FC3Bh        ; a fita a tocar
-                    ld a,0A6h
+                    ld bc,0FC3Bh        ; a fita a tocar: quantos blocos (A6h = 80h + n), o GS arranca o leitor
+                    ld a,0A6h           ; (A0h = 2), o Z80 a' velocidade dele (A6h = 0)
                     out (c),a
                     inc b
-                    ld a,(NBloc)        ; (core 80) quantos blocos: A6h = 80h + n
+                    ld a,(NBloc)
                     or 80h
                     out (c),a
-                    ld a,1
+                    dec b
+                    ld a,0A0h
                     out (c),a
-                    call SelA7          ; o registo A6h nao fica escolhido (um OUT FD3B a seguir parava a fita)
+                    inc b
+                    ld a,2
+                    out (c),a
+                    dec b
+                    ld a,0A6h           ; (fica o A6h escolhido: um OUT FD3B perdido nao mexe no GS)
+                    out (c),a
+                    inc b
+                    xor a
+                    out (c),a
+                    ld (Comecou),a
                     ld a,(Maq)
                     or a
                     jp nz,Reset128
@@ -386,8 +413,6 @@ ErroCorte           ld hl,TxtCorte
 ErroLe              ld hl,TxtLe
                     jr Erro
 ErroJogo            ld hl,TxtJogo
-                    jr Erro
-ErroCore            ld hl,TxtCore
 Erro                ld sp,(SPerro)
                     push hl
                     ld a,(Aberto)
@@ -396,13 +421,22 @@ Erro                ld sp,(SPerro)
                     ld a,(FH)
                     rst 08h
                     db F_CLOSE
-                    ld bc,0FC3Bh        ; a fita parada
+ESemF               ld a,(Comecou)      ; o GS como estava (A0h = 4) e o Z80 a' velocidade dele
+                    or a
+                    jr z,ESemG
+                    ld bc,0FC3Bh
+                    ld a,0A0h
+                    out (c),a
+                    inc b
+                    ld a,4
+                    out (c),a
+                    dec b
                     ld a,0A6h
                     out (c),a
                     inc b
                     xor a
                     out (c),a
-ESemF               xor a
+ESemG               xor a
                     out (0E3h),a
                     pop bc
                     pop iy
@@ -552,13 +586,10 @@ Br2                 ex (sp),hl          ; na pilha: os que faltam depois deste b
                     sbc hl,bc
                     ld (BufN),hl
                     ld hl,(BufP)
-                    push bc
-                    call Espera         ; BC = FD3Bh, o A7h escolhido (muda o DE)
-                    pop de              ; DE = quantos
-Brl                 in a,(c)            ; o anterior ja' foi para a SDRAM?
-                    and 4
-                    jr nz,Brl
-                    ld a,(hl)
+                    ld d,b              ; DE = quantos
+                    ld e,c
+                    call SelA1          ; BC = FD3Bh, o A1h escolhido
+Brl                 ld a,(hl)
                     out (c),a
                     inc hl
                     dec de
@@ -612,44 +643,19 @@ PMfim               ld hl,0C000h
 PutW                ld a,l
                     call PutB
                     ld a,h
-; um byte para a lista (registo A7h ja' escolhido): espera que o anterior tenha ido para a SDRAM
-; (o registo A7h escolhido outra vez a cada byte; sem resposta do core em ~65000 voltas: erro, nao pendura)
+; um byte para a lista: ZXUNO A1h (o byte seguinte na memoria do GS; escolhido outra vez a cada byte)
 PutB                push bc
-                    push de
                     push af
-                    call Espera
+                    call SelA1
                     pop af
                     out (c),a
-                    pop de
                     pop bc
                     ret
-EsperaW             push bc
-                    push de
-                    call Espera
-                    pop de
-                    pop bc
-                    ret
-; BC = FD3Bh com o A7h escolhido, o ultimo byte ja' na SDRAM (muda A, DE)
-Espera              ld bc,0FC3Bh
-                    ld a,0A7h
+; BC = FD3Bh com o registo A1h escolhido (muda o A)
+SelA1               ld bc,0FC3Bh
+                    ld a,0A1h
                     out (c),a
                     inc b
-                    ld de,0
-EWl                 in a,(c)
-                    and 4
-                    ret z
-                    dec de
-                    ld a,d
-                    or e
-                    jr nz,EWl
-                    jp ErroCore
-SelA7               push bc
-                    push af
-                    ld bc,0FC3Bh
-                    ld a,0A7h
-                    out (c),a
-                    pop af
-                    pop bc
                     ret
 
 ; ---------------------------------------------------------------- a leitura do ficheiro
@@ -902,7 +908,6 @@ TxtCiclo            db "TZX: ciclo dentro de ciclo",0
 TxtGrande           db "TZX: ciclo maior que 8K",0
 TxtCorte            db "TZX: o ficheiro acaba a meio",0
 TxtLe               db "TZX: erro a ler",0
-TxtCore             db "TZX: o core nao responde (core 78+)",0
 TxtJogo             db "TZX: so' no BASIC (faz reset)",0
 TxtLoad             db "LOAD \"\" (TZX)",0
 TxtRst              db "Tape Loader (TZX)",0
@@ -931,5 +936,8 @@ Bit1                dw 0
 Usados              db 0
 Impar               db 0
 NBloc               db 0
+Comecou             db 0
+Leitor              incbin "LEITOR.BIN"       ; o leitor do GS (leitor_gs.asm)
+LeitorFim
 VELine              dw 0
 VStkend             dw 0
