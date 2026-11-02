@@ -83,7 +83,7 @@ In short, the root of the card ends up like this:
 
 ```
 BIN/        esxDOS + Bob Fossil's BPLUGINS/ (TAP, Z80, SNA, TRD, PT3...) + ours (BROWSE.BIN, NAVHR.BIN,
-            GO128, GO256, GO1024, GO2068, PENTA.BIN, NAVPT3.BIN, SOMNAV.BIN, BPLUGINS/MOD, BPLUGINS/PT3 (replacing Bob Fossil's), BPLUGINS/AY, BPLUGINS/CFG/MOD.CFG and MOD.INI)
+            GO128, GO256, GO1024, GO2068, PENTA.BIN, NAVPT3.BIN, SOMNAV.BIN, BPLUGINS/MOD, BPLUGINS/PT3 (replacing Bob Fossil's), BPLUGINS/AY, BPLUGINS/TZX, BPLUGINS/CFG/MOD.CFG and MOD.INI)
             (optional: 128.rom, 2068.rom, GS105B.ROM, PLUG2068/TAP)
 SYS/        esxDOS + Bob Fossil's NMI.SYS + NAV.SOM + ROMS/TC2048.ROM + ROMS/ESXMMC.BIN
 TMP/        esxDOS
@@ -164,9 +164,17 @@ serializers, so it will probably need adapting.
   border turns red; fix the card and it retries by itself every 2 s.
 - **The two buttons on the Tang:**
   - the **pin 87** one is the **NMI**: it opens the card browser. There, ENTER on a file loads it
-    (TAP, SNA, Z80, TRD, PT3 and other AY formats, MOD on the General Sound; not TZX, which needs the ESP
-    board); the machine menu switches to 48K / 128K / Timex 128 / TC2068 / Pentagon and turns on the General
-    Sound. The keys are in `docs/teclas.md`.
+    (TAP, SNA, Z80, TRD, PT3 and other AY formats, MOD on the General Sound, TZX); the machine menu switches
+    to 48K / 128K / Timex 128 / TC2068 / Pentagon and turns on the General Sound. The keys are in
+    `docs/teclas.md`.
+    **TZX without the ESP** (core 81+, plugin `BIN/BPLUGINS/TZX`): from BASIC (on the ZX 128K, from the menu)
+    ENTER on a `.TZX` plays the tape at the machine's speed (F10 speeds it up) and types `LOAD ""` by itself
+    (on the 128K it resets and picks the Tape Loader). **F3** pauses at the end of the data of the block being
+    played, **F4** stops at once; again resumes. In the top-left corner a square (green playing, yellow
+    paused, red stopped) and one rectangle per block show for 3 s at each block and stay while paused. The
+    tape is played by the General Sound's Z80 (with the player the plugin puts in its memory): no GS music
+    while it plays, and at the end the GS goes back to how it was (its ROM is not touched). Blocks 15, 18
+    and 19 are not supported; the TZX pause 0 does not stop the tape.
     With a **USB mouse** (hi-res browser): hovering selects the line, left click runs it (ENTER), right
     click is SPACE, the wheel changes page, clicking the path (top line) goes up one folder, clicking the
     machine opens the machine menu, and in the menu the mouse picks the machine.

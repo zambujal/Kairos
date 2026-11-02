@@ -13,7 +13,7 @@
 ; (2A 30 31 32 33 34 35 5A 23 26 27 28) saltam-se. 15 18 19 e outros: erro (nao converte).
 ; A pausa 0 (bloco 20, "parar a fita") nao para: a fita continua.
 ; (Kairos, 2026-11-02)
-; Monta-se com  sjasmplus -I../nav --raw=TZX plugin_tzx.asm
+; Monta-se com  sjasmplus --raw=LEITOR.BIN leitor_gs.asm  e depois  sjasmplus -I../nav --raw=TZX plugin_tzx.asm
 
                     include "esxdos.inc"
 

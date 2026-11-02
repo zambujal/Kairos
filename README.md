@@ -82,7 +82,7 @@ Resumindo, a raiz do cartão fica assim:
 
 ```
 BIN/        esxDOS + BPLUGINS/ do Bob Fossil (TAP, Z80, SNA, TRD, PT3...) + os nossos (BROWSE.BIN, NAVHR.BIN,
-            GO128, GO256, GO1024, GO2068, PENTA.BIN, NAVPT3.BIN, SOMNAV.BIN, BPLUGINS/MOD, BPLUGINS/PT3 (no lugar do do Bob Fossil), BPLUGINS/AY, BPLUGINS/CFG/MOD.CFG e MOD.INI)
+            GO128, GO256, GO1024, GO2068, PENTA.BIN, NAVPT3.BIN, SOMNAV.BIN, BPLUGINS/MOD, BPLUGINS/PT3 (no lugar do do Bob Fossil), BPLUGINS/AY, BPLUGINS/TZX, BPLUGINS/CFG/MOD.CFG e MOD.INI)
             (opcionais: 128.rom, 2068.rom, GS105B.ROM, PLUG2068/TAP)
 SYS/        esxDOS + NMI.SYS do Bob Fossil + NAV.SOM + ROMS/TC2048.ROM + ROMS/ESXMMC.BIN
 TMP/        esxDOS
@@ -164,9 +164,17 @@ por isso é provável que precise de adaptações.
   vermelha; corrige-se o cartão e ele tenta sozinho de 2 em 2 s.
 - **Os dois botões do Tang:**
   - o do **pino 87** é o **NMI**: abre o navegador do cartão. Nele: ENTER num ficheiro carrega-o
-    (TAP, SNA, Z80, TRD, PT3 e outros formatos AY, MOD no General Sound; TZX não, só com a placa ESP); o menu das máquinas
+    (TAP, SNA, Z80, TRD, PT3 e outros formatos AY, MOD no General Sound, TZX); o menu das máquinas
     muda para 48K / 128K / Timex 128 / TC2068 / Pentagon e liga o General Sound. As
     teclas estão em `docs/teclas.md`.
+    **TZX sem o ESP** (core 81+, plugin `BIN/BPLUGINS/TZX`): a partir do BASIC (no ZX 128K, do menu) o
+    ENTER num `.TZX` toca a fita à velocidade da máquina (o F10 acelera) e escreve sozinho o `LOAD ""`
+    (no 128K faz o reset e escolhe o Tape Loader). **F3** pausa no fim dos dados do bloco que está a
+    tocar, **F4** pára já; outra vez continua. No canto de cima, à esquerda, um quadrado (verde a tocar,
+    amarelo em pausa, vermelho parada) e um rectângulo por bloco aparecem 3 s a cada bloco e ficam
+    enquanto estiver em pausa. Quem toca a fita é o Z80 do General Sound (com o leitor que o plugin lhe
+    põe na memória): enquanto toca não há música do GS, e no fim o GS volta a como estava (a ROM dele
+    não é tocada). Os blocos 15, 18 e 19 não dão; a pausa 0 do TZX não pára a fita.
     Com um **rato USB** (navegador hi-res): passar por cima escolhe a linha, o clique esquerdo corre
     (ENTER), o direito é o ESPAÇO, a roda muda de página, o clique no caminho (linha de cima) sobe uma
     pasta, o clique na máquina abre o menu das máquinas e no menu escolhe-se com o rato.
