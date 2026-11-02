@@ -90,8 +90,9 @@ Dados               call GetW
                     inc a
                     ld (Bloco),a
                     out (0Fh),a
-                    ld a,1
-                    ld (RedB),a
+                    ld a,(Pend)         ; (82) a linha do bloco
+                    or 2
+                    ld (Pend),a
                     ld a,(NBy)          ; impar: o ultimo byte da lista fica por ler (o enchimento)
                     and 1
                     ld (Impar),a
@@ -197,8 +198,9 @@ TF3p                ld a,(Ped)
 TFim                pop bc
                     ret
 Estado              push bc
-                    ld a,1
-                    ld (RedE),a
+                    ld a,(Pend)         ; (82) a linha do estado
+                    or 4
+                    ld (Pend),a
                     ld a,(Cam)          ; bit 3 a camada
                     add a,a
                     ld b,a
@@ -286,35 +288,83 @@ ECl                 ld (hl),a
                     ld (ClrP),a
                     ld a,1
                     ld (Cam),a
-                    ld (RedAll),a
+                    ld a,3Fh            ; todas as linhas
+                    ld (Pend),a
+                    ld a,0FFh
+                    ld (DLin),a
                     call Estado
 ECst                ld (ClrA),hl
-                    jr ESai
-EDes                ld a,(Cam)
+                    jp ESai
+EDes                ld a,(Cam)          ; uma letra de cada vez (~0,3 ms): a fila nunca fica vazia, mesmo a 27 MHz
                     or a
-                    jr z,ESai
-                    ld a,(RedAll)
+                    jp z,ESai
+                    ld a,(DLin)
+                    cp 0FFh
+                    jr nz,EDc
+                    ld a,(Pend)         ; a linha seguinte por desenhar (bits 0-5)
                     or a
-                    jr z,EBl
+                    jp z,ESai
+                    ld b,0
+EDp                 rrca
+                    jr c,EDq
+                    inc b
+                    jr EDp
+EDq                 ld a,b
+                    ld (DLin),a
+                    ld c,1              ; tira o bit da linha
+                    inc b
+EDm                 dec b
+                    jr z,EDm2
+                    sla c
+                    jr EDm
+EDm2                ld a,c
+                    cpl
+                    ld hl,Pend
+                    and (hl)
+                    ld (hl),a
                     xor a
-                    ld (RedAll),a
-                    ld (RedB),a
-                    ld (RedE),a
-                    call Painel
-                    jr ESai
-EBl                 ld a,(RedB)
+                    ld (DPos),a
+                    ld a,(DLin)
+                    cp 1
+                    jr nz,EDc
+                    ld ix,TBl+6         ; o bloco: "BLOCO nn DE nn"
+                    ld a,(Bloco)
+                    call Dois
+                    ld ix,TBl+12
+                    ld a,(Tot)
+                    call Dois
+EDc                 call TxtLin         ; IX = o texto da linha, (TabC) = a cor
+                    ld a,(DPos)
+                    ld e,a
+                    ld d,0
+                    add ix,de
+                    ld a,(ix+0)
                     or a
-                    jr z,EEs
-                    xor a
-                    ld (RedB),a
-                    call LinBloco
-                    jr ESai
-EEs                 ld a,(RedE)
-                    or a
-                    jr z,ESai
-                    xor a
-                    ld (RedE),a
-                    call LinEst
+                    jr nz,EDl
+                    ld a,0FFh           ; a linha acabou
+                    ld (DLin),a
+                    jp ESai
+EDl                 push af
+                    ld a,(DLin)         ; COff = (48 + linha x 16) x 320 + DPos x 4
+                    ld b,a
+                    ld hl,15360
+                    ld de,5120
+                    inc b
+EDo                 dec b
+                    jr z,EDo2
+                    add hl,de
+                    jr EDo
+EDo2                ld a,(DPos)
+                    add a,a
+                    add a,a
+                    ld e,a
+                    ld d,0
+                    add hl,de
+                    ld (COff),hl
+                    pop af
+                    call DChar
+                    ld hl,DPos
+                    inc (hl)
 ESai                ld a,(Pag)          ; a pagina da lista outra vez
                     out (0),a
                     pop ix
@@ -323,62 +373,42 @@ ESai                ld a,(Pag)          ; a pagina da lista outra vez
                     pop bc
                     pop af
                     ret
-Painel              ld b,0
+; o texto da linha (DLin) em IX e a cor em (TabC)
+TxtLin              ld hl,TabB
+                    ld (TabC),hl
+                    ld a,(DLin)
                     ld ix,TCas
-                    call LinB
-                    call LinBloco
-                    call LinEst
-                    ld b,3
-                    ld ix,TF3a
-                    call LinB
-                    ld b,4
-                    ld ix,TF3b
-                    call LinB
-                    ld b,5
-                    ld ix,TF4
-                    jr LinB
-LinBloco            ld ix,TBl+6         ; "BLOCO nn DE nn"
-                    ld a,(Bloco)
-                    call Dois
-                    ld ix,TBl+12
-                    ld a,(Tot)
-                    call Dois
-                    ld b,1
-                    ld ix,TBl
-                    jr LinB
-LinEst              ld ix,TToca
-                    ld a,(Ped)
-                    or a
-                    jr z,LE1
-                    ld ix,TPed
-LE1                 ld a,(Par)
-                    or a
-                    jr z,LE2
-                    ld ix,TPausa
-LE2                 ld a,(Gelo)
-                    or a
-                    jr z,LE3
-                    ld ix,TParada
-LE3                 ld b,2
-                    ld hl,TabA          ; a amarelo
-                    jr LinC
-; uma linha (B = 0-5) com o texto IX, a branco
-LinB                ld hl,TabB
-LinC                ld (TabC),hl
-                    ld hl,15360         ; (48 + linha x 16) x 320
-                    ld de,5120
-                    inc b
-LCl                 dec b
-                    jr z,LCs
-                    add hl,de
-                    jr LCl
-LCs                 ld (COff),hl
-LCc                 ld a,(ix+0)
                     or a
                     ret z
-                    call DChar
-                    inc ix
-                    jr LCc
+                    ld ix,TBl
+                    dec a
+                    ret z
+                    dec a
+                    jr z,TLest
+                    ld ix,TF3a
+                    dec a
+                    ret z
+                    ld ix,TF3b
+                    dec a
+                    ret z
+                    ld ix,TF4
+                    ret
+TLest               ld hl,TabA          ; o estado, a amarelo
+                    ld (TabC),hl
+                    ld ix,TToca
+                    ld a,(Ped)
+                    or a
+                    jr z,TL1
+                    ld ix,TPed
+TL1                 ld a,(Par)
+                    or a
+                    jr z,TL2
+                    ld ix,TPausa
+TL2                 ld a,(Gelo)
+                    or a
+                    ret z
+                    ld ix,TParada
+                    ret
 ; A (0-99) em duas letras em (IX)
 Dois                ld b,'0'-1
 DSl                 inc b
@@ -541,9 +571,9 @@ Cam                 equ 5F10h
 EspUsou             equ 5F11h
 ClrP                equ 5F12h
 ClrA                equ 5F13h
-RedAll              equ 5F15h
-RedB                equ 5F16h
-RedE                equ 5F17h
+Pend                equ 5F15h
+DLin                equ 5F16h
+DPos                equ 5F17h
 Tot                 equ 5F18h
 TabC                equ 5F19h
 COff                equ 5F1Bh
