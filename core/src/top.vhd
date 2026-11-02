@@ -238,7 +238,7 @@ architecture rtl of top is
   signal cs_livres : std_logic_vector(7 downto 0);
   signal tp_wr, tp_limpa, tp_ativa, ca_wr, ca_limpa : std_logic;   -- (78) a fita na SDRAM (o plugin TZX), na mesma cassete
   signal tp_d, ca_d : std_logic_vector(15 downto 0);
-  signal tp_rap : std_logic := '0';                  -- (80) o plugin TZX a escrever a lista: 14 MHz
+  signal tp_rap, tp_pau, ca_ce : std_logic := '0';                  -- (80) o plugin TZX a escrever a lista: 14 MHz
   signal k_gspara, k_ay3 : std_logic := '0';
   signal alt_k : std_logic := '0';
   signal maq_st : std_logic_vector(15 downto 0) := (others => '0');
@@ -453,7 +453,7 @@ begin
       port map (clk => clk54, clk_div => I_clk, vclk => pclk, ce => ce, ce35 => ce35, reset_n => cpu_rst_n,
                 nmi_n => nmi_core, mat => mat,
                 border => border_c, modo => modo_c, hcor => hcor_c, ecra7 => ecra7_c,
-                vid_a => ecra7_v & va, vid_q => vq, vid_a2 => va2, vid_q2 => vq2, m16c => m16c_c, turbo => turbo_c, sd_esp => sd_dado, sem_fita => fita_on, ear_in => cs_ear, tp_wr => tp_wr, tp_d => tp_d, tp_limpa => tp_limpa, tp_livres => cs_livres, tp_ativa => tp_ativa, tp_cativa => cs_ativa, tp_rapido => tp_rap, tp_para => atalho(14), mp_on => '0', mp_rate => mp_rate, mp_idx => mp_idx, mp_l => open, mp_r => open, ce_t => ce_t, dv_lento => dv_lento, dv_mapa => dv_mapa, ay_vis => ay_vis, rato_x => rato_xz, rato_y => rato_yz, rato_b => rato_bz, rato_w => rato_wz, joy => joy_k, pede_rnmi => pede_rnmi, arr_auto => arr_auto, arr_rapido => arr_rap, halt_n => halt_n,
+                vid_a => ecra7_v & va, vid_q => vq, vid_a2 => va2, vid_q2 => vq2, m16c => m16c_c, turbo => turbo_c, sd_esp => sd_dado, sem_fita => fita_on, ear_in => cs_ear, tp_wr => tp_wr, tp_d => tp_d, tp_limpa => tp_limpa, tp_livres => cs_livres, tp_ativa => tp_ativa, tp_cativa => cs_ativa, tp_rapido => tp_rap, tp_para => atalho(14), tp_pausak => atalho(13), tp_pausa => tp_pau, mp_on => '0', mp_rate => mp_rate, mp_idx => mp_idx, mp_l => open, mp_r => open, ce_t => ce_t, dv_lento => dv_lento, dv_mapa => dv_mapa, ay_vis => ay_vis, rato_x => rato_xz, rato_y => rato_yz, rato_b => rato_bz, rato_w => rato_wz, joy => joy_k, pede_rnmi => pede_rnmi, arr_auto => arr_auto, arr_rapido => arr_rap, halt_n => halt_n,
                 pronta => sd_pronta, sd_teste => sd_teste, sd_teste2 => sd_teste2,
                 sd_clk => open, sd_cke => O_sdram_cke, sd_cs_n => O_sdram_cs_n,
                 sd_ras_n => O_sdram_ras_n, sd_cas_n => O_sdram_cas_n, sd_we_n => O_sdram_wen_n,
@@ -734,6 +734,7 @@ begin
   ca_wr <= tp_wr when tp_ativa = '1' else cs_wr;
   ca_d  <= tp_d when tp_ativa = '1' else cs_d;
   ca_limpa <= cs_limpa or tp_limpa;
-  cas: entity work.cassete port map (clk => clk54, t_ce => ce_t, limpa => ca_limpa, wr => ca_wr, d => ca_d,
+  ca_ce <= ce_t and not tp_pau;                       -- (80) a fita do core em pausa (F3): a cassete para no sitio
+  cas: entity work.cassete port map (clk => clk54, t_ce => ca_ce, limpa => ca_limpa, wr => ca_wr, d => ca_d,
                                      livres => cs_livres, ativa => cs_ativa, ear => cs_ear);
 end architecture;
