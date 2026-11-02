@@ -202,7 +202,7 @@ architecture rtl of core_kairos is
   signal cpu_nmi_n : std_logic;
   signal cpu_nmi_g : std_logic;   -- (69m) o NMI que chega ao Z80
   signal ent_on, ent_k, rst_pend : std_logic := '0';
-  signal ent_ld, ent_ld_p, ek_j, ek_ssp, ek_ent : std_logic := '0';   -- (83) o reset do plugin TZX no 48: LOAD "" sozinho
+  signal ent_ld, ent_ld_p, ek_j, ek_ssp, ek_ent, ld_int : std_logic := '0';   -- (83) o reset do plugin TZX no 48: LOAD "" sozinho
   signal dv_mapeado : std_logic;                          -- (69t) o DivMMC mapeado (o dv_romcs no 128 esta' sempre a 1: a ROM vem da SRAM)
   signal nmi_fura : std_logic := '0';                     -- (69o) o NMI ja' esperou 40 ms pela ROM 1
   signal nmi_esp  : unsigned(21 downto 0) := (others => '0');                       -- (69n) ENTER automatico pedido (ZXUNO A5h)
@@ -286,6 +286,7 @@ architecture rtl of core_kairos is
   -- (78) a fita na SDRAM: o cliente t (o mais baixo)
   -- (81) a fita pelo Z80 do GS (o plugin TZX)
   signal t_ctl, t_cs, t_at, sem_fita_t, t_rap, gs_fita, gs_tinha, gs_cfim, t_limpa : std_logic := '0';
+  signal t_lpend : std_logic := '0';
   signal t_tot, gs_blk : std_logic_vector(5 downto 0) := (others => '0');
   signal rep_cnt : unsigned(3 downto 0) := (others => '0');
   signal gs_est4 : std_logic_vector(3 downto 0);
@@ -477,6 +478,7 @@ begin
             rep_cnt <= x"F";
           else
             if do_cpu(1) = '1' and gs_fita = '0' then gs_tinha <= not gs_rst; end if;   -- (81) o GS corria?
+            if do_cpu(1) = '1' and do_cpu(0) = '1' then t_lpend <= '1'; end if;       -- (83f) fita nova: a fila vazia
             gs_rst <= do_cpu(0); gs_fita <= do_cpu(1);
           end if;
         end if;
@@ -500,7 +502,7 @@ begin
         if ld_t = 324000000 then ld_visto <= '1'; else ld_t <= ld_t + 1; end if;
       end if;
       -- (81) a fita do GS acabou (ou o plugin desistiu): o GS parado 15 ciclos, depois como estava antes
-      t_limpa <= '0';
+      if t_lpend = '1' then t_limpa <= '1'; t_lpend <= '0'; else t_limpa <= '0'; end if;
       if gs_cfim = '1' then rep_cnt <= x"F"; end if;
       if rep_cnt /= 0 then
         rep_cnt <= rep_cnt - 1; gs_fita <= '0'; t_limpa <= '1';
@@ -511,9 +513,12 @@ begin
       if ent_on = '1' then
         -- (69u) ate' 15 s, ou ate' o Tape Loader arrancar (opcode em 0562h da ROM 1: o LD-BYTES)
         -- (83e) tudo em T do Z80 (em turbo vai mais depressa, como o arranque do menu): 15 s a 3,5 MHz no maximo
-        if ent_t = 52500000 or (m1_n = '0' and a = x"0562" and rom7 = '1') or (ent_ld = '1' and ent_t = 6600000) then ent_on <= '0';
+        -- (83f) no 48 so' conta depois da 1.a interrupcao (o M1 em 0038h): a ROM so' as liga no fim do arranque,
+        -- depois do esxDOS (que demora o que o cartao demorar)
+        if m1_n = '0' and mreq_n = '0' and a = x"0038" and dv_mapeado = '0' then ld_int <= '1'; end if;   -- (a ROM, nao o esxDOS)
+        if ent_t = 52500000 or (m1_n = '0' and a = x"0562" and rom7 = '1') or (ent_ld = '1' and ent_t = 2100000) then ent_on <= '0';
         elsif ce = '1' and cpu_wait_n = '1' then
-          ent_t <= ent_t + 1;
+          if ent_ld = '0' or ld_int = '1' then ent_t <= ent_t + 1; end if;
           if ent_s = 1749999 then ent_s <= (others => '0'); else ent_s <= ent_s + 1; end if;
         end if;
       end if;
@@ -521,7 +526,7 @@ begin
       -- faz o mesmo reset do botao (Z80 e DivTIESUS, ~1,2 ms): no ZX 128K volta ao menu da Sinclair. O ENTER conta
       -- 2 s a partir daqui.
       if rst_pend = '1' and dv_mapeado = '0' then   -- (69t) era o dv_romcs: no modo 128 nunca descia
-        rst_pend <= '0'; carga_rst <= (others => '1'); ent_on <= '1'; ent_t <= (others => '0'); ent_s <= (others => '0'); ent_ld <= ent_ld_p;
+        rst_pend <= '0'; carga_rst <= (others => '1'); ent_on <= '1'; ent_t <= (others => '0'); ent_s <= (others => '0'); ent_ld <= ent_ld_p; ld_int <= '0';
       end if;
       if carga_rst(16) = '1' then carga_rst <= carga_rst - 1; end if;   -- (esp61) ~1,2 ms de reset no fim da carga
       -- (64) NMI automatico: 20 ms, 1,5 s depois do fim da carga (o TC2048 e o esxDOS ja' arrancaram)
@@ -789,10 +794,10 @@ begin
   -- Tape Loader arrancar; os de antes de o menu estar pronto nao contam
   ent_k <= '1' when ent_on = '1' and ent_ld = '0' and ent_t >= 1750000 and ent_s < 350000 else '0';
   -- (83) no 48 (TC2048 / ZX 48K), depois do reset: J (LOAD), SS+P ("), SS+P ("), ENTER. (83c) Em T do Z80 (a 27 MHz vai
-  -- 8 x mais depressa): a 3,5 MHz 1,5 s depois do reset; 0,1 s cada tecla (0,04 s carregada, 0,06 s largada)
-  ek_j   <= '1' when ent_on = '1' and ent_ld = '1' and ent_t >= 5250000 and ent_t < 5390000 else '0';
-  ek_ssp <= '1' when ent_on = '1' and ent_ld = '1' and ((ent_t >= 5600000 and ent_t < 5740000) or (ent_t >= 5950000 and ent_t < 6090000)) else '0';
-  ek_ent <= '1' when ent_on = '1' and ent_ld = '1' and ent_t >= 6300000 and ent_t < 6440000 else '0';
+  -- 8 x mais depressa): (83f) 0,2 s depois da 1.a interrupcao (a 3,5 MHz); 0,1 s cada tecla (0,04 carregada, 0,06 largada)
+  ek_j   <= '1' when ent_on = '1' and ent_ld = '1' and ent_t >= 700000 and ent_t < 840000 else '0';
+  ek_ssp <= '1' when ent_on = '1' and ent_ld = '1' and ((ent_t >= 1050000 and ent_t < 1190000) or (ent_t >= 1400000 and ent_t < 1540000)) else '0';
+  ek_ent <= '1' when ent_on = '1' and ent_ld = '1' and ent_t >= 1750000 and ent_t < 1890000 else '0';
   -- (69m) no 128 com a ROM 0 (menu, 128 BASIC) o NMI espera pela ROM 1: a interrupcao da ROM 0 passa pela ROM 1
   -- (o KEYBOARD) a cada quadro, e o NMI entra ai', como no Tape Loader (na ROM 0 o NMI rebentava a partir do 2.o).
   -- O reset mestre (RESET+NMI) usa o botao directamente, sem esta espera.
