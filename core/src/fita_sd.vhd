@@ -41,6 +41,7 @@ entity fita_sd is
     c_limpa : out std_logic;
     c_livres: in  std_logic_vector(7 downto 0);
     c_ativa : in  std_logic := '0';               -- (79) a cassete ainda a tocar (no fim: para sozinha quando esvazia)
+    para    : in  std_logic := '0';               -- (80) o F4 do teclado USB: para a fita (como o A6h = 0)
     ativa   : out std_logic;                      -- 1 = a fita e' nossa (a tocar)
     rapido  : out std_logic                       -- (80) o Z80 a 14 MHz (A6h bit 2)
   );
@@ -48,7 +49,7 @@ end entity;
 
 architecture rtl of fita_sd is
   constant BASE : unsigned(22 downto 0) := to_unsigned(16#080000#, 23);
-  signal toca, acabou, rap : std_logic := '0';
+  signal toca, acabou, rap, para_d : std_logic := '0';
   signal wa : unsigned(18 downto 0) := (others => '0');    -- o endereco de escrita (byte, desde BASE)
   signal ra : unsigned(16 downto 0) := (others => '0');    -- a palavra de 32 bits seguinte a ler (desde BASE)
   signal w_pend, r_pend, r_voo : std_logic := '0';
@@ -89,6 +90,8 @@ begin
   begin
     if rising_edge(clk) then
       cwr <= '0'; limpa_r <= '0'; usa := '0';
+      para_d <= para;
+      if para = '1' and para_d = '0' and toca = '1' then toca <= '0'; limpa_r <= '1'; end if;   -- (80) F4
       -- o Z80
       if ctl_wr = '1' then
         if d(1) = '1' then wa <= (others => '0'); end if;
