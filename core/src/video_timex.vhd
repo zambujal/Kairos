@@ -254,8 +254,8 @@ begin
         pal_r <= "001" & border;                                  -- borda: entrada 8 + cor
       end if;
       hm := hc - 128;
-      hv := hc - (H_ACT - 72);
-      if v_vis /= 0 and vc >= 16 and vc < 48 and hc >= H_ACT - 72 and hc < H_ACT - 8 and hv(3 downto 2) /= "11" then
+      hv := hc - (H_ACT - 128);
+      if v_vis /= 0 and vc >= 16 and vc < 48 and hc >= H_ACT - 128 and hc < H_ACT - 64 and hv(3 downto 2) /= "11" then
         if hv(5 downto 4) < v_niv then
           case hv(5 downto 4) is
             when "00" => r1 <= x"00"; g1 <= x"D0"; b1 <= x"00";
