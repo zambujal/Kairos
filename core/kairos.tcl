@@ -57,7 +57,7 @@ set_option -multiboot_mode single
 set_option -multiboot_spi_flash_address 100000
 set_option -rw_check_on_ram 1
 set_option -place_option 2
-set_option -route_option 1
+set_option -route_option 2      ; # (82e) com o 1 o Gowin ficava com 900 nets por ligar (PR0004) a 97%
 # registos de entrada e saida dentro dos blocos de I/O (tempo fixo nos pinos da SDRAM)
 set_option -ioreg_in_iob 1
 set_option -gen_text_timing_rpt 1
