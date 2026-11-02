@@ -39,6 +39,7 @@ entity fita_sd is
     c_d     : out std_logic_vector(15 downto 0);
     c_limpa : out std_logic;
     c_livres: in  std_logic_vector(7 downto 0);
+    c_ativa : in  std_logic := '0';               -- (79) a cassete ainda a tocar (no fim: para sozinha quando esvazia)
     ativa   : out std_logic                       -- 1 = a fita e' nossa (a tocar)
   );
 end entity;
@@ -156,8 +157,9 @@ begin
               cwr <= '1';
               if seg = '1' then seg <= '0'; byte <= byte(6 downto 0) & '0'; nbit <= nbit - 1; else seg <= '1'; end if;
             end if;
-          when E_FIM =>
-            acabou <= '1';
+          when E_FIM =>                           -- (79) a lista acabou: quando a cassete esvaziar, para (o Z80 volta
+            acabou <= '1';                        -- a' velocidade dele e a cassete volta a ser do ESP)
+            if c_ativa = '0' and cwr = '0' then toca <= '0'; end if;
         end case;
       end if;
       if usa = '1' then pal_ok <= '0'; end if;

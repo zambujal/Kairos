@@ -54,6 +54,7 @@ entity core_kairos is
     tp_limpa : out std_logic;
     tp_livres: in  std_logic_vector(7 downto 0) := x"FF";
     tp_ativa : out std_logic;
+    tp_cativa: in  std_logic := '0';                      -- (79) a cassete a tocar
     ce_t     : out std_logic;                      -- um T do Z80 sem espera (relogio da cassete)
     dv_lento : out std_logic;
     dv_mapa  : out std_logic;                      -- (69j) DivMMC mapeado (a 8 x o Z80 desce a 4 x, como antes)
@@ -438,7 +439,7 @@ begin
   t_dat  <= io_wr and not io_wr_d and t_cs7;
   fsd: entity work.fita_sd port map (clk => clk, ctl_wr => t_ctl, dat_wr => t_dat, d => do_cpu, estado => t_est,
              s_req => t_req, s_we => t_we, s_a => t_sa, s_d => t_sd, s_ack => t_acc, rq => t_rq, rq_v => t_rqv,
-             c_wr => tp_wr, c_d => tp_d, c_limpa => tp_limpa, c_livres => tp_livres, ativa => t_at);
+             c_wr => tp_wr, c_d => tp_d, c_limpa => tp_limpa, c_livres => tp_livres, c_ativa => tp_cativa, ativa => t_at);
   tp_ativa <= t_at;
   sem_fita_t <= sem_fita or t_at;                     -- (78) a tocar: o LOAD le' o EAR (sem as traps da fita do esxDOS)
   maq_st <= (not gs_rst) & ay3_ok & "000" & m1024 & dv_m2068 & modo128 & regf3;   -- (62) bit 2 do 79 = 1024K (DDh bit 2 e EFF7 bit 2 a 0)
