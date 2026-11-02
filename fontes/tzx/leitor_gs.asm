@@ -54,13 +54,30 @@ CNfim               ld a,d
                     jr z,Rep
                     cp 2
                     jr z,Dados
+                    cp 3
+                    jr nz,Ciclo
+                    call Resto          ; F003h: o TZX diz "parar a fita" (jogos com niveis): para, se ainda ha' mais
+                    jp z,Fim
+                    ld a,1
+                    ld (Ped),a
+                    call Pausa
                     jr Ciclo
 Normal              and 0C0h            ; uma pausa (10xxxxxx) com a pausa pedida: fica aqui
                     cp 80h
                     jr nz,NEnv
                     ld a,(Ped)
                     or a
-                    call nz,Pausa
+                    jr z,NEnv
+                    ld a,d              ; so' nas pausas compridas (um bocado de 256 ms: 8000h + 14000), nao nas
+                    cp 0B6h             ; curtas dentro do carregador do jogo
+                    jr c,NEnv
+                    jr nz,NLonga
+                    ld a,e
+                    cp 0B0h
+                    jr c,NEnv
+NLonga              call Resto          ; ja' nao ha' nada para tocar: a fita acaba aqui
+                    jp z,Fim
+                    call Pausa
 NEnv                call Envia
                     jr Ciclo
 ; F001h L N: N impulsos de L
@@ -163,6 +180,34 @@ PAl                 call Teclas
                     xor a
                     ld (Par),a
                     jp Estado
+; Z = da'qui ate' ao fim da lista so' ha' pausas (nenhum impulso nem bloco); nao muda nada
+Resto               push de
+                    push hl
+                    ld a,(Pag)
+                    push af
+RSl                 call GetW
+                    ld a,d
+                    and e
+                    inc a
+                    jr z,RSfim          ; FFFFh: nada (Z)
+                    bit 7,d
+                    jr z,RSha           ; um impulso
+                    ld a,d
+                    cp 0F0h
+                    jr nz,RSl           ; pausas e niveis
+                    ld a,e
+                    cp 1
+                    jr z,RSha
+                    cp 2
+                    jr nz,RSl
+RSha                or 1                ; NZ
+RSfim               pop bc              ; (B = a pagina; os flags ficam)
+                    ld a,b
+                    ld (Pag),a
+                    out (0),a
+                    pop hl
+                    pop de
+                    ret
 ; as teclas novas (F3 bit 0, F4 bit 1)
 Teclas              push bc
                     in a,(0Dh)

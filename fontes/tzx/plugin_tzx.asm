@@ -11,7 +11,7 @@
 ;      pendente. Se a linha de edicao nao estiver vazia (um jogo a correr), nao toca e diz porque.
 ; Blocos: 10 11 12 13 14 20 21 22 24 25 (ate' 8 KB dentro do ciclo) 2B, e os de texto / informacao
 ; (2A 30 31 32 33 34 35 5A 23 26 27 28) saltam-se. 15 18 19 e outros: erro (nao converte).
-; A pausa 0 (bloco 20, "parar a fita") nao para: a fita continua.
+; A pausa 0 (bloco 20, "parar a fita") e o 2A param a fita (F003h): o leitor espera pelo F3, como um leitor de cassetes.
 ; (Kairos, 2026-11-02)
 ; Monta-se com  sjasmplus --raw=LEITOR.BIN leitor_gs.asm  e depois  sjasmplus -I../nav --raw=TZX plugin_tzx.asm
 
@@ -139,7 +139,7 @@ TabBlocos           db 10h : dw B10
                     db 26h : dw B26
                     db 27h : dw Nada
                     db 28h : dw SaltaW
-                    db 2Ah : dw Salta4L
+                    db 2Ah : dw B2A
                     db 2Bh : dw B2B
                     db 30h : dw SaltaB
                     db 31h : dw B31
@@ -240,8 +240,15 @@ B14                 call GetW
                     ld hl,(Pausa)
                     jp PausaMs
 ; 20: pausa (ms; 0 = parar a fita: aqui nao para)
-B20                 call GetW
-                    jp PausaMs
+B20                 call GetW           ; (82) pausa 0 = "parar a fita": F003h, o leitor do GS para e espera pelo F3
+                    ld a,h
+                    or l
+                    jp nz,PausaMs
+                    ld hl,0F003h
+                    jp PutW
+B2A                 call Salta4         ; 2A: "parar a fita no 48K" (o comprimento, 4 bytes = 0): como o 20 com 0
+                    ld hl,0F003h
+                    jp PutW
 ; 24: o principio do ciclo (n vezes): os bytes seguintes ficam guardados ate' ao 25
 B24                 call GetW
                     ld a,(Grava)
