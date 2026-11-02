@@ -500,7 +500,7 @@ begin
       -- (69n) o plugin do TAP no ZX 128K faz reset para o menu e pede o ENTER: 2 s depois, 0,15 s carregado
       if ent_on = '1' then
         -- (69u) ate' 15 s, ou ate' o Tape Loader arrancar (opcode em 0562h da ROM 1: o LD-BYTES)
-        if ent_t = 810000000 or (m1_n = '0' and a = x"0562" and rom7 = '1') or (ent_ld = '1' and ent_t = 243000000) then ent_on <= '0';
+        if ent_t = 810000000 or (m1_n = '0' and a = x"0562" and rom7 = '1') or (ent_ld = '1' and ent_t = 135000000) then ent_on <= '0';
         else ent_t <= ent_t + 1; end if;
         if ent_s = 53999999 then ent_s <= (others => '0'); else ent_s <= ent_s + 1; end if;
       end if;
@@ -773,10 +773,10 @@ begin
   dv_mapa <= dv_romcs;
   -- (69u) ENTER 0,2 s em cada segundo a partir dos 2 s (o menu do 128 aceita-o quando estiver pronto)
   ent_k <= '1' when ent_on = '1' and ent_ld = '0' and ent_t >= 108000000 and ent_s < 10800000 else '0';
-  -- (83) no 48 (TC2048 / ZX 48K), 3 s depois do reset: J (LOAD), SS+P ("), SS+P ("), ENTER; 0,15 s cada, 0,4 s entre elas
-  ek_j   <= '1' when ent_on = '1' and ent_ld = '1' and ent_t >= 162000000 and ent_t < 170100000 else '0';
-  ek_ssp <= '1' when ent_on = '1' and ent_ld = '1' and ((ent_t >= 183600000 and ent_t < 191700000) or (ent_t >= 205200000 and ent_t < 213300000)) else '0';
-  ek_ent <= '1' when ent_on = '1' and ent_ld = '1' and ent_t >= 226800000 and ent_t < 234900000 else '0';
+  -- (83) no 48 (TC2048 / ZX 48K), 1,5 s depois do reset: J (LOAD), SS+P ("), SS+P ("), ENTER; 0,1 s cada, de 0,25 em 0,25 s
+  ek_j   <= '1' when ent_on = '1' and ent_ld = '1' and ent_t >= 81000000 and ent_t < 86400000 else '0';
+  ek_ssp <= '1' when ent_on = '1' and ent_ld = '1' and ((ent_t >= 94500000 and ent_t < 99900000) or (ent_t >= 108000000 and ent_t < 113400000)) else '0';
+  ek_ent <= '1' when ent_on = '1' and ent_ld = '1' and ent_t >= 121500000 and ent_t < 126900000 else '0';
   -- (69m) no 128 com a ROM 0 (menu, 128 BASIC) o NMI espera pela ROM 1: a interrupcao da ROM 0 passa pela ROM 1
   -- (o KEYBOARD) a cada quadro, e o NMI entra ai', como no Tape Loader (na ROM 0 o NMI rebentava a partir do 2.o).
   -- O reset mestre (RESET+NMI) usa o botao directamente, sem esta espera.

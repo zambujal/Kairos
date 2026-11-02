@@ -106,7 +106,7 @@ ICab                call GetB
                     ld hl,3000
                     dec a
                     jr z,IPausa
-                    ld hl,5000          ; (83) no 48: o reset, o esxDOS e o LOAD "" escrito pelo core (~3,6 s)
+                    ld hl,3000          ; (83) no 48: o reset, o esxDOS e o LOAD "" escrito pelo core (~2,4 s)
 IPausa              call PausaMs
 ; ---------------------------------------------------------------- os blocos
 Bloco               call GetB0
