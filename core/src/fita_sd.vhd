@@ -3,7 +3,8 @@
 -- na SDRAM em 080000h-0FFFFFh (512 KB, livres) (ZXUNO A7h, um byte de cada vez, o endereco avanca sozinho). Depois liga a
 -- fita (A6h = 1) e o core manda os impulsos para a cassete (a mesma fila do ESP) enquanto o jogo carrega.
 --   ZXUNO A6h, escrita: bit 0 = 1 toca desde o principio; 0 = para (esvazia a cassete); bit 1 = 1 poe o endereco
---                       de escrita no principio (antes de escrever a lista)
+--                       de escrita no principio (antes de escrever a lista); (80) bit 2 = 1 o Z80 a 14 MHz
+--                       enquanto o plugin escreve a lista (cada escrita no A6h sem ele volta a' velocidade da maquina)
 --   ZXUNO A6h ou A7h, leitura: bit 0 = a tocar, bit 1 = acabou (chegou ao FFFFh), bit 2 = o ultimo byte
 --                       escrito ainda nao foi para a SDRAM (esperar antes do seguinte)
 --   ZXUNO A7h, escrita: o byte seguinte da lista
@@ -40,13 +41,14 @@ entity fita_sd is
     c_limpa : out std_logic;
     c_livres: in  std_logic_vector(7 downto 0);
     c_ativa : in  std_logic := '0';               -- (79) a cassete ainda a tocar (no fim: para sozinha quando esvazia)
-    ativa   : out std_logic                       -- 1 = a fita e' nossa (a tocar)
+    ativa   : out std_logic;                      -- 1 = a fita e' nossa (a tocar)
+    rapido  : out std_logic                       -- (80) o Z80 a 14 MHz (A6h bit 2)
   );
 end entity;
 
 architecture rtl of fita_sd is
   constant BASE : unsigned(22 downto 0) := to_unsigned(16#080000#, 23);
-  signal toca, acabou : std_logic := '0';
+  signal toca, acabou, rap : std_logic := '0';
   signal wa : unsigned(18 downto 0) := (others => '0');    -- o endereco de escrita (byte, desde BASE)
   signal ra : unsigned(16 downto 0) := (others => '0');    -- a palavra de 32 bits seguinte a ler (desde BASE)
   signal w_pend, r_pend, r_voo : std_logic := '0';
@@ -74,6 +76,7 @@ architecture rtl of fita_sd is
 begin
   estado <= "00000" & w_pend & acabou & toca;
   ativa <= toca;
+  rapido <= rap;
   c_wr <= cwr; c_d <= cd; c_limpa <= limpa_r;
   cabe <= '1' when unsigned(c_livres) > 4 and cwr = '0' else '0';
   s_req <= w_pend or r_pend;
@@ -89,6 +92,7 @@ begin
       -- o Z80
       if ctl_wr = '1' then
         if d(1) = '1' then wa <= (others => '0'); end if;
+        rap <= d(2);
         if d(0) = '1' then
           toca <= '1'; acabou <= '0'; ra <= (others => '0'); buf_ok <= '0'; pal_ok <= '0'; e <= E_CMD;
           r_pend <= '0'; r_voo <= '0';

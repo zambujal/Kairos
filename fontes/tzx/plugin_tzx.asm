@@ -61,12 +61,12 @@ IAbre               ld hl,(Nome)
                     ld (FH),a
                     ld a,1
                     ld (Aberto),a
-                    ; a fita: parada, escrever do principio
+                    ; a fita: parada, escrever do principio; (core 80) o Z80 a 14 MHz ate' ligar a fita
                     ld bc,0FC3Bh
                     ld a,0A6h
                     out (c),a
                     inc b
-                    ld a,2
+                    ld a,6
                     out (c),a
                     call SelA7
                     ; o cabecalho: "ZXTape!",1Ah, versao (2)
@@ -508,9 +508,57 @@ Bocado              push hl
 Bcl                 ld a,h
                     or l
                     jr z,Bpad
+                    ld a,(Tem)          ; o byte devolvido, um ciclo a gravar ou a repetir: um a um
+                    ld e,a
+                    ld a,(Grava)
+                    or e
+                    ld e,a
+                    ld a,(Repete)
+                    or e
+                    jr z,Brapido
                     call GetB
                     call PutB
                     dec hl
+                    jr Bcl
+; os bytes que ja' estao no BUF, de seguida (HL = os que faltam)
+Brapido             ld bc,(BufN)
+                    ld a,b
+                    or c
+                    jr nz,Br1
+                    push hl
+                    call Enche          ; (muda o HL)
+                    pop hl
+                    jp c,ErroCorte
+                    ld bc,(BufN)
+Br1                 push hl
+                    or a
+                    sbc hl,bc           ; faltam - no BUF
+                    jr nc,Br2           ; faltam >= no BUF: vao todos os do BUF
+                    add hl,bc
+                    ld b,h              ; so' os que faltam
+                    ld c,l
+                    ld hl,0
+Br2                 ex (sp),hl          ; na pilha: os que faltam depois deste bocado
+                    ld hl,(BufN)
+                    or a
+                    sbc hl,bc
+                    ld (BufN),hl
+                    ld hl,(BufP)
+                    push bc
+                    call Espera         ; BC = FD3Bh, o A7h escolhido (muda o DE)
+                    pop de              ; DE = quantos
+Brl                 in a,(c)            ; o anterior ja' foi para a SDRAM?
+                    and 4
+                    jr nz,Brl
+                    ld a,(hl)
+                    out (c),a
+                    inc hl
+                    dec de
+                    ld a,d
+                    or e
+                    jr nz,Brl
+                    ld (BufP),hl
+                    pop hl
                     jr Bcl
 Bpad                ld a,(Impar)        ; a acabar numa palavra inteira
                     rra

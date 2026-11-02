@@ -238,6 +238,7 @@ architecture rtl of top is
   signal cs_livres : std_logic_vector(7 downto 0);
   signal tp_wr, tp_limpa, tp_ativa, ca_wr, ca_limpa : std_logic;   -- (78) a fita na SDRAM (o plugin TZX), na mesma cassete
   signal tp_d, ca_d : std_logic_vector(15 downto 0);
+  signal tp_rap : std_logic := '0';                  -- (80) o plugin TZX a escrever a lista: 14 MHz
   signal k_gspara, k_ay3 : std_logic := '0';
   signal alt_k : std_logic := '0';
   signal maq_st : std_logic_vector(15 downto 0) := (others => '0');
@@ -384,7 +385,7 @@ begin
       -- (69h/69j) perto dos acessos ao cartao (dv_lento) sempre a 1 x, mesmo em turbo, no arranque rapido e nas
       -- mudancas de maquina do ESP (suspeita: escritas a 14 MHz estragavam o cartao)
       if dv_lento = '1' then ce <= to_std(c1);
-      elsif k_turbo = '1' or arr_rap = '1' or vel_r = 4 or (vel_r = 8 and dv_mapa = '1') then ce <= to_std(c4);
+      elsif k_turbo = '1' or arr_rap = '1' or tp_rap = '1' or vel_r = 4 or (vel_r = 8 and dv_mapa = '1') then ce <= to_std(c4);
       elsif vel_r = 8 then ce <= not ce;
       elsif vel_r = 2 then ce <= to_std(c2);
       else ce <= to_std(c1); end if;
@@ -452,7 +453,7 @@ begin
       port map (clk => clk54, clk_div => I_clk, vclk => pclk, ce => ce, ce35 => ce35, reset_n => cpu_rst_n,
                 nmi_n => nmi_core, mat => mat,
                 border => border_c, modo => modo_c, hcor => hcor_c, ecra7 => ecra7_c,
-                vid_a => ecra7_v & va, vid_q => vq, vid_a2 => va2, vid_q2 => vq2, m16c => m16c_c, turbo => turbo_c, sd_esp => sd_dado, sem_fita => fita_on, ear_in => cs_ear, tp_wr => tp_wr, tp_d => tp_d, tp_limpa => tp_limpa, tp_livres => cs_livres, tp_ativa => tp_ativa, tp_cativa => cs_ativa, mp_on => '0', mp_rate => mp_rate, mp_idx => mp_idx, mp_l => open, mp_r => open, ce_t => ce_t, dv_lento => dv_lento, dv_mapa => dv_mapa, ay_vis => ay_vis, rato_x => rato_xz, rato_y => rato_yz, rato_b => rato_bz, rato_w => rato_wz, joy => joy_k, pede_rnmi => pede_rnmi, arr_auto => arr_auto, arr_rapido => arr_rap, halt_n => halt_n,
+                vid_a => ecra7_v & va, vid_q => vq, vid_a2 => va2, vid_q2 => vq2, m16c => m16c_c, turbo => turbo_c, sd_esp => sd_dado, sem_fita => fita_on, ear_in => cs_ear, tp_wr => tp_wr, tp_d => tp_d, tp_limpa => tp_limpa, tp_livres => cs_livres, tp_ativa => tp_ativa, tp_cativa => cs_ativa, tp_rapido => tp_rap, mp_on => '0', mp_rate => mp_rate, mp_idx => mp_idx, mp_l => open, mp_r => open, ce_t => ce_t, dv_lento => dv_lento, dv_mapa => dv_mapa, ay_vis => ay_vis, rato_x => rato_xz, rato_y => rato_yz, rato_b => rato_bz, rato_w => rato_wz, joy => joy_k, pede_rnmi => pede_rnmi, arr_auto => arr_auto, arr_rapido => arr_rap, halt_n => halt_n,
                 pronta => sd_pronta, sd_teste => sd_teste, sd_teste2 => sd_teste2,
                 sd_clk => open, sd_cke => O_sdram_cke, sd_cs_n => O_sdram_cs_n,
                 sd_ras_n => O_sdram_ras_n, sd_cas_n => O_sdram_cas_n, sd_we_n => O_sdram_wen_n,
@@ -599,7 +600,7 @@ begin
   O_led_ofs <= not std_logic_vector(ofs_r) when CAP_TESTE else
                not (arr_esc(3 downto 1) or atalho(2 downto 0)) when KAIROS else "11" & not dbg_hid;   -- LEDs 4-6: Win+J, Win+S, Win+C
 
-  turbo_c <= '0' when vel_r = 1 and k_turbo = '0' and arr_rap = '0' else '1';
+  turbo_c <= '0' when vel_r = 1 and k_turbo = '0' and arr_rap = '0' and tp_rap = '0' else '1';
   vel_cod <= "0100" when k_turbo = '1' else std_logic_vector(to_unsigned(vel_r, 4));
 
   -- borda e modo passam para o relogio do ponto (2 registos; mudam raramente)
