@@ -417,7 +417,7 @@ begin
       rs <= rs(1 downto 0) & I_reset;
       ns <= ns(1 downto 0) & I_nmi;
       tdeb <= tdeb + 1;
-      if tdeb = 0 then rdeb <= rs(2); ndeb <= ns(2) or atalho(21); end if;   -- (84) o F11 do teclado USB e' o botao do NMI
+      if tdeb = 0 then rdeb <= rs(2); ndeb <= ns(2) or atalho(21); end if;   -- (84) o Home (ou F11) do teclado USB e' o botao do NMI
     end if;
   end process;
 

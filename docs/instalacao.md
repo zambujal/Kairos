@@ -165,7 +165,7 @@ por isso é provável que precise de adaptações.
     NMI, 1 `.ls`, 2 `.go128`, 3 `.go128 -penta`, 4 `.go1024`, 5 `.go2068`, 6 RESET+NMI (volta ao
     TC2048), 8 RESET, 10 `.gs`, 15 turbo. Para voltar ao NMI normal, carrega até os LEDs apagarem.
     Carregado 3 s troca de core (multiboot, se houver outro em `0x100000`).
-- No teclado USB o **F11** faz o mesmo que o botão do pino 87 (core 84+).
+- No teclado USB o **Home** (ou F11) faz o mesmo que o botão do pino 87 (core 84+).
 - **Liga sempre no TC2048.** A última máquina escolhida fica gravada e volta no primeiro NMI (o navegador pergunta;
   ENTER muda). Com a placa ESP32 é ela que repõe a última máquina.
 - **Arranque rápido**: ao ligar, o Z80 vai a 14 MHz durante a carga das ROMs e nos 3 s seguintes; depois volta à
