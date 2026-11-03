@@ -41,6 +41,21 @@ Os pormenores estão em [docs/instalacao.md](docs/instalacao.md); as teclas em [
 
 Se o navegador aparecer a preto e branco, falta o `NMI.SYS` do Bob Fossil ou a pasta `cartao/`.
 
+## Usar
+
+- **Velocidade:** **F10** sobe (3,5 → 7 → 14 → 27 MHz), **F9** desce. Ao ligar é sempre 3,5 MHz. A 27 MHz, com a
+  DivMMC mapeada (esxDOS, navegador, cargas), desce para 14; perto de cada acesso ao cartão anda a 3,5, para o
+  cartão ficar a salvo.
+- **TZX:** a partir do BASIC, ENTER num `.TZX` no navegador toca a fita à velocidade da máquina e escreve sozinho
+  o `LOAD ""` (no 128K faz reset e escolhe o Tape Loader); o F10 acelera a carga. **F3** pausa no fim do bloco
+  que está a tocar, **F4** pára já; outra vez continua. No canto de cima à esquerda um quadrado (verde a tocar,
+  amarelo em pausa, vermelho parada) e um rectângulo por bloco aparecem 3 s a cada bloco e ficam enquanto
+  estiver em pausa. Quem toca a fita é o Z80 do General Sound: enquanto toca não há música do GS, e no fim o
+  GS volta a como estava. Os blocos 15, 18 e 19 não dão.
+- **ZX 128K** arranca no menu da Sinclair; um TAP escolhido no navegador faz reset e o Tape Loader carrega-o.
+  Para demos e jogos de Pentagon 128 usa o **Pentagon 128**, não o 1024 (os bits 5-7 do 7FFD escolhem bancos
+  no 1024 e uma demo de 128 que os escreva salta para outra zona da memória).
+
 ## De quem é
 
 - **SCLD:** modelo do Load ZX Museum (Álvaro Lopes, Paulo Cortesão, CC BY-SA 4.0), reparado e completado por

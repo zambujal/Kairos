@@ -40,6 +40,21 @@ Details in [docs/install.en.md](docs/install.en.md); keys in [docs/teclas.md](do
 
 A black-and-white browser means Bob Fossil's `NMI.SYS` or the `cartao/` folder is missing.
 
+## Using it
+
+- **Speed:** **F10** up (3.5 → 7 → 14 → 27 MHz), **F9** down. Always 3.5 MHz at power-up. At 27 MHz, with the
+  DivMMC mapped (esxDOS, browser, loading), it drops to 14; around every card access it runs at 3.5, to keep
+  the card safe.
+- **TZX:** from BASIC, ENTER on a `.TZX` in the browser plays the tape at the machine's speed and types
+  `LOAD ""` by itself (on the 128K it resets and picks the Tape Loader); F10 speeds the load up. **F3** pauses
+  at the end of the block being played, **F4** stops now; press again to resume. Top left, a square (green
+  playing, yellow paused, red stopped) and one rectangle per block show for 3 s at each block and stay while
+  paused. The General Sound's Z80 plays the tape: no GS music while it plays, and the GS is restored at the
+  end. Blocks 15, 18 and 19 are not supported.
+- **ZX 128K** boots into the Sinclair menu; a TAP chosen in the browser resets and the Tape Loader loads it.
+  For Pentagon 128 demos and games use **Pentagon 128**, not 1024 (on the 1024 bits 5-7 of 7FFD select banks,
+  and a 128 demo that writes them jumps to another part of memory).
+
 ## Credits
 
 - **SCLD:** the Load ZX Museum model (Álvaro Lopes, Paulo Cortesão, CC BY-SA 4.0), repaired and completed by
