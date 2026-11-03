@@ -5173,7 +5173,9 @@ PerguntaAnt         ld hl,MaqAnt
                     ret nz
                     push bc
                     xor a               ; v62: a pergunta com [SIM] NAO: setas mudam, ENTER escolhe; rato: clique
-                    ld (PAesc),a        ; esquerdo sim, direito nao (v84: sem os 3 s: espera pela resposta)
+                    ld (PAesc),a        ; esquerdo sim, direito nao (v84: 3 s sem resposta = NAO)
+                    ld a,160            ; 3,2 s (e a piscar a comecar a' vista)
+                    ld (PAconta),a
                     call PAmostra
 PAsolta             halt                ; primeiro larga a tecla do NMI
                     call Varre
@@ -5186,8 +5188,9 @@ PAsolta             halt                ; primeiro larga a tecla do NMI
 PAesp               call LeTecla        ; (um HALT por chamada: 150 = 3 s)
                     or a
                     jr nz,PAkey
-                    ld hl,PAconta
-                    dec (hl)            ; (v84: so' para piscar; ja' nao escolhe o SIM sozinho)
+PAdec               ld hl,PAconta       ; (v84: as teclas que a pergunta nao usa tambem contam o tempo)
+                    dec (hl)
+                    jr z,PAnaoP         ; v84: 3 s sem resposta = NAO (antes era SIM)
                     ld a,(hl)           ; a piscar: de 16 em 16 quadros
                     and 15
                     call z,PAmostra
@@ -5214,11 +5217,13 @@ PAtec
                     jr z,PAnaoP
                     cp 3
                     jr z,PAnaoP
-                    jr PAesp
+                    jr PAdec
 PAesq               xor a
                     jr PAmud
 PAdir               ld a,1
 PAmud               ld (PAesc),a
+                    ld a,160            ; mexeu: mais 3 s
+                    ld (PAconta),a
                     call PAmostra
                     jr PAesp
 PAent               ld a,(PAesc)
@@ -6153,8 +6158,8 @@ TxtReinicia         db "Mudar a maquina? ENTER sim",0
 TxtReinicia         db "Reiniciar? ENTER sim",0
                     ENDIF
                     IF HIRES
-TxtAnterior         db "Voltar a maquina anterior? ENTER:  SIM   NAO ",0
-PB0                 equ 34              ; o '[' do SIM
+TxtAnterior         db "Maquina anterior? ENTER:  SIM   NAO ",0
+PB0                 equ 25              ; o '[' do SIM
                     ELSE
 TxtAnterior         db "Anterior? ENTER:  SIM   NAO ",0
 PB0                 equ 17
