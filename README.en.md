@@ -34,7 +34,7 @@ Details in [docs/install.en.md](docs/install.en.md); keys in [docs/teclas.md](do
 4. **Indexes.** Without them the browser shows 8.3 names (`JETSETW~1.TAP`) and the machine menu only opens with
    keys 1 to 4. `python3 ferramentas/cartao.py /path/to/card --fazer`, with the card in the PC, writes a
    `_NAV/*.IDX` with the long names in every folder. Run it again when you add games.
-5. **Power** from a 2 A charger. The pin 87 button (or **F12**) is NMI (the browser); the pin 88 button picks, on the LEDs,
+5. **Power** from a 2 A charger. The pin 87 button (or **F11**) is NMI (the browser); the pin 88 button picks, on the LEDs,
    what NMI does (RESET, `.go128`, `.go2068`, turbo…). It always boots as a TC2048; the browser offers the
    last machine used.
 
