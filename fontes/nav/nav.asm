@@ -5173,9 +5173,7 @@ PerguntaAnt         ld hl,MaqAnt
                     ret nz
                     push bc
                     xor a               ; v62: a pergunta com [SIM] NAO: setas mudam, ENTER escolhe; rato: clique
-                    ld (PAesc),a        ; esquerdo sim, direito nao; 3 s sem tecla = sim
-                    ld a,160            ; 3,2 s (e a piscar a comecar a' vista)
-                    ld (PAconta),a
+                    ld (PAesc),a        ; esquerdo sim, direito nao (v84: sem os 3 s: espera pela resposta)
                     call PAmostra
 PAsolta             halt                ; primeiro larga a tecla do NMI
                     call Varre
@@ -5189,8 +5187,7 @@ PAesp               call LeTecla        ; (um HALT por chamada: 150 = 3 s)
                     or a
                     jr nz,PAkey
                     ld hl,PAconta
-                    dec (hl)
-                    jr z,PAsim
+                    dec (hl)            ; (v84: so' para piscar; ja' nao escolhe o SIM sozinho)
                     ld a,(hl)           ; a piscar: de 16 em 16 quadros
                     and 15
                     call z,PAmostra
@@ -5222,8 +5219,6 @@ PAesq               xor a
                     jr PAmud
 PAdir               ld a,1
 PAmud               ld (PAesc),a
-                    ld a,160            ; mexeu: mais 3 s
-                    ld (PAconta),a
                     call PAmostra
                     jr PAesp
 PAent               ld a,(PAesc)
@@ -6158,11 +6153,11 @@ TxtReinicia         db "Mudar a maquina? ENTER sim",0
 TxtReinicia         db "Reiniciar? ENTER sim",0
                     ENDIF
                     IF HIRES
-TxtAnterior         db "Voltar a maquina anterior?   SIM   NAO ",0
-PB0                 equ 28              ; o '[' do SIM
+TxtAnterior         db "Voltar a maquina anterior? ENTER:  SIM   NAO ",0
+PB0                 equ 34              ; o '[' do SIM
                     ELSE
-TxtAnterior         db "Anterior?  SIM   NAO ",0
-PB0                 equ 10
+TxtAnterior         db "Anterior? ENTER:  SIM   NAO ",0
+PB0                 equ 17
                     ENDIF
 LTXTANT             equ $-TxtAnterior
 TxtMenuTit          db "  ESCOLHER A MAQUINA",0
