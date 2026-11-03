@@ -18,7 +18,7 @@
 --   0000-3FFF entram nessas memorias.
 --   (esp60) HDMI: ECC dos pacotes bit a bit e a camada do ESP com mais um andar (folga no pclk).
 --   (esp59) barramento flutuante na FF com o F3 bit 5 (48K, 128K, Pentagon), como o SCLD float6 do CPLD.
---   Ainda nao: contencao, sombra
+--   (85) contencao do 48K / TC2048 / 128K (ver CONT_OFS). Ainda nao: sombra
 --   (bit 6: as leituras vem da SRAM da DivTIESUS, que ja' as faz; o video continua igual).
 library ieee;
 use ieee.std_logic_1164.all;
@@ -149,14 +149,24 @@ entity core_kairos is
 end entity;
 
 architecture rtl of core_kairos is
-  component T80se
+  component T80se_ct
     generic (Mode : integer := 0; T2Write : integer := 0; IOWait : integer := 1);
     port (RESET_n, CLK_n, CLKEN, WAIT_n, INT_n, NMI_n, BUSRQ_n : in std_logic;
           M1_n, MREQ_n, IORQ_n, RD_n, WR_n, RFSH_n, HALT_n, BUSAK_n : out std_logic;
           A : out std_logic_vector(15 downto 0);
           DI : in std_logic_vector(7 downto 0);
-          DO : out std_logic_vector(7 downto 0));
+          DO : out std_logic_vector(7 downto 0);
+          TS_o : out std_logic_vector(2 downto 0); MEM_o, IO_o : out std_logic);
   end component;
+  -- (85) contencao do 48K / TC2048 / 128K (o Pentagon nao tem): como no Fuse, 6,5,4,3,2,1,0,0 nos 128 T de
+  -- cada uma das 192 linhas (48K a partir de 14335 T do INT, 128K de 14361). Faz-se segurando o CLKEN do Z80:
+  -- no T1 de um acesso a' memoria contida (4000-7FFF; no 128K tambem C000-FFFF com os bancos 1/3/5/7) e nos
+  -- ciclos de E/S (byte alto contido e/ou porto da ULA, A0 = 0), um T de cada vez, enquanto a fase (lt) estiver
+  -- num dos 6 T contidos de cada 8. CONT_OFS: lt = tcnt - 14359 no 128K (tcnt - 14333 no 48K), por isso o 14361
+  -- do Fuse e' o lt 2; mais 1 T porque o T1 so' se ve' no ce a seguir ao que o comeca. Em turbo e no Pentagon nao ha'.
+  constant CONT_OFS : integer := 3;
+  signal ct_ts : std_logic_vector(2 downto 0);
+  signal ct_mem, ct_io, ct_end, ct_fase, ct_seg, ce_c : std_logic;
   component ram_home
     port (clk : in std_logic; a : in std_logic_vector(13 downto 0); we : in std_logic;
           d : in std_logic_vector(7 downto 0); q : out std_logic_vector(7 downto 0));
@@ -412,13 +422,23 @@ architecture rtl of core_kairos is
   signal sd_qr_i : unsigned(2 downto 0);
 begin
   rst_n_i <= reset_n and not carga_rst(16);
-  cpu: T80se
+  cpu: T80se_ct
     generic map (Mode => 0, T2Write => 1, IOWait => 1)
-    port map (RESET_n => rst_n_i, CLK_n => clk, CLKEN => ce,
+    port map (RESET_n => rst_n_i, CLK_n => clk, CLKEN => ce_c,
               WAIT_n => cpu_wait_n, INT_n => int_n, NMI_n => cpu_nmi_g, BUSRQ_n => '1',
               M1_n => m1_n, MREQ_n => mreq_n, IORQ_n => iorq_n, RD_n => rd_n, WR_n => wr_n,
               RFSH_n => rfsh_n, HALT_n => halt_n, BUSAK_n => open,
-              A => a, DI => di, DO => do_cpu);
+              A => a, DI => di, DO => do_cpu, TS_o => ct_ts, MEM_o => ct_mem, IO_o => ct_io);
+  -- (85) contencao
+  ct_end  <= '1' when a(15 downto 14) = "01" and home = '1' else
+             '1' when modo128 = '1' and a(15 downto 14) = "11" and b7ffd(0) = '1' and alto = '0' else '0';
+  ct_fase <= '1' when cap_on = '1' and lt >= CONT_OFS and lt < CONT_OFS + 128 and ((lt - CONT_OFS) mod 8) < 6 else '0';
+  ct_seg  <= '1' when penta = '0' and turbo = '0' and carga = '0' and ct_fase = '1' and
+                      ((ct_mem = '1' and ct_ts = "001" and ct_end = '1') or
+                       (ct_io = '1' and ((ct_ts = "001" and ct_end = '1') or
+                                         (ct_ts = "010" and (a(0) = '0' or ct_end = '1')) or
+                                         (ct_end = '1' and a(0) = '1')))) else '0';
+  ce_c    <= ce and not ct_seg;
 
   ---------------------------------------------------------------------------
   -- DivTIESUS v13
@@ -521,7 +541,7 @@ begin
         int_d <= int_n;
         if ld_int = '1' and int_d = '1' and int_n = '0' and ent_f /= 63 then ent_f <= ent_f + 1; end if;
         if ent_t = 52500000 or (m1_n = '0' and a = x"0562" and rom7 = '1') or (ent_ld = '1' and ent_f = 46) then ent_on <= '0';
-        elsif ce = '1' and cpu_wait_n = '1' then
+        elsif ce_c = '1' and cpu_wait_n = '1' then
           if ent_ld = '0' or ld_int = '1' then ent_t <= ent_t + 1; end if;
           if ent_s = 1749999 then ent_s <= (others => '0'); else ent_s <= ent_s + 1; end if;
         end if;
@@ -563,7 +583,7 @@ begin
   begin
     if rising_edge(clk) then
       if mreq_n = '0' then idle <= (others => '0');
-      elsif ce = '1' and idle /= (idle'range => '1') then idle <= idle + 1; end if;
+      elsif ce_c = '1' and idle /= (idle'range => '1') then idle <= idle + 1; end if;
       if modo128 = '0' or idle = (idle'range => '1') then
         b7ffd <= "000"; scr7 <= '0'; lock7 <= '0'; ext7 <= '0'; pg4 <= '0'; pg5 <= '0'; rom7 <= '0';
       elsif io_wr = '1' and a(15) = '0' and a(1) = '0' and (lock7 = '0' or m1024 = '1') then
@@ -778,7 +798,7 @@ begin
   -- v3c: no acerto o byte da cache vai logo para o barramento (no mesmo ciclo em que o WAIT se
   -- liberta); antes ia para o q_m um ciclo depois e, num T de 3 ciclos, o Z80 lia o byte anterior
   q_mz <= z_byte_r when z_ler = '1' else q_m;
-  ce_t <= ce and cpu_wait_n;
+  ce_t <= ce_c and cpu_wait_n;
   -- (69j) 1 x so' perto dos acessos ao cartao (portas E7h e EBh do DivMMC): ~150 us depois de cada um.
   -- No 69h era com o DivMMC mapeado, e o navegador (que corre com ele mapeado) ficava lento no turbo.
   process(clk)
