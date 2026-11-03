@@ -201,6 +201,7 @@ architecture rtl of top is
   signal mb_rn  : std_logic := '1';                              -- botoes sem ressaltos
   signal tdeb : unsigned(19 downto 0) := (others => '0');            -- ~39 ms a 27 MHz
   signal ndeb_d : std_logic := '0';
+  signal osd_f, osd_t : std_logic := '0';   -- (84) o Companion fechou o OSD (F12 duas vezes): botao do NMI 20 ms
   signal nmi_n : std_logic := '1';
   signal nmi_t : integer range 0 to 255 := 0;
   constant Z6 : std_logic_vector(5 downto 0) := (others => '0');
@@ -417,7 +418,8 @@ begin
       rs <= rs(1 downto 0) & I_reset;
       ns <= ns(1 downto 0) & I_nmi;
       tdeb <= tdeb + 1;
-      if tdeb = 0 then rdeb <= rs(2); ndeb <= ns(2) or atalho(21); end if;   -- (84) o F11 do teclado USB e' o botao do NMI
+      if tdeb = 0 then rdeb <= rs(2); ndeb <= ns(2) or atalho(21) or osd_t; end if;   -- (84) o F11 do teclado USB (ou o F12 duas vezes) e' o botao do NMI
+      if osd_f = '1' then osd_t <= '1'; elsif tdeb = 0 then osd_t <= '0'; end if;   -- (84) fica ate' a proxima amostra
     end if;
   end process;
 
@@ -548,7 +550,7 @@ begin
   -- teclado USB pelo FPGA-Companion (BL616)
   mcu: entity work.mcu_spi port map (clk => clk54, ss => I_spi_csn, sclk => I_spi_sclk, mosi => I_spi_mosi,
       miso => O_spi_miso, sys_stb => mcu_sys_stb, hid_stb => mcu_hid_stb, inicio => mcu_ini, dado => mcu_d,
-      sys_q => mcu_sys_q, hid_q => mcu_hid_q);
+      sys_q => mcu_sys_q, hid_q => mcu_hid_q, osd_fecha => osd_f);
   sysc: entity work.sysctrl port map (clk => clk54, reset => '0', stb => mcu_sys_stb, inicio => mcu_ini,
       d => mcu_d, q => mcu_sys_q, botoes => ndeb & rdeb, int_n => irqn_s);
   -- Se a interrupcao estiver pendente e o BL616 nao falar durante ~0,6 s, solta-a

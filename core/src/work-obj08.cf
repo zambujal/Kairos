@@ -1,10 +1,13 @@
 v 4
-file . "cassete.vhd" "c55512749291ea1bc606df7dddb684a296f19faa" "20261102191322.898":
-  entity cassete at 7( 451) + 0 on 13;
-  architecture rtl of cassete at 24( 1028) + 0 on 14;
-file . "fita_sd.vhd" "66a37afd00c18d5ba4f68200d8e9affb6949ee97" "20261102191322.898":
-  entity fita_sd at 16( 1163) + 0 on 11;
-  architecture rtl of fita_sd at 45( 2280) + 0 on 12;
+file . "mcu_spi.vhd" "0dd87936a5b694d3e064763a59771cbd221db2a0" "20261103160520.609":
+  entity mcu_spi at 7( 421) + 0 on 19;
+  architecture rtl of mcu_spi at 28( 1329) + 0 on 20;
 file . "hid_teclado.vhd" "e0e15ef36d18481405e729c3106d441148a57766" "20261103154417.664":
   entity hid_teclado at 19( 1403) + 0 on 17;
   architecture rtl of hid_teclado at 47( 2896) + 0 on 18;
+file . "fita_sd.vhd" "66a37afd00c18d5ba4f68200d8e9affb6949ee97" "20261102191322.898":
+  entity fita_sd at 16( 1163) + 0 on 11;
+  architecture rtl of fita_sd at 45( 2280) + 0 on 12;
+file . "cassete.vhd" "c55512749291ea1bc606df7dddb684a296f19faa" "20261102191322.898":
+  entity cassete at 7( 451) + 0 on 13;
+  architecture rtl of cassete at 24( 1028) + 0 on 14;
