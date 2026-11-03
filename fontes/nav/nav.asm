@@ -5173,7 +5173,7 @@ PerguntaAnt         ld hl,MaqAnt
                     ret nz
                     push bc
                     xor a               ; v62: a pergunta com [SIM] NAO: setas mudam, ENTER escolhe
-                    ld (PAesc),a        ; (v84: 3 s sem resposta = NAO; o rato nao conta)
+                    ld (PAesc),a        ; (v84: 3 s sem resposta = NAO; clique = ENTER)
                     ld a,160            ; 3,2 s (e a piscar a comecar a' vista)
                     ld (PAconta),a
                     call PAmostra
@@ -5201,7 +5201,7 @@ PAkey
                     ld c,(hl)
                     ld (hl),0
                     dec c
-                    jr z,PAdec          ; v84: o rato nao responde a' pergunta (so' o teclado)
+                    jr z,PAent          ; v84: qualquer clique do rato = ENTER (o resto do rato nao conta)
                     ENDIF
                     cp '5'
                     jr z,PAesq
