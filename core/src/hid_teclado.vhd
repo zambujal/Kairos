@@ -181,7 +181,7 @@ begin
   atalho(18) <= k(16#41#);                                 -- F8
   atalho(19) <= k(16#42#);                                 -- F9  (esp56: volume do som do ESP -)
   atalho(20) <= k(16#43#);                                 -- F10 (esp56: volume do som do ESP +)
-  atalho(21) <= k(16#4A#) or k(16#44#);                    -- Home (ou F11) (84: o botao do NMI, pino 87; o F12 fica no Companion do BL616, e' a tecla do OSD dele)
+  atalho(21) <= k(16#4A#);                                 -- Home (84: o botao do NMI, pino 87)
   -- Ctrl + Alt + F11: troca de core
   f11 <= k(16#44#) and (k(16#68#) or k(16#6C#)) and (k(16#6A#) or k(16#6E#));
   -- reset do Spectrum, como no Amiga: Ctrl + Alt + AltGr (as duas Alt), ou Ctrl + as duas Windows (as "Amiga");

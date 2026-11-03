@@ -35,7 +35,7 @@ Os pormenores estão em [docs/instalacao.md](docs/instalacao.md); as teclas em [
 4. **Índices.** Sem eles o navegador mostra nomes 8.3 (`JETSETW~1.TAP`) e o menu das máquinas só abre com as
    teclas 1 a 4. `python3 ferramentas/cartao.py /caminho/do/cartao --fazer`, com o cartão no PC, escreve em cada
    pasta um `_NAV/*.IDX` com os nomes compridos. Repetir quando se juntam jogos.
-5. **Ligar** por um carregador de 2 A. O botão do pino 87 (ou **Home** / F11) é o NMI (navegador); o do pino 88 escolhe, nos LEDs,
+5. **Ligar** por um carregador de 2 A. O botão do pino 87 (ou **Home**) é o NMI (navegador); o do pino 88 escolhe, nos LEDs,
    o que o NMI faz (RESET, `.go128`, `.go2068`, turbo…). Liga sempre em TC2048; o navegador propõe a última
    máquina.
 
