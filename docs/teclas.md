@@ -23,7 +23,7 @@ ESP32 e não fazem nada sem ela.
 
 ## Botões do Tang Nano 20K
 
-- **Botão do pino 87** (ou **Home** no teclado USB, core 84+): NMI — abre o navegador (e, dentro dele, BREAK sai).
+- **Botão do pino 87** (ou **Home** no teclado USB, core 84+; **Home carregado 2 s** = RESET+NMI, quando um jogo estraga o NMI): NMI — abre o navegador (e, dentro dele, BREAK sai).
 - **Botão do pino 88:** cada toque passa a uma escolha (os LEDs mostram o número em binário); carregar
   no outro botão faz a escolha: 0 NMI, 1 `.ls`, 2 `.go128`, 3 `.go128 -penta`, 4 `.go1024`, 5 `.go2068`,
   6 RESET+NMI (volta ao TC2048), 8 RESET, 10 `.gs`, 15 turbo (3,5 → 7 → 14 → 3,5 MHz). Carregado 3 s:

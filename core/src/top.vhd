@@ -201,6 +201,8 @@ architecture rtl of top is
   signal mb_rn  : std_logic := '1';                              -- botoes sem ressaltos
   signal tdeb : unsigned(19 downto 0) := (others => '0');            -- ~39 ms a 27 MHz
   signal ndeb_d : std_logic := '0';
+  signal home_t : unsigned(26 downto 0) := (others => '0');   -- (84) Home carregado: conta ate' 2 s
+  signal home_rn, rnmi_todos : std_logic := '0';                          -- (84) impulso: Home 2 s = RESET+NMI (escolha 6)
   signal nmi_n : std_logic := '1';
   signal nmi_t : integer range 0 to 255 := 0;
   constant Z6 : std_logic_vector(5 downto 0) := (others => '0');
@@ -435,10 +437,17 @@ begin
     end if;
   end process;
 
+  rnmi_todos <= pede_rnmi or home_rn;
+
   -- NMI: um impulso de ~200 T-states por cada vez que se carrega no botao
   process(clk54)
   begin
     if rising_edge(clk54) then
+      -- (84) Home carregado 2 s = RESET+NMI (como a escolha 6): para quando um jogo estragou o NMI
+      home_rn <= '0';
+      if atalho(21) = '0' then home_t <= (others => '0');
+      elsif home_t = 108000000 then home_rn <= '1'; home_t <= home_t + 1;
+      elsif home_t < 108000000 then home_t <= home_t + 1; end if;
       ndeb_d <= ndeb;
       if ndeb = '1' and ndeb_d = '0' then nmi_t <= 255; nmi_n <= '0';
       elsif nmi_t /= 0 then
@@ -502,7 +511,7 @@ begin
     O_sd_mosi <= esp_mosi when sd_dado = '1' else c_sd_mosi;
     c_sd_miso <= '1' when sd_dado = '1' else I_sd_miso;
     arr: entity work.teclas_arranque port map (clk => clk54, pronta => sd_pronta, rst_n => cpu_rst_n,
-        bot_a => rdeb, bot_b => ndeb, segura => arr_segura, escolha => arr_esc, led_pisca => arr_pisca, nmi_rst => arr_nmi, turbo_t => arr_turbo, rnmi_t => pede_rnmi, mat => mat_arr);
+        bot_a => rdeb, bot_b => ndeb, segura => arr_segura, escolha => arr_esc, led_pisca => arr_pisca, nmi_rst => arr_nmi, turbo_t => arr_turbo, rnmi_t => rnmi_todos, mat => mat_arr);
   end generate;
   sem_arr_g: if not KAIROS generate
     mat_arr <= (others => '0'); arr_segura <= '0'; arr_esc <= "0000"; arr_pisca <= '0'; arr_nmi <= '0';
