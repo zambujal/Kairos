@@ -35,7 +35,7 @@ entity hid_teclado is
     rato_b : out std_logic_vector(2 downto 0);       -- 1 = carregado: 0 esquerdo, 1 direito, 2 meio
     rato_w : out std_logic_vector(3 downto 0);       -- (75) a roda: contador de 4 bits (sobe para cima)
     joy    : out std_logic_vector(7 downto 0);       -- Kempston (1 = carregado)
-    atalho : out std_logic_vector(20 downto 0);       -- (2026-10-22) com a tecla Windows: bit 0 Win+J (menu), bit 1
+    atalho : out std_logic_vector(21 downto 0);       -- (2026-10-22) com a tecla Windows: bit 0 Win+J (menu), bit 1
                                                      -- Win+S (captura), bit 2 Win+C, bit 3 Win+'+' (mais MHz), bit 4
                                                      -- Win+'-' (menos MHz), bit 5 Win+R (corre sem a maquina
                                                      -- guardada); o Spectrum nao os ve'
@@ -181,6 +181,7 @@ begin
   atalho(18) <= k(16#41#);                                 -- F8
   atalho(19) <= k(16#42#);                                 -- F9  (esp56: volume do som do ESP -)
   atalho(20) <= k(16#43#);                                 -- F10 (esp56: volume do som do ESP +)
+  atalho(21) <= k(16#45#);                                 -- F12 (84: o botao do NMI, pino 87)
   -- Ctrl + Alt + F11: troca de core
   f11 <= k(16#44#) and (k(16#68#) or k(16#6C#)) and (k(16#6A#) or k(16#6E#));
   -- reset do Spectrum, como no Amiga: Ctrl + Alt + AltGr (as duas Alt), ou Ctrl + as duas Windows (as "Amiga");

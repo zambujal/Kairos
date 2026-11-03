@@ -5,3 +5,6 @@ file . "cassete.vhd" "c55512749291ea1bc606df7dddb684a296f19faa" "20261102191322.
 file . "fita_sd.vhd" "66a37afd00c18d5ba4f68200d8e9affb6949ee97" "20261102191322.898":
   entity fita_sd at 16( 1163) + 0 on 11;
   architecture rtl of fita_sd at 45( 2280) + 0 on 12;
+file . "hid_teclado.vhd" "e0e15ef36d18481405e729c3106d441148a57766" "20261103154417.664":
+  entity hid_teclado at 19( 1403) + 0 on 17;
+  architecture rtl of hid_teclado at 47( 2896) + 0 on 18;

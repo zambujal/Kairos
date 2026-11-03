@@ -164,7 +164,7 @@ serializers, so it will probably need adapting.
     1 `.ls`, 2 `.go128`, 3 `.go128 -penta`, 4 `.go1024`, 5 `.go2068`, 6 RESET+NMI (back to the TC2048),
     8 RESET, 10 `.gs`, 15 turbo. To get back to the plain NMI, press until the LEDs go off. Held for 3 s it
     switches core (multiboot, if there is another one at `0x100000`).
-- From the keyboard, without the ESP32 board, there is no NMI key: it is the button.
+- On the USB keyboard **F12** does the same as the pin 87 button (core 84+).
 - **Always powers up as a TC2048.** The last chosen machine is saved and comes back at the first NMI (the
   browser asks; ENTER switches). With the ESP32 board, the board restores the last machine.
 - **Fast start-up**: at power-up the Z80 runs at 14 MHz while the ROMs load and for the next 3 s; then it goes

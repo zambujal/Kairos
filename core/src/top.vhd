@@ -228,7 +228,7 @@ architecture rtl of top is
   signal dev, hsv, vsv : std_logic;
   signal ovl_pede_l, ovl_pede_w, c_lig, c_sel, c_selq, c_jan, lb_we : std_logic := '0';
   signal c_2x : std_logic := '0';
-  signal atalho : std_logic_vector(20 downto 0) := (others => '0');
+  signal atalho : std_logic_vector(21 downto 0) := (others => '0');
   signal at_d : std_logic_vector(1 downto 0) := "00";
   signal vel_cod : std_logic_vector(3 downto 0);
   -- cassete (2026-10-24)
@@ -417,7 +417,7 @@ begin
       rs <= rs(1 downto 0) & I_reset;
       ns <= ns(1 downto 0) & I_nmi;
       tdeb <= tdeb + 1;
-      if tdeb = 0 then rdeb <= rs(2); ndeb <= ns(2); end if;
+      if tdeb = 0 then rdeb <= rs(2); ndeb <= ns(2) or atalho(21); end if;   -- (84) o F12 do teclado USB e' o botao do NMI
     end if;
   end process;
 
@@ -744,7 +744,7 @@ begin
                                        sd_meu => sd_meu, sd_dado => sd_dado, fita_on => fita_on, esp_vivo => esp_vivo, sd_cs_n => esp_cs_n, sd_sclk => esp_sclk, sd_mosi => esp_mosi, sd_miso => I_sd_miso,
                                        k_mat => k_mat, k_rst => k_rst, k_nmi => k_nmi,
                                        z_wr => mb_wr, z_rd => mb_rd, z_sel => mb_sel, z_cam => mb_cam, z_d => mb_d, z_q => mb_q, u_wr => ua_wr, u_rd => ua_rd, u_dat => ua_dat, u_q => ua_q,
-                                       k_in => mat_fis, k_cap => k_cap, k_turbo => k_turbo, k_gspara => k_gspara, k_ay3 => k_ay3, k_vel => vel_cod, cs_wr => cs_wr, cs_d => cs_d, cs_limpa => cs_limpa, cs_livres => cs_livres, cs_ativa => cs_ativa, k_joy => joy_usb, k_atal => atalho, k_ay => ay_vis, k_jcru => jcru, k_maq => maq_st,
+                                       k_in => mat_fis, k_cap => k_cap, k_turbo => k_turbo, k_gspara => k_gspara, k_ay3 => k_ay3, k_vel => vel_cod, cs_wr => cs_wr, cs_d => cs_d, cs_limpa => cs_limpa, cs_livres => cs_livres, cs_ativa => cs_ativa, k_joy => joy_usb, k_atal => atalho(20 downto 0), k_ay => ay_vis, k_jcru => jcru, k_maq => maq_st,
                                        k_rato => rato_esp, k_vpede => vpede);   -- (76) o rato para o ESP; (77) a velocidade
   sem_kairos_g: if not KAIROS generate esp_ack <= '0'; esp_wack <= '0'; end generate;
   ca_wr <= tp_wr when tp_ativa = '1' else cs_wr;
