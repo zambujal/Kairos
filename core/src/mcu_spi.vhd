@@ -20,8 +20,7 @@ entity mcu_spi is
     inicio   : out std_logic;                      -- e' o 1.o byte depois do alvo
     dado     : out std_logic_vector(7 downto 0);   -- byte vindo do BL616
     sys_q    : in  std_logic_vector(7 downto 0);   -- byte a devolver (SYS)
-    hid_q    : in  std_logic_vector(7 downto 0);   -- byte a devolver (HID)
-    osd_fecha : out std_logic                      -- (84) impulso: o BL616 fechou o OSD dele (2.o F12)
+    hid_q    : in  std_logic_vector(7 downto 0)    -- byte a devolver (HID)
   );
 end entity;
 
@@ -38,7 +37,6 @@ architecture rtl of mcu_spi is
   signal alvo  : std_logic_vector(7 downto 0) := (others => '0');
   signal d_r   : std_logic_vector(7 downto 0) := (others => '0');
   signal q     : std_logic_vector(7 downto 0);
-  signal osd_cmd : std_logic_vector(7 downto 0) := (others => '0');
 begin
   -- leitura na descida do SCLK
   process(sclk, ss)
@@ -61,7 +59,7 @@ begin
     if rising_edge(clk) then
       tg   <= tg(1 downto 0) & tog;
       ss_s <= ss_s(0) & ss;
-      sys_stb <= '0'; hid_stb <= '0'; osd_fecha <= '0';
+      sys_stb <= '0'; hid_stb <= '0';
       if ss_s(1) = '1' then
         n_in <= (others => '0');
       elsif tg(2) /= tg(1) then
@@ -70,13 +68,6 @@ begin
         else
           if alvo = x"00" then sys_stb <= '1'; end if;
           if alvo = x"01" then hid_stb <= '1'; end if;
-          -- (84) alvo OSD: comando 1 = mostrar/esconder, byte seguinte 1/0. O F12 e' a tecla do menu do
-          -- Companion: nunca chega a' FPGA; o que chega e' isto. Com o OSD "aberto" ele guarda as teclas,
-          -- por isso o impulso sai quando o fecha (o 2.o F12): NMI com o teclado a funcionar
-          if alvo = x"02" then
-            if n_in = 1 then osd_cmd <= byte;
-            elsif n_in = 2 and osd_cmd = x"01" and byte(0) = '0' then osd_fecha <= '1'; end if;
-          end if;
           d_r <= byte;
         end if;
         if n_in /= 15 then n_in <= n_in + 1; end if;
