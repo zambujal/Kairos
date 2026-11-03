@@ -10,7 +10,7 @@ All it needs is the Tang, the card and the keyboard.
   repaired and tested on a real TC2068.
 - **Sound:** TurboSound (2 AY), General Sound, beeper, over HDMI. ULAplus.
 - **Z80:** a fixed T80 (Q register), 3.5 to 27 MHz with F9/F10.
-- **Card:** own browser (long names, machine menu, mouse), plugins for TAP, TZX, Z80, SNA, TRD, PT3, AY, MOD.
+- **Card:** own browser (machine menu, mouse; long names if `cartao.py` is run on the card), plugins for TAP, TZX, Z80, SNA, TRD, PT3, AY, MOD.
   TZX plays inside the FPGA, types `LOAD ""` by itself, F3 pauses and F4 stops.
 - **No ROMs inside:** at power-up it reads the TC2048 ROM and esxDOS from the card.
 
@@ -31,8 +31,9 @@ Details in [docs/install.en.md](docs/install.en.md); keys in [docs/teclas.md](do
    `SYS/ROMS/ESXMMC.BIN`. Optional, for the other machines: `BIN/128.rom`, `BIN/2068.rom`, `BIN/GS105B.ROM`
    and `BIN/PLUG2068/TAP` made with `fontes/plug2068/faz_plug2068.py`. On Linux `ferramentas/faz_cartao.sh`
    does everything but the ROMs.
-4. **Indexes.** `python3 ferramentas/cartao.py /path/to/card --fazer` gives the browser long names and the
-   machine menu. Run it again when you add games.
+4. **Indexes.** Without them the browser shows 8.3 names (`JETSETW~1.TAP`) and the machine menu only opens with
+   keys 1 to 4. `python3 ferramentas/cartao.py /path/to/card --fazer`, with the card in the PC, writes a
+   `_NAV/*.IDX` with the long names in every folder. Run it again when you add games.
 5. **Power** from a 2 A charger. The pin 87 button is NMI (the browser); the pin 88 button picks, on the LEDs,
    what NMI does (RESET, `.go128`, `.go2068`, turbo…). It always boots as a TC2048; the browser offers the
    last machine used.

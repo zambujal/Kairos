@@ -10,7 +10,7 @@ do cartão e do teclado.
   reparei e testei num TC2068 verdadeiro.
 - **Som:** TurboSound (2 AY), General Sound, beeper, pelo HDMI. ULAplus.
 - **Z80:** T80 corrigido (registo Q), de 3,5 a 27 MHz com F9/F10.
-- **Cartão:** navegador próprio (nomes compridos, menu das máquinas, rato), plugins TAP, TZX, Z80, SNA, TRD,
+- **Cartão:** navegador próprio (menu das máquinas, rato; nomes compridos se o `cartao.py` correr no cartão), plugins TAP, TZX, Z80, SNA, TRD,
   PT3, AY, MOD. O TZX toca na própria FPGA, com o `LOAD ""` escrito sozinho e pausa/paragem em F3/F4.
 - **Sem ROMs dentro:** ao ligar lê do cartão a ROM do TC2048 e o esxDOS.
 
@@ -32,8 +32,9 @@ Os pormenores estão em [docs/instalacao.md](docs/instalacao.md); as teclas em [
    `SYS/ROMS/ESXMMC.BIN`. Opcionais, para as outras máquinas: `BIN/128.rom`, `BIN/2068.rom`, `BIN/GS105B.ROM`
    e o `BIN/PLUG2068/TAP` feito com `fontes/plug2068/faz_plug2068.py`. Em Linux, `ferramentas/faz_cartao.sh`
    faz tudo menos as ROMs.
-4. **Índices.** `python3 ferramentas/cartao.py /caminho/do/cartao --fazer` dá ao navegador os nomes compridos
-   e o menu das máquinas. Repetir quando se juntam jogos.
+4. **Índices.** Sem eles o navegador mostra nomes 8.3 (`JETSETW~1.TAP`) e o menu das máquinas só abre com as
+   teclas 1 a 4. `python3 ferramentas/cartao.py /caminho/do/cartao --fazer`, com o cartão no PC, escreve em cada
+   pasta um `_NAV/*.IDX` com os nomes compridos. Repetir quando se juntam jogos.
 5. **Ligar** por um carregador de 2 A. O botão do pino 87 é o NMI (navegador); o do pino 88 escolhe, nos LEDs,
    o que o NMI faz (RESET, `.go128`, `.go2068`, turbo…). Liga sempre em TC2048; o navegador propõe a última
    máquina.
