@@ -5172,8 +5172,8 @@ PerguntaAnt         ld hl,MaqAnt
                     or c
                     ret nz
                     push bc
-                    xor a               ; v62: a pergunta com [SIM] NAO: setas mudam, ENTER escolhe; rato: clique
-                    ld (PAesc),a        ; esquerdo sim, direito nao (v84: 3 s sem resposta = NAO)
+                    xor a               ; v62: a pergunta com [SIM] NAO: setas mudam, ENTER escolhe
+                    ld (PAesc),a        ; (v84: 3 s sem resposta = NAO; o rato nao conta)
                     ld a,160            ; 3,2 s (e a piscar a comecar a' vista)
                     ld (PAconta),a
                     call PAmostra
@@ -5201,11 +5201,7 @@ PAkey
                     ld c,(hl)
                     ld (hl),0
                     dec c
-                    jr nz,PAtec
-                    cp 13               ; clique esquerdo = sim, direito (ESPACO) = nao
-                    jr z,PAsim
-                    jr PAnaoP
-PAtec
+                    jr z,PAdec          ; v84: o rato nao responde a' pergunta (so' o teclado)
                     ENDIF
                     cp '5'
                     jr z,PAesq
