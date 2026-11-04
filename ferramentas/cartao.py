@@ -68,6 +68,7 @@ def main():
     ap.add_argument('--limpar', action='store_true', help="apaga todos os indices (_NAV) do cartao e mais nada")
     ap.add_argument('--perguntar', action='store_true', help='pergunta pasta a pasta (as da raiz) se refaz os indices')
     ap.add_argument('--novas', action='store_true', help='so\' refaz as pastas que mudaram (ficheiros novos, apagados, outro nome)')
+    ap.add_argument('--so', nargs='*', default=None, help='so\' estas pastas da raiz (e as subpastas delas); a raiz faz-se sempre')
     a = ap.parse_args()
     if not os.path.isdir(a.cartao): sys.exit('nao existe: %s' % a.cartao)
     if a.limpar:                                    # os indices de outro cartao nao valem neste (os nomes 8.3 mudam)
@@ -89,6 +90,8 @@ def main():
             a.pasta.append('%s=%s' % (v, k) if v else k)   # ROTULO = CAMINHO, ou so' NOME
         print('pastas da barra (config.ini): %s' % ' '.join(a.pasta))
     extra = (['--pasta'] + a.pasta if a.pasta else []) + (['--largura', '17'] if a.normal else []) + (['--novas'] if a.novas else [])
+    if a.so is not None and not a.perguntar:
+        extra += ['--so'] + a.so
     if a.perguntar:
         SIS = {'BIN', 'SYS', 'TMP', 'SYSTEM VOLUME INFORMATION', '_NAV'}
         pastas = sorted((d for d in os.listdir(a.cartao)
