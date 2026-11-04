@@ -9,15 +9,20 @@ set PY=py -3
 echo.
 echo  Cartao: %~dp0
 echo.
-echo  1 - refazer os indices de todas as pastas
-echo  2 - pasta a pasta (pergunta s/n para cada uma)
-echo  3 - apagar os indices todos e refazer tudo (cartao copiado de outro)
-echo  4 - so' ver o que faria (nao escreve nada)
+echo  1 - so' as pastas que mudaram (ficheiros novos, apagados ou com outro nome)
+echo  2 - refazer os indices de todas as pastas
+echo  3 - pasta a pasta (pergunta s/n para cada uma)
+echo  4 - apagar os indices todos e refazer tudo (cartao copiado de outro)
+echo  5 - so' ver o que faria (nao escreve nada)
 echo.
-choice /c 1234 /n /m " Escolha [1-4]: "
-if errorlevel 4 goto ver
-if errorlevel 3 goto limpar
-if errorlevel 2 goto perguntar
+choice /c 12345 /n /m " Escolha [1-5]: "
+if errorlevel 5 goto ver
+if errorlevel 4 goto limpar
+if errorlevel 3 goto perguntar
+if errorlevel 2 goto todas
+%PY% cartao.py "%~dp0." --novas --fazer
+goto fim
+:todas
 %PY% cartao.py "%~dp0." --fazer
 goto fim
 :perguntar
