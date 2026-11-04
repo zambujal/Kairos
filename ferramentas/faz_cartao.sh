@@ -45,6 +45,8 @@ python3 "$REPO/fontes/plug2068/faz_plug2068.py" "$CARTAO/BIN/BPLUGINS/TAP" "$CAR
 
 echo "== indices"
 python3 "$AQUI/cartao.py" "$CARTAO" --fazer
+# o cartao.py, o config.ini e os indexSD (bat / sh) na raiz: refazer os indices no proprio cartao, em qualquer PC
+cp "$AQUI/cartao.py" "$AQUI/config.ini" "$AQUI/indexSD.bat" "$AQUI/indexSD.sh" "$CARTAO/"
 sync
 rm -rf "$TMP"
 
