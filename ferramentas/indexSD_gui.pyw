@@ -3,12 +3,16 @@
 # Windows: dois cliques (precisa do Python 3 de www.python.org, que ja' traz o tkinter).
 # Linux:   python3 indexSD_gui.pyw   (Fedora: sudo dnf install python3-tkinter;
 #                                     Debian/Ubuntu: sudo apt install python3-tk)
-# Usa o cartao.py que esta' na mesma pasta (ou na raiz do cartao escolhido).
-import os, sys, string, subprocess, threading, queue, hashlib
+# Usa o cartao.py (importado: o executavel feito com o PyInstaller ja' o leva dentro).
+# O config.ini (barra das pastas, navegador normal) le'-se ao lado do programa ou na raiz do cartao.
+import os, sys, string, threading, queue, contextlib
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 
-AQUI = os.path.dirname(os.path.abspath(__file__))
+# a pasta do programa: a do .exe/executavel (PyInstaller) ou a do .pyw
+AQUI = os.path.dirname(os.path.abspath(sys.executable if getattr(sys, 'frozen', False) else __file__))
+if AQUI not in sys.path: sys.path.insert(0, AQUI)
+import cartao
 SISTEMA = {'BIN', 'SYS', 'TMP', 'SYSTEM VOLUME INFORMATION', '_NAV'}
 
 
@@ -62,12 +66,12 @@ def pastas_da_raiz(cartao):
     return out
 
 
-def acha_cartao_py(cartao):
-    for d in (AQUI, cartao):
-        f = os.path.join(d, 'cartao.py')
-        if os.path.isfile(f):
-            return f
-    return None
+class Para_fila:
+    # o print do cartao.py vai para a caixa da janela
+    def __init__(self, fila): self.fila = fila
+    def write(self, t):
+        if t: self.fila.put(t)
+    def flush(self): pass
 
 
 class Janela(tk.Tk):
@@ -165,11 +169,7 @@ class Janela(tk.Tk):
         if not self.cartao:
             messagebox.showinfo('Kairos', 'Primeiro clicar no cartao SD.')
             return
-        cpy = acha_cartao_py(self.cartao)
-        if not cpy:
-            messagebox.showerror('Kairos', 'Nao encontro o cartao.py (nem ao lado deste programa, nem no cartao).')
-            return
-        base = [sys.executable, '-u', cpy, self.cartao] + (['--normal'] if self.normal.get() else [])
+        base = [self.cartao] + (['--normal'] if self.normal.get() else [])
         if modo == 'novas':
             cmds = [base + ['--novas', '--fazer']]
         elif modo == 'tudo':
@@ -183,7 +183,7 @@ class Janela(tk.Tk):
         elif modo == 'limpar':
             if not messagebox.askyesno('Kairos', 'Apagar todos os indices (_NAV) do cartao e fazer tudo de novo?'):
                 return
-            cmds = [[sys.executable, '-u', cpy, self.cartao, '--limpar', '--fazer'], base + ['--fazer']]
+            cmds = [[self.cartao, '--limpar', '--fazer'], base + ['--fazer']]
         else:
             cmds = [base]
         self.saida.config(state='normal'); self.saida.delete('1.0', 'end'); self.saida.config(state='disabled')
@@ -194,22 +194,22 @@ class Janela(tk.Tk):
 
     def trabalho(self, cmds):
         ok = True
-        flags = 0x08000000 if os.name == 'nt' else 0          # CREATE_NO_WINDOW (sem consola preta)
-        env = dict(os.environ, PYTHONIOENCODING='utf-8')
+        # o config.ini: ao lado do programa; senao, o da raiz do cartao
+        cartao.AQUI = AQUI if os.path.isfile(os.path.join(AQUI, 'config.ini')) else self.cartao
+        out = Para_fila(self.fila)
+        velho = sys.argv
         for c in cmds:
             try:
-                p = subprocess.Popen(c, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL,
-                                     cwd=os.path.dirname(c[2]), env=env, creationflags=flags,
-                                     text=True, encoding='utf-8', errors='replace')
-                for linha in p.stdout:
-                    self.fila.put(linha)
-                if p.wait() != 0:
-                    ok = False
-                    break
+                sys.argv = ['cartao.py'] + c
+                with contextlib.redirect_stdout(out), contextlib.redirect_stderr(out):
+                    cartao.main()
+            except SystemExit as e:
+                if e.code not in (None, 0):
+                    self.fila.put('%s\n' % e.code); ok = False; break
             except Exception as e:
-                self.fila.put('ERRO: %s\n' % e)
-                ok = False
-                break
+                self.fila.put('ERRO: %s\n' % e); ok = False; break
+            finally:
+                sys.argv = velho
         self.fila.put(('fim', ok))
 
     def le_fila(self):
