@@ -3,11 +3,11 @@ https://github.com/zambujal/kairos
 
 1. GRAVAR O CORE NO TANG
 ------------------------
-O core esta' na pasta core/ deste cartao (kairos_core84h.fs). Grava-se uma vez, no PC, com o
+O core esta' na pasta core/ deste cartao (kairos_core85c.fs). Grava-se uma vez, no PC, com o
 Tang ligado directamente a uma porta USB do PC (sem hub). Depois de gravar, desligar e voltar a ligar.
 
 Linux (openFPGALoader):
-    openFPGALoader -b tangnano20k -f kairos_core84h.fs
+    openFPGALoader -b tangnano20k -f kairos_core85c.fs
     (Fedora: sudo dnf copr enable mobicarte/openFPGALoader && sudo dnf install openFPGALoader
      Debian/Ubuntu: sudo apt install openfpgaloader
      "unable to open ftdi device" = permissao de USB: com sudo, ou as regras udev do openFPGALoader)
@@ -16,7 +16,7 @@ Windows (Gowin Programmer, do Gowin EDA Education, www.gowinsemi.com):
     scan_device -> GW2AR-18C; duas vezes na linha do dispositivo:
       Access Mode: External Flash Mode
       Operation:   exFlash Erase, Program
-      FS File:     kairos_core84h.fs
+      FS File:     kairos_core85c.fs
       External Flash: Generic Flash, endereco 0x000000
     Program.
 
@@ -40,8 +40,8 @@ O cartao e' FAT32 e leva, por esta ordem:
 3. USAR
 -------
 - Liga sempre como TC2048. O botao do pino 87 do Tang, ou a tecla HOME do teclado USB, e' o NMI:
-  abre o navegador. HOME carregado 2 s = RESET+NMI (volta ao TC2048 e abre o navegador): serve quando
-  um jogo estragou o NMI e ele ja' nao abre.
+  abre o navegador. Ctrl+Alt+AltGr = reset normal (fica na mesma maquina). Ctrl+Alt+Shift (ou com as
+  duas Alt e o Shift) = RESET+NMI: volta ao TC2048 e abre o navegador; serve quando um jogo estragou o NMI.
 - No navegador: ENTER corre o ficheiro, ESPACO volta, 9 vai para a barra das pastas, 1-4 abrem o menu
   das maquinas. A ultima maquina fica gravada: no primeiro NMI depois de ligar pergunta
   "Maquina anterior?": ENTER (ou um clique) = sim; 3 s sem resposta = nao.

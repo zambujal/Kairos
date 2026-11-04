@@ -153,7 +153,7 @@ architecture rtl of top is
   signal arr_segura, arr_pisca, arr_nmi : std_logic;
   signal arr_esc : std_logic_vector(3 downto 0);
   signal mcu_sys_stb, mcu_hid_stb, mcu_ini, usb_f11 : std_logic;
-  signal usb_cad : std_logic := '0';
+  signal usb_cad, usb_cadn, cadn_d : std_logic := '0';
   signal mp_on : std_logic := '0';
   signal i2s_on, mp_som : std_logic := '0';   -- (esp54)
   signal mp_rate, mp_idx : std_logic_vector(15 downto 0) := (others => '0');
@@ -201,8 +201,7 @@ architecture rtl of top is
   signal mb_rn  : std_logic := '1';                              -- botoes sem ressaltos
   signal tdeb : unsigned(19 downto 0) := (others => '0');            -- ~39 ms a 27 MHz
   signal ndeb_d : std_logic := '0';
-  signal home_t : unsigned(26 downto 0) := (others => '0');   -- (84) Home carregado: conta ate' 2 s
-  signal home_rn, rnmi_todos : std_logic := '0';                          -- (84) impulso: Home 2 s = RESET+NMI (escolha 6)
+  signal home_rn, rnmi_todos : std_logic := '0';                          -- (85c) impulso: Ctrl+Alt+Shift = RESET+NMI (escolha 6)
   signal nmi_n : std_logic := '1';
   signal nmi_t : integer range 0 to 255 := 0;
   constant Z6 : std_logic_vector(5 downto 0) := (others => '0');
@@ -443,11 +442,9 @@ begin
   process(clk54)
   begin
     if rising_edge(clk54) then
-      -- (84) Home carregado 2 s = RESET+NMI (como a escolha 6): para quando um jogo estragou o NMI
-      home_rn <= '0';
-      if atalho(21) = '0' then home_t <= (others => '0');
-      elsif home_t = 108000000 then home_rn <= '1'; home_t <= home_t + 1;
-      elsif home_t < 108000000 then home_t <= home_t + 1; end if;
+      -- (85c) Ctrl+Alt+Shift = RESET+NMI (como a escolha 6): para quando um jogo estragou o NMI (era o Home 2 s)
+      cadn_d <= usb_cadn;
+      home_rn <= usb_cadn and not cadn_d;
       ndeb_d <= ndeb;
       if ndeb = '1' and ndeb_d = '0' then nmi_t <= 255; nmi_n <= '0';
       elsif nmi_t /= 0 then
@@ -575,7 +572,7 @@ begin
   end process;
   O_spi_irqn <= '1' when irqn_s = '1' or irq_t(24 downto 16) = "111111111" else '0';
   hidk: entity work.hid_teclado port map (clk => clk54, reset => '0', stb => mcu_hid_stb, inicio => mcu_ini,
-      d => mcu_d, q => mcu_hid_q, mat => mat_usb, f11 => usb_f11, cad => usb_cad,
+      d => mcu_d, q => mcu_hid_q, mat => mat_usb, f11 => usb_f11, cad => usb_cad, cadn => usb_cadn,
       rato_x => rato_x, rato_y => rato_y, rato_b => rato_b, rato_w => rato_w, joy => joy_usb, atalho => atalho, alt => alt_k, jcru => jcru);
   joy_k <= joy_usb when k_cap = '0' else x"00";   -- menu do ESP aberto: o joystick so' para o ESP
   process(clk54) begin   -- (76) e o rato tambem: o Z80 fica com a ultima posicao e sem botoes

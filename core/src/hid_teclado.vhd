@@ -31,6 +31,7 @@ entity hid_teclado is
     mat    : out std_logic_vector(39 downto 0);
     f11    : out std_logic;
     cad    : out std_logic;                          -- (esp44b) Ctrl+Alt+Del: reset do Spectrum
+    cadn   : out std_logic;                          -- (85c) Ctrl+Alt+Shift: RESET+NMI (volta ao TC2048 e abre o navegador)
     rato_x, rato_y : out std_logic_vector(7 downto 0);
     rato_b : out std_logic_vector(2 downto 0);       -- 1 = carregado: 0 esquerdo, 1 direito, 2 meio
     rato_w : out std_logic_vector(3 downto 0);       -- (75) a roda: contador de 4 bits (sobe para cima)
@@ -187,5 +188,9 @@ begin
   -- reset do Spectrum, como no Amiga: Ctrl + Alt + AltGr (as duas Alt), ou Ctrl + as duas Windows (as "Amiga");
   -- e tambem Ctrl + Alt + Del (ou o Delete do teclado numerico)
   cad <= (k(16#68#) or k(16#6C#)) and ((k(16#6A#) and k(16#6E#)) or (k(16#6B#) and k(16#6F#)) or
-                                       ((k(16#4C#) or k(16#63#)) and (k(16#6A#) or k(16#6E#))));
+                                       ((k(16#4C#) or k(16#63#)) and (k(16#6A#) or k(16#6E#))))
+         and not (k(16#69#) or k(16#6D#));
+  -- (85c) com o Shift (Ctrl + Alt ou AltGr + Shift, tambem com as duas Alt): o reset mestre com NMI, como a
+  -- escolha 6 dos LEDs; para quando um jogo estragou o NMI
+  cadn <= (k(16#68#) or k(16#6C#)) and (k(16#6A#) or k(16#6E#)) and (k(16#69#) or k(16#6D#));
 end architecture;
