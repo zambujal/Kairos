@@ -12,6 +12,8 @@
 # Barra de baixo do navegador hi-res:  --pasta DEMOS GAMES PT3  (ou MUSICA/PT3=PT3)
 #   ou no config.ini ao lado deste (seccao [pastas])
 # Nomes para o navegador normal de 32 colunas (sem hi-res):  --normal
+# Pasta a pasta:  python cartao.py E:\ --perguntar --fazer   pergunta, para cada pasta da raiz, se refaz os
+#   indices dela (s/n; t = esta e todas as que faltam; f = acaba de perguntar). A raiz faz-se sempre.
 import os, sys, argparse
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
@@ -61,6 +63,7 @@ def main():
     ap.add_argument('--pasta', nargs='+', action='extend', default=[], help='pastas da barra de baixo do navegador')
     ap.add_argument('--normal', action='store_true', help='nomes de 17 letras (navegador de 32 colunas)')
     ap.add_argument('--limpar', action='store_true', help="apaga todos os indices (_NAV) do cartao e mais nada")
+    ap.add_argument('--perguntar', action='store_true', help='pergunta pasta a pasta (as da raiz) se refaz os indices')
     a = ap.parse_args()
     if not os.path.isdir(a.cartao): sys.exit('nao existe: %s' % a.cartao)
     if a.limpar:                                    # os indices de outro cartao nao valem neste (os nomes 8.3 mudam)
@@ -82,6 +85,22 @@ def main():
             a.pasta.append('%s=%s' % (v, k) if v else k)   # ROTULO = CAMINHO, ou so' NOME
         print('pastas da barra (config.ini): %s' % ' '.join(a.pasta))
     extra = (['--pasta'] + a.pasta if a.pasta else []) + (['--largura', '17'] if a.normal else [])
+    if a.perguntar:
+        SIS = {'BIN', 'SYS', 'TMP', 'SYSTEM VOLUME INFORMATION', '_NAV'}
+        pastas = sorted((d for d in os.listdir(a.cartao)
+                         if os.path.isdir(os.path.join(a.cartao, d)) and d.upper() not in SIS
+                         and not d.startswith('.') and not d.startswith('$')), key=str.lower)
+        escolhidas, todas = [], False
+        for d in pastas:
+            tem = os.path.isdir(os.path.join(a.cartao, d, '_NAV')) or os.path.isdir(os.path.join(a.cartao, d, '_nav'))
+            if todas:
+                escolhidas.append(d); continue
+            r = input('refazer os indices de %s %s? [s/N/t/f] ' % (d, '(ja\' tem)' if tem else '(sem indices)')).strip().lower()
+            if r.startswith('f'): break
+            if r.startswith('t'): todas = True
+            if r.startswith('s') or todas: escolhidas.append(d)
+        print('pastas: %s' % (' '.join(escolhidas) if escolhidas else '(nenhuma: so\' a raiz)'))
+        extra += ['--so'] + escolhidas
     corre('gera_nav.py', a.cartao, '--todos', *(['--fazer'] if a.fazer else []), *extra)   # todos os ficheiros
     if a.fazer:
         print('\nFeito. Agora "Ejetar" antes de tirar o cartao.')
