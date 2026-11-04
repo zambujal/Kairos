@@ -70,6 +70,8 @@ architecture rtl of gs is
   signal acc : integer range 0 to 2*CLK_HZ := 0;
   signal tick : std_logic := '0';
   signal bit7, bit0 : std_logic := '0';
+  signal csr_d, csw_d : std_logic := '0';   -- (85) o IN/OUT do Spectrum ja' estava a decorrer
+  signal h_p : std_logic_vector(2 downto 0) := "000";   -- (85) pedidos do Spectrum por aplicar (bit7=0, bit7=1, bit0=1)
   signal p_bb, p_b3, p_03 : std_logic_vector(7 downto 0) := (others => '0');
   signal p_00 : std_logic_vector(5 downto 0) := (others => '0');
   signal v6, v7, v8, v9 : std_logic_vector(5 downto 0) := (others => '0');
@@ -117,11 +119,19 @@ begin
           when x"B" => bit0 <= v9(5);
           when others => null;
         end case;
-      elsif cs_rd = '1' or cs_wr = '1' then
-        if a3 = '0' and cs_rd = '1' then bit7 <= '0'; end if;
-        if a3 = '0' and cs_wr = '1' then bit7 <= '1'; end if;
-        if a3 = '1' and cs_wr = '1' then bit0 <= '1'; end if;
+      elsif h_p /= "000" then
+        if h_p(0) = '1' then bit7 <= '0'; end if;
+        if h_p(1) = '1' then bit7 <= '1'; end if;
+        if h_p(2) = '1' then bit0 <= '1'; end if;
       end if;
+      -- (85) o Spectrum so' mexe nas bandeiras uma vez por IN/OUT (no inicio): com a contencao o ciclo de E/S
+      -- pode durar mais 6 T e, com o nivel, a bandeira voltava a 1 depois de o GS a limpar (o GS lia o mesmo
+      -- byte duas vezes). O pedido fica guardado (h_p) ate' o GS nao estar a fazer E/S.
+      if not (iorq_n = '0' and m1_n = '1') then h_p <= "000"; end if;
+      if cs_rd = '1' and csr_d = '0' and a3 = '0' then h_p(0) <= '1'; h_p(1) <= '0'; end if;
+      if cs_wr = '1' and csw_d = '0' and a3 = '0' then h_p(1) <= '1'; h_p(0) <= '0'; end if;
+      if cs_wr = '1' and csw_d = '0' and a3 = '1' then h_p(2) <= '1'; end if;
+      csr_d <= cs_rd; csw_d <= cs_wr;
     end if;
   end process;
 
