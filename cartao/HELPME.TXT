@@ -1,0 +1,54 @@
+KAIROS - AJUDA (F1)
+================================
+
+TECLADO USB
+ HOME        navegador (NMI)
+ CTRL+ALT+ALTGR   reset
+ CTRL+ALT+SHIFT   reset forte:
+             volta ao TC2048
+ F9 / F10    Z80 mais lento /
+             mais rapido
+             (3,5 7 14 27 MHz)
+ ESC         BREAK
+ BACKSPACE   apagar (CS+0)
+ SETAS       CS+5 6 7 8
+ TAB         modo estendido
+ SHIFT       CAPS SHIFT
+ CTRL, ALT   SYMBOL SHIFT
+
+NAVEGADOR
+ ENTER       corre / entra
+ ESPACO      pasta de cima
+ 7 6 / SETAS anda na lista
+ SYM+7 SYM+6 pagina
+ 5 8         letras/ficheiros
+ A-Z         salta p/ a letra
+ 9           barra das pastas
+ 1-4         menu das maquinas
+ EDIT (CS+1) NMI do esxDOS
+ BREAK       sai
+ F1          esta ajuda
+
+RATO
+ passar      escolhe a linha
+ esquerdo    ENTER
+ direito     ESPACO
+ roda        pagina
+ caminho     pasta de cima
+ maquina     menu das maquinas
+
+CASSETE TZX (sem o ESP)
+ ENTER num .TZX: toca e faz
+ o LOAD "" sozinho
+ F3          pausa no fim do
+             bloco / continua
+ F4          para ja'
+
+BOTOES DO TANG
+ pino 87     NMI
+ pino 88     escolha nos LEDs
+             (o 87 faz a
+             escolha)
+ 88 3 s      troca de core
+
+github.com/zambujal/Kairos

@@ -59,6 +59,7 @@ entity core_kairos is
     tp_blocos: out std_logic_vector(11 downto 0);         -- (80) os blocos: total (11-6) e o que toca (5-0)
     tp_para  : in  std_logic := '0';                      -- (80) o F4 (teclado USB): para ja' / continua
     tp_pausak: in  std_logic := '0';                      -- (80) o F3: pausa / continua
+    k_f1     : in  std_logic := '0';                      -- (86) o F1 do teclado USB: ZXUNO A6h bit 1 (a ajuda do NAV)
     tp_pausa : out std_logic_vector(2 downto 0);          -- (80) a fita: bit 0 pausa pedida, 1 parada, 2 parada ja' (F4)
     tp_cam   : out std_logic;                             -- (82) o GS (a fita) escreve na camada L: liga-a sem o ESP
     tp_esp   : in  std_logic := '0';                      -- (82) a camada L ligada pelo ESP
@@ -1045,7 +1046,7 @@ begin
       di <= x"FF";                                     -- aceitacao da INT
     elsif iorq_n = '0' then
       if ua_cs = '1' then di <= ua_q;                  -- UART do ZX-UNO (C6/C7), pelo ESP
-      elsif t_cs = '1' then di <= "0000000" & t_at;   -- (81) A6h: bit 0 = a fita a tocar (pelo GS)
+      elsif t_cs = '1' then di <= "000000" & k_f1 & t_at;   -- (81) A6h: bit 0 = a fita a tocar (pelo GS); (86) bit 1 = F1
       elsif dv_oe = '1' then di <= dv_q;               -- DivTIESUS: EB (SPI), FD3B (registo DF)
       elsif mb_cs = '1' then di <= mb_q;               -- caixa de correio do ESP (EE3B / EF3B)
       elsif u_porta = '1' then di <= u_q;              -- ULAplus
