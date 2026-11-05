@@ -377,7 +377,7 @@ architecture rtl of core_kairos is
   -- (87c) o NMI na FDD3000: do M1 em 0066h ate' ao RETN o navegador / esxDOS tem a maquina normal (o TI escondido,
   -- a DivMMC com o automap todo: o esxDOS chama a ROM e volta pelo RST 8)
   signal nmi_s, fdd_dv, ed_ant, m1_d : std_logic := '0';
-  signal f_disco : std_logic := '0';                            -- (88) a FDD3000 tem disco (A7h bit 3)
+  signal f_disco, f_pausa, g_carga : std_logic := '0';   -- (88) a FDD3000 tem disco (A7h bit 3); (88e) a FDD em pausa (bit 4)
   signal m1_ant, nmi_ret : std_logic_vector(15 downto 0) := (others => '0');   -- (88b) o fim do NMI
   signal m1mr, m1mr_d, n66 : std_logic := '0';
   signal ld_pend, io_wr_d : std_logic := '0';
@@ -519,12 +519,12 @@ begin
         if t_ctl = '1' then                          -- (81) A6h
           if do_cpu(7) = '1' then t_tot <= do_cpu(5 downto 0); else t_rap <= do_cpu(2); end if;
         end if;
-        if a = x"FD3B" and zx_reg = x"A7" then fdd_on <= do_cpu(0); ti_ld <= do_cpu(1); f_disco <= do_cpu(3);   -- (87) a FDD3000; (88) bit 3 = ha' disco
+        if a = x"FD3B" and zx_reg = x"A7" then fdd_on <= do_cpu(0); ti_ld <= do_cpu(1); f_disco <= do_cpu(3); f_pausa <= do_cpu(4);   -- (87) a FDD3000; (88) bit 3 = ha' disco; (88e) bit 4 = o Z80 da FDD em pausa (trocar o disco)
           if do_cpu(2) = '1' then                    -- (88) bit 2: reset ja' (o Z80 e a DivTIESUS), sem esperar que o navegador saia:
             rst_pend <= '0'; carga_rst <= (others => '1'); ent_on <= '0';   -- a maquina FDD3000 arranca logo pelo Timex Interface
           end if;
         end if;
-        if a = x"FD3B" and zx_reg = x"A1" and fdd_on = '1' then fdd_on <= '0'; ti_ld <= '0'; end if;   -- (88) o GS carregado pelo NAV: sai da FDD3000
+        if a = x"FD3B" and zx_reg = x"A1" and fdd_on = '1' and f_pausa = '0' then fdd_on <= '0'; ti_ld <= '0'; end if;   -- (88) o GS carregado pelo NAV: sai da FDD3000
         if a(7 downto 0) = x"EF" and fdd_on = '1' then ti2fdd <= do_cpu; end if;                  -- (87) a ligacao
         if a = x"FD3B" and zx_reg = x"A5" then rst_pend <= '1'; if do_cpu = x"4C" then ent_ld_p <= '1'; else ent_ld_p <= '0'; end if; end if;   -- (69p) reset quando o NMI acabar, depois o ENTER; (83) 4Ch: LOAD "" e ENTER
         if a = x"FD3B" and zx_reg = x"A4" and carga = '1' then      -- (esp61) programa de arranque
@@ -607,7 +607,7 @@ begin
       -- o RESET+NMI (master reset) e o A2h = 52h tiram a FDD: volta o TC2048 normal, o GS parado
       if (reset_n = '0' and nmi_n = '0') or (a = x"FD3B" and zx_reg = x"A2" and do_cpu = x"52" and io_wr = '1') then
         if fdd_on = '1' then gs_rst <= '1'; end if;
-        fdd_on <= '0'; ti_ld <= '0'; ti_pag <= '0';
+        fdd_on <= '0'; ti_ld <= '0'; ti_pag <= '0'; f_pausa <= '0';
       end if;
     end if;
   end process;
@@ -1008,7 +1008,7 @@ begin
             if mp_on = '1' then mpf(to_integer(mp_fw(3 downto 0))) <= q_sd32; mp_fw <= mp_fw + 1; end if;
             a_fim <= '1';
           when "100"  => null;                                   -- rajada da camada: as palavras ja' foram
-          when others => q_g <= q_sd; q_g32 <= q_sd32; g_fim <= '1';
+          when others => if g_emcurso = '1' then q_g <= q_sd; q_g32 <= q_sd32; end if; g_fim <= '1';   -- (88e) a carga (A1h) nao estraga o dado do Z80
         end case;
       end if;
       if sd_req_t = '1' and sd_livre = '1' and sd_rf = '0' then
@@ -1332,7 +1332,7 @@ begin
                                                                        -- da SDRAM deixam-no perto dos 12 MHz do GS
       if io_wr = '1' and io_wr_d = '0' and a = x"FD3B" then
         if zx_reg = x"A0" then gs_lp <= (others => '0'); gs_lp(16) <= do_cpu(1); end if;   -- (81) A0h bit 1: na pagina 2
-        if zx_reg = x"A1" and gs_rst = '1' then ld_pend <= '1'; ld_d <= do_cpu; end if;
+        if zx_reg = x"A1" and (gs_rst = '1' or f_pausa = '1') then ld_pend <= '1'; ld_d <= do_cpu; end if;   -- (88e) tambem com a FDD em pausa
         if zx_reg = x"A8" then gs_lp <= unsigned(do_cpu(5 downto 0)) & "000000000000000"; end if;   -- (87)
         if zx_reg = x"A9" then gs_lp(14 downto 0) <= unsigned(do_cpu(6 downto 0)) & x"00"; end if;   -- (87)
       end if;
@@ -1341,7 +1341,7 @@ begin
       end if;
       -- acessos do Z80 do GS: um pedido por acesso; acabado quando o dado chega
       if gs_acc = '0' then g_feito <= '0'; g_emcurso <= '0';
-      elsif gs_rst = '0' and g_emcurso = '0' and g_feito = '0' and g_vez = '1' and sd_livre = '1' and sd_rf = '0' then
+      elsif gs_rst = '0' and f_pausa = '0' and g_emcurso = '0' and g_feito = '0' and g_vez = '1' and sd_livre = '1' and sd_rf = '0' then
         g_emcurso <= '1';
       elsif g_emcurso = '1' and g_fim = '1' then
         g_emcurso <= '0'; g_feito <= '1';
@@ -1364,7 +1364,8 @@ begin
     c_dat(c_idx)(23 downto 16) when "10",
     c_dat(c_idx)(31 downto 24) when others;
   gs_wait <= gs_acc and not g_feito and not c_ler;
-  g_req   <= ld_pend when gs_rst = '1' else (gs_acc and not g_feito and not g_emcurso and not c_ler);
+  g_carga <= gs_rst or f_pausa;                         -- (88e) a carga pelo A1h: o GS parado ou a FDD em pausa
+  g_req   <= ld_pend when g_carga = '1' else (gs_acc and not g_feito and not g_emcurso and not c_ler);
   process(clk)
     variable w : std_logic_vector(31 downto 0);
     variable b : integer range 0 to 3;
@@ -1383,15 +1384,15 @@ begin
       end if;
     end if;
   end process;
-  g_ok    <= '1' when gs_rst = '1' else gs_wr;
-  g_sa    <= "10" & std_logic_vector(gs_lp) when gs_rst = '1' else
+  g_ok    <= '1' when g_carga = '1' else gs_wr;
+  g_sa    <= "10" & std_logic_vector(gs_lp) when g_carga = '1' else
              "11000" & gs_ma(17 downto 0) when gs_campag = '1' else "10" & gs_ma;   -- (82) a camada L em 600000h
-  g_sd    <= ld_d when gs_rst = '1' else gs_md;
+  g_sd    <= ld_d when g_carga = '1' else gs_md;
   gs_mq <= x"FF" when gs_alto = '1' else c_byte when c_ler = '1' else q_g;
   gs_cs_rd <= '1' when io_rd = '1' and (a(7 downto 0) = x"BB" or a(7 downto 0) = x"B3") else '0';
   gs_cs_wr <= '1' when io_wr = '1' and (a(7 downto 0) = x"BB" or a(7 downto 0) = x"B3") else '0';
   gsnd: entity work.gs
-    port map (clk => clk, reset_n => (rst_n_i or fdd_on) and not gs_rst, ce => gs_ce,   -- (87c) a FDD nao faz reset com o Timex (e' outra caixa)
+    port map (clk => clk, reset_n => (rst_n_i or fdd_on) and not gs_rst, ce => gs_ce and not f_pausa,   -- (88e) a pausa   -- (87c) a FDD nao faz reset com o Timex (e' outra caixa)
               cs_rd => gs_cs_rd, cs_wr => gs_cs_wr, a3 => a(3), din => do_cpu, dout => gs_q,
               m_a => gs_ma_c, m_rd => gs_rd_c, m_wr => gs_wr_c, m_d => gs_md_c, m_q => gs_mq, m_wait => gs_wait,
               out_l => gs_l, out_r => gs_r,

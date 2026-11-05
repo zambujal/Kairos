@@ -52,8 +52,8 @@ O cartao e' FAT32 e leva, por esta ordem:
 - Timex FDD3000 (core 88): no menu das maquinas do navegador (a' direita, debaixo do GENERAL SOUND) a maquina
   TIMEX FDD3000: o TC2048 com a FDD3000 ligada (o Z80 do General Sound faz de FDD; o GS fica calado). Arranca
   logo pelo Timex Interface, sem disco (a FDD espera por um). O disco mete-se com ENTER num .DST (um .DSK de TOS
-  com a extensao mudada para .DST) no navegador: carrega-o e arranca o TC2048 com ele (o lado B: ENTER no outro
-  .DST). Precisa no cartao de /SYS/ROMS/FDD3TI.ROM (a ROM de 4K do Timex Interface) e /SYS/ROMS/FDD3BOOT.ROM
+  com a extensao mudada para .DST) no navegador: carrega-o e arranca o TC2048 com ele (o lado B: quando o jogo o pede,
+  NMI e ENTER no outro .DST: troca o disco sem reset e volta-se ao jogo). Precisa no cartao de /SYS/ROMS/FDD3TI.ROM (a ROM de 4K do Timex Interface) e /SYS/ROMS/FDD3BOOT.ROM
   (o arranque da FDD), que nao vem com o Kairos: tiram-se do Fuse com a FDD3000 (fdd3000e, de slawkis,
   sourceforge.net/projects/fdd3000e, fuse-1.7.0-fdd3000-0.2.1-win32.7z) com o ferramentas/fdd_roms.py: a
   FDD3TI.ROM e' a roms/fdd3stavi.rom e a FDD3BOOT.ROM vem de dentro do fuse.exe. O /BIN/FDD3000 (o comando que o

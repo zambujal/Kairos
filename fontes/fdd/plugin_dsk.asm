@@ -41,9 +41,18 @@ Inicio              push ix
                     in a,(0F4h)         ; so' no TIMEX 2048 (F4 = F0h e' o ZX 128K / Pentagon)
                     cp 0F0h
                     jp z,ErroMaq
-                    ; ja' na FDD (outro disco, ou o outro lado): o Z80 da FDD parado e a FDD desligada antes de
-                    ; usar o esxDOS (com a FDD o 0008h e' do Timex Interface, sem o automap da DivMMC)
+                    ; (88e) o TOS ja' a correr na FDD (o jogo pediu outra disquete): so' se troca o disco, sem reset
+                    call VeTOS
+                    jr c,Arranque
+                    ld a,1
+                    ld (Troca),a
                     di
+                    ld a,19h            ; A7h = 19h: a FDD com disco, em pausa (o Z80 dela parado sem reset)
+                    call SetA7
+                    jp Disco
+                    ; o arranque: o Z80 da FDD parado e a FDD desligada antes de usar o esxDOS (com a FDD o 0008h
+                    ; e' do Timex Interface, sem o automap da DivMMC)
+Arranque            di
                     ld bc,0FC3Bh
                     ld a,0A0h
                     out (c),a
@@ -87,7 +96,7 @@ Inicio              push ix
                     ld de,(BootN)
                     call Envia
                     ; ------------------------------------------------ 3. o disco
-                    ld hl,(Nome)
+Disco               ld hl,(Nome)
                     ld a,'*'
                     ld b,FA_READ
                     rst 08h
@@ -243,6 +252,14 @@ Fim                 ld a,(FH)
                     rst 08h
                     db F_CLOSE
                     di
+                    ld a,(Troca)        ; (88e) na troca: a FDD sai da pausa com o disco novo e volta-se ao jogo
+                    or a
+                    jr z,FimArr
+                    ld a,9
+                    call SetA7
+                    ld bc,TxtTroca
+                    jp FimSai
+FimArr
                     ld a,9              ; A7h = 9: a FDD (o Z80 do GS e' o da FDD) com o disco (bit 3, core 88)
                     call SetA7
                     ld bc,0FC3Bh        ; A0h = 0: o Z80 da FDD arranca
@@ -345,8 +362,12 @@ Erro                ld sp,(SPerro)
                     ld a,(FH)
                     rst 08h
                     db F_CLOSE
-ESemF               xor a               ; o GS fica parado (a ROM dele foi-se: o NAV volta a carrega-la quando for preciso)
-                    call SetA7
+ESemF               ld a,(Troca)        ; (88e) na troca: a FDD continua (sai da pausa)
+                    or a
+                    ld a,9
+                    jr nz,ESa7
+                    xor a               ; o GS fica parado (a ROM dele foi-se: o NAV volta a carrega-la quando for preciso)
+ESa7                call SetA7
                     xor a
                     out (0E3h),a
                     pop bc
@@ -371,6 +392,29 @@ Hex1                and 0Fh
                     add a,7
 H1                  ld (hl),a
                     inc hl
+                    ret
+; (88e) CF = 0 se o TOS ja' corre na FDD (o porto EF muda: a espera do Timex alterna 00h/40h); CF = 1 se nao
+; (FFh: sem a FDD; sempre 00h: a FDD sem disco, o arranque dela a' espera)
+VeTOS               in a,(0EFh)
+                    cp 0FFh
+                    scf
+                    ret z
+                    ld d,a
+                    ld e,0
+                    ld bc,0             ; 65536 leituras
+VTl                 in a,(0EFh)
+                    cp d
+                    jr z,VTi
+                    ld d,a
+                    inc e
+                    jr nz,VTi
+                    dec e               ; satura em FFh
+VTi                 dec bc
+                    ld a,b
+                    or c
+                    jr nz,VTl
+                    ld a,e
+                    cp 4                ; CF = menos de 4 mudancas
                     ret
 ; ZXUNO A7h = A
 SetA7               push bc
@@ -437,6 +481,7 @@ LeFich              push de
 TxtTI               db "/SYS/ROMS/FDD3TI.ROM",0
 TxtBoot             db "/SYS/ROMS/FDD3BOOT.ROM",0
 TxtOk               db "FDD3000: o TOS arranca",0
+TxtTroca            db "FDD3000: disco trocado",0
 TxtDiag             db "FDD parada 00:"
 TxtD00              db "xx 40:"
 TxtD40              db "xx FF:"
@@ -461,6 +506,7 @@ FH                  db 0
 FH2                 db 0
 Aberto              db 0
 Comecou             db 0
+Troca               db 0
 Ext                 db 0
 Faces               db 0
 NPist               dw 0
