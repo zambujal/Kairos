@@ -243,7 +243,7 @@ Fim                 ld a,(FH)
                     rst 08h
                     db F_CLOSE
                     di
-                    ld a,1              ; A7h = 1: a FDD (o Z80 do GS e' o da FDD)
+                    ld a,9              ; A7h = 9: a FDD (o Z80 do GS e' o da FDD) com o disco (bit 3, core 88)
                     call SetA7
                     ld bc,0FC3Bh        ; A0h = 0: o Z80 da FDD arranca
                     ld a,0A0h
@@ -302,10 +302,12 @@ ENs                 pop hl
 FddPronta           ld a,4              ; o border verde: a FDD pronta
                     out (0FEh),a
                     ld bc,0FC3Bh
-                    ld a,0A5h           ; A5h: o reset quando o navegador sair (o TC2048 arranca pelo TI)
+                    ld a,0A5h           ; A5h: o reset quando o navegador sair (o TC2048 arranca pelo TI; core 87)
                     out (c),a
                     inc b
                     out (c),a
+                    ld a,0Dh            ; (88) A7h = 0Dh: FDD, disco e o reset ja' (bit 2): a maquina FDD3000
+                    call SetA7          ; arranca logo pelo Timex Interface, sem voltar ao navegador
                     ld bc,TxtOk
                     ld a,31h
 FimSai

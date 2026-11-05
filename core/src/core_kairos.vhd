@@ -377,6 +377,7 @@ architecture rtl of core_kairos is
   -- (87c) o NMI na FDD3000: do M1 em 0066h ate' ao RETN o navegador / esxDOS tem a maquina normal (o TI escondido,
   -- a DivMMC com o automap todo: o esxDOS chama a ROM e volta pelo RST 8)
   signal nmi_s, fdd_dv, ed_ant, m1_d : std_logic := '0';
+  signal f_disco : std_logic := '0';                            -- (88) a FDD3000 tem disco (A7h bit 3)
   signal op_c : std_logic_vector(7 downto 0) := (others => '0');
   signal ld_pend, io_wr_d : std_logic := '0';
   signal ld_d : std_logic_vector(7 downto 0) := (others => '0');
@@ -517,7 +518,12 @@ begin
         if t_ctl = '1' then                          -- (81) A6h
           if do_cpu(7) = '1' then t_tot <= do_cpu(5 downto 0); else t_rap <= do_cpu(2); end if;
         end if;
-        if a = x"FD3B" and zx_reg = x"A7" then fdd_on <= do_cpu(0); ti_ld <= do_cpu(1); end if;   -- (87) a FDD3000
+        if a = x"FD3B" and zx_reg = x"A7" then fdd_on <= do_cpu(0); ti_ld <= do_cpu(1); f_disco <= do_cpu(3);   -- (87) a FDD3000; (88) bit 3 = ha' disco
+          if do_cpu(2) = '1' then                    -- (88) bit 2: reset ja' (o Z80 e a DivTIESUS), sem esperar que o navegador saia:
+            rst_pend <= '0'; carga_rst <= (others => '1'); ent_on <= '0';   -- a maquina FDD3000 arranca logo pelo Timex Interface
+          end if;
+        end if;
+        if a = x"FD3B" and zx_reg = x"A1" and fdd_on = '1' then fdd_on <= '0'; ti_ld <= '0'; end if;   -- (88) o GS carregado pelo NAV: sai da FDD3000
         if a(7 downto 0) = x"EF" and fdd_on = '1' then ti2fdd <= do_cpu; end if;                  -- (87) a ligacao
         if a = x"FD3B" and zx_reg = x"A5" then rst_pend <= '1'; if do_cpu = x"4C" then ent_ld_p <= '1'; else ent_ld_p <= '0'; end if; end if;   -- (69p) reset quando o NMI acabar, depois o ENTER; (83) 4Ch: LOAD "" e ENTER
         if a = x"FD3B" and zx_reg = x"A4" and carga = '1' then      -- (esp61) programa de arranque
@@ -1382,7 +1388,7 @@ begin
               out_l => gs_l, out_r => gs_r,
               fita => gs_fita, c_livres => tp_livres, c_teclas => ld_visto & tp_esp & tp_cativa & tp_para & tp_pausak,
               c_wr => tp_wr, c_d => tp_d, c_est => gs_est4, c_fim => gs_cfim, c_bloco => gs_blk,
-              fdd => fdd_on, ti_in => ti2fdd, ti_out => fdd2ti);
+              fdd => fdd_on, disco => f_disco, ti_in => ti2fdd, ti_out => fdd2ti);
 
   ---------------------------------------------------------------------------
   -- quadro e INT: 48K 69888 T (INT 32 T); 128K 70908 T (228 x 311, INT 36 T);

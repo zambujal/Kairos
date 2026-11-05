@@ -881,7 +881,13 @@ AMmeio              ld (Esta128),a
 ; v24: IX = linha do comando (sem o ponto). Corre o .go pelo esxDOS (M_EXECCMD, como o menu do
 ; NMI do esxDOS faz com o .snapload). O .go nao volta (arranca a maquina); se voltar foi erro:
 ; sai do navegador e fica a mensagem do .go no ecra.
-ExecGo              push ix
+ExecGo              ld bc,0FC3Bh        ; (v86) ZXUNO A7h = 0: sem a FDD3000 (o .go arranca outra maquina)
+                    ld a,0A7h
+                    out (c),a
+                    inc b
+                    xor a
+                    out (c),a
+                    push ix
                     IF HIRES
                     call SaiRato
                     ENDIF
@@ -932,6 +938,7 @@ TxtGoPenta          db "go128 -penta",0
 TxtGo1024           db "go1024",0
 TxtGo256            db "go256",0
 TxtGo2068           db "go2068",0
+TxtGoFdd            db "fdd3000",0
 TxtGoReset          db "go128 -reset",0
 ; v24d: como o .gs: /BIN/GS105B.ROM (32K) para o GS pelos registos ZXUNO A0h (1 = parado e
 ; ponteiro a 0, 0 = arranca) e A1h (byte seguinte). No clone nao ha' GS (os registos nao existem).
@@ -992,8 +999,8 @@ GSa0                push af
                     out (c),a
                     ret
 TxtGSrom            db "/BIN/GS105B.ROM",0
-TxtGSok             db "GS: ROM carregada, a correr",0
-TxtGSmau            db "GS: falta /BIN/GS105B.ROM (32K)",0
+TxtGSok             db "GS a correr",0
+TxtGSmau            db "GS: falta /BIN/GS105B.ROM",0
 GSbl                db 0
 ; v24g/h: NZ e EhTang = 1 se for o Kairos da Tang (A3h = 54h, ou os bits 5-0 do DFh a 0);
 ; no clone o registo nao existe (le-se o barramento): duas leituras iguais a 54h
@@ -2681,7 +2688,7 @@ DFattr              ld d,1
 
 ; ---------------------------------------------------------------------------
 ; Menu das maquinas (ENTER na barra de cima). 7/6 ou joystick, ENTER escolhe, ESPACO volta.
-NMENU               equ 9                   ; v41: sem o ZX 128K MENU (o ZX 128K ja' arranca o menu). v27: 8 maquinas a' esquerda (PENTAGON 128 e, so' na Tang, 256 e
+NMENU               equ 10                  ; (v86) + TIMEX FDD3000 (a' direita, debaixo do GS). v41: sem o ZX 128K MENU (o ZX 128K ja' arranca o menu). v27: 8 maquinas a' esquerda (PENTAGON 128 e, so' na Tang, 256 e
 MNESQ               equ 8                   ; 1024) e o GS a' direita (so' na Tang); o clone mostra 6
 Menu                call VeTang         ; v24g: Tang (registo ZXUNO A3h = 54h) ou clone
                     ld a,(Filtro)
@@ -2865,6 +2872,11 @@ MNmaq               xor a
                     jr c,MNtroca
                     cp MNESQ+1          ; v24d: General Sound (nao e' maquina: carrega a ROM do GS)
                     jp z,CarregaGS
+                    cp MNESQ+2          ; (v86) TIMEX FDD3000: o .fdd3000 carrega as ROMs e arranca-a
+                    jr nz,MNnfdd
+                    ld ix,TxtGoFdd
+                    jp ExecGo
+MNnfdd
                     push af
                     call MusCala        ; v23: tambem calada ao mudar para o Pentagon
                     pop af
@@ -6203,8 +6215,9 @@ TabPenta            db "PENTAGON 128 ",0,0
                     db "PENTAGON 256 ",0,0     ; v27 (so' na Tang)
                     db "PENTAGON 1024",0,0     ; v26 (so' na Tang)
                     db "GENERAL SOUND",0,0
-TxtAMudar           db "A reiniciar...",0
-TxtSemRom           db "Falta a ROM (/BIN)",0
+                    db "TIMEX FDD3000",0,0     ; (v86) o .fdd3000 (core 88)
+TxtAMudar           db "A reiniciar",0
+TxtSemRom           db "Falta a ROM",0
 TxtRom              db "/BIN/128.rom",0
 TxtRom2068          db "/BIN/2068.rom",0
 TxtMReset           db "Agora RESET com NMI",0

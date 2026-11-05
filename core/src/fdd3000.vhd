@@ -37,6 +37,7 @@ entity fdd3000 is
     m_ad    : out unsigned(19 downto 0);
     -- o Timex Interface
     ti_in   : in  std_logic_vector(7 downto 0);   -- o que o Timex escreveu no EF
+    disco   : in  std_logic := '1';               -- (88) 0 = drive sem disco: as leituras dao RNF (o arranque da FDD fica a' espera)
     ti_out  : out std_logic_vector(7 downto 0);   -- o que o Timex le' no EF
     paged   : out std_logic;                      -- 1 = ROM de arranque em 0000-07FF
     intrq   : out std_logic
@@ -158,7 +159,7 @@ begin
                       else                                       -- Tipo II e III
                         tipo1 <= '0';
                         if d(7 downto 5) = "100" or d(7 downto 5) = "101" then
-                          if drv0 = '0' or r_sec > 15 then rnf <= '1'; irq <= '1';   -- sem disco / sem esse sector
+                          if drv0 = '0' or r_sec > 15 or disco = '0' then rnf <= '1'; irq <= '1';   -- sem disco / sem esse sector
                           else
                             busy <= '1'; drq <= '1';
                             if d(5) = '0' then modo <= 1; else modo <= 2; end if;
