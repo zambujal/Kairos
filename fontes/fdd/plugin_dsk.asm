@@ -1,19 +1,19 @@
-; DST: plugin do navegador (formato dos plugins do Bob Fossil) que arranca a Timex FDD3000 com um disco TOS (.DST = um .DSK de
-; CPC normal ou EXTENDED com outro nome, para nao se confundir com os .dsk do +3 / CPC) (core 87+). So' le' o cartao.
+; DSK: plugin do navegador (formato dos plugins do Bob Fossil) que arranca a Timex FDD3000 com um disco TOS (.DSK de CPC normal
+; ou EXTENDED, 16 sectores de 256 numerados 0-15; os .dsk do +3 / CPC sao recusados) (core 87+). So' le' o cartao.
 ;   1. a ROM do Timex Interface (/SYS/ROMS/FDD3TI.ROM, 4K: a fdd3timex.rom do Fuse com a FDD3000) para a ROM do
 ;      TI no core (ZXUNO A7h = 2: as escritas em 0000h-1FFFh vao para ela);
 ;   2. o arranque da FDD (/SYS/ROMS/FDD3BOOT.ROM, ate' 2K) para a pagina 0 da memoria do Z80 do GS (A0h = 1, A1h);
 ;   3. o disco: os sectores do .DSK (o normal "MV - CPC" e o "EXTENDED") para a memoria da FDD a partir de 20000h,
 ;      no sitio ((pista*2 + face)*16 + sector)*256 (o fdd3000.vhd le-os dai'): 256 bytes por sector, sectores 0-15,
 ;      ate' 84 pistas e 2 faces (o TOS: 140K de 3" e 620K de 3,5");
-;   Num disco de duas faces em dois .DSK (o _2 e' o "lado B"): ENTER no outro .DST = virar a disquete e reset.
+;   Num disco de duas faces em dois .DSK (o _2 e' o "lado B"): ENTER no outro .DSK = virar a disquete e reset.
 ;   4. a maquina com a FDD (A7h = 1: o Z80 do GS passa a ser o da FDD, o GS calado), o Z80 da FDD a correr
 ;      (A0h = 0) e o reset quando o navegador sair (A5h): o TC2048 arranca pelo Timex Interface e o TOS.
 ; Para voltar ao TC2048 normal: o RESET+NMI (Ctrl+Alt+Shift).
 ; Os discos ficam na memoria: o que o TOS grava perde-se ao desligar (por agora nao volta ao cartao).
 ; So' no TIMEX 2048 e no TC2068 (no ZX 128K e no Pentagon a memoria de 8000h e' outra: recusa).
 ; (Kairos, 2026-11-05)
-; Monta-se com  sjasmplus -I../nav --raw=DST plugin_dst.asm
+; Monta-se com  sjasmplus -I../nav --raw=DSK plugin_dsk.asm
 
                     include "esxdos.inc"
 
@@ -30,7 +30,7 @@ BUFTAM              equ 5000h
                     db "BP",0,0
                     db 0                ; flags
                     db 0                ; flags2
-                    db "DST (FDD3000) - Kairos",0
+                    db "DSK (FDD3000) - Kairos",0
 
 Inicio              push ix
                     push iy
@@ -365,14 +365,14 @@ LeFich              push de
 TxtTI               db "/SYS/ROMS/FDD3TI.ROM",0
 TxtBoot             db "/SYS/ROMS/FDD3BOOT.ROM",0
 TxtOk               db "FDD3000: o TOS arranca",0
-TxtMaq              db "DST: so' no TIMEX 2048 / 2068",0
+TxtMaq              db "DSK: so' no TIMEX 2048 / 2068",0
 TxtSemTI            db "Falta /SYS/ROMS/FDD3TI.ROM",0
 TxtSemBoot          db "Falta /SYS/ROMS/FDD3BOOT.ROM",0
-TxtAbre             db "DST: nao abre",0
-TxtNaoDSK           db "Nao e' um .DST (.DSK)",0
-TxtCorte            db "DST: o ficheiro acaba a meio",0
-TxtGrande           db "DST: pista grande demais",0
-TxtGeo              db "DST: so' sectores 0-15 de 256",0
+TxtAbre             db "DSK: nao abre",0
+TxtNaoDSK           db "Nao e' um .DSK",0
+TxtCorte            db "DSK: o ficheiro acaba a meio",0
+TxtGrande           db "DSK: pista grande demais",0
+TxtGeo              db "DSK: nao e' um disco TOS",0
 SPerro              dw 0
 Nome                dw 0
 FH                  db 0
