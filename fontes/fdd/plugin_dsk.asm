@@ -255,6 +255,8 @@ Fim                 ld a,(FH)
                     ld hl,0
                     ld (C00),hl
                     ld (C40),hl
+                    ld a,1              ; (87f) o border azul: a espera pela FDD
+                    out (0FEh),a
                     ld e,32             ; 32 x 65536 leituras: ~40 s a 3,5 MHz, ~5 s a 27 MHz (a FDD precisa de ~2 s)
 EspFdd              ld bc,0
 EFl                 in a,(0EFh)
@@ -279,6 +281,8 @@ ENs                 pop hl
                     jr nz,EFl
                     dec e
                     jr nz,EspFdd
+                    ld a,2              ; o border vermelho: a FDD nao ficou pronta
+                    out (0FEh),a
                     ld hl,TxtD00        ; a FDD nao ficou pronta: o que se leu, sem reset
                     ld a,(C00)
                     call Hex2
@@ -294,7 +298,9 @@ ENs                 pop hl
                     ld bc,TxtDiag
                     ld a,31h
                     jr FimSai
-FddPronta           ld bc,0FC3Bh
+FddPronta           ld a,4              ; o border verde: a FDD pronta
+                    out (0FEh),a
+                    ld bc,0FC3Bh
                     ld a,0A5h           ; A5h: o reset quando o navegador sair (o TC2048 arranca pelo TI)
                     out (c),a
                     inc b
