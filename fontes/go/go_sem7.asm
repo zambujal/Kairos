@@ -667,9 +667,7 @@ OpcaoAY             ld a,(OpcaoF3)
 OpcaoMenu           xor a               ; -menu = -n: sem traps, a ROM0 arranca no menu
                     ld (DivMMCOption),a
                     jr SaltaLetras
-OpcaoDivMenu        ld a,8
-                    ld (MenuDiv),a
-                    jp SaltaLetras
+OpcaoDivMenu        jp OpDivM           ; (85) so' no Kairos da Tang (ver OpDivM)
 OpcaoReset          ld a,1
                     ld (Reset),a
                     jr SaltaLetras
@@ -736,6 +734,19 @@ VSim                pop hl
                     ret
 VNao                inc a               ; A=1: NZ
                     ret
+OpDivM              ld bc,0FC3Bh        ; (85) so' no Kairos da Tang (registo ZXUNO A3h = 54h, 4 leituras): no
+                    ld a,0A3h           ; Timmy com o CPLD v14 nao ha' o DDh bit 3 e o arranque do esxDOS voltava
+                    out (c),a           ; sempre ao STUB (ciclo sem fim). Ai' o -divmenu e' ignorado: arranca o
+                    inc b               ; esxDOS e o BASIC 48 do 128, como antes do -divmenu.
+                    ld e,4
+ODMl                in a,(c)
+                    cp 54h
+                    jp nz,SaltaLetras
+                    dec e
+                    jr nz,ODMl
+                    ld a,8
+                    ld (MenuDiv),a
+                    jp SaltaLetras
 TabOpcoes           db "50",0,"49",0,"float",0,"cc",0,"ct",0,"sc",0,"menu",0,"n",0
                     db "reset",0,"ts",0,"timex",0,"bus",0,"penta",0,"io",0,"ayext",0,"divmenu",0,0
 ErroOp              db 0

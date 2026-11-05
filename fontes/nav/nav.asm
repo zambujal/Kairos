@@ -6136,11 +6136,13 @@ TabCorMaq           db 0Fh,4Fh,4Eh,4Dh,4Ch,4Bh
 TxtPastaTag         db "PASTA",0
 TxtSemIndice        db "sem indice",0
                     IF HIRES
-TxtAjuda            db "F1 ajuda  ENTER corre  SPC volta",0
+TxtAjuda            db "F1 ajuda ENTER corre SPC volta",0
 TxtF1               db "/HELPME.TXT",0
 ; v85: o F1 do teclado USB (o core 86 da'-o no registo ZXUNO A6h, bit 1): abre /HELPME.TXT (texto da raiz do
 ; cartao) com o plugin TXT do Bob Fossil, como um ENTER nesse ficheiro
-VeF1                ld bc,0FC3Bh
+VeF1                call VeTang         ; so' no Kairos da Tang (no Timmy o A6h nao existe: viria o barramento solto)
+                    ret z
+                    ld bc,0FC3Bh
                     ld a,0A6h
                     out (c),a
                     inc b
@@ -6155,7 +6157,9 @@ TxtAjuda            db "F1 ajuda ENT corre",0
 TxtF1               db "/HELPME.TXT",0
 ; v85: o F1 do teclado USB (o core 86 da'-o no registo ZXUNO A6h, bit 1): abre /HELPME.TXT (texto da raiz do
 ; cartao) com o plugin TXT do Bob Fossil, como um ENTER nesse ficheiro
-VeF1                ld bc,0FC3Bh
+VeF1                call VeTang         ; so' no Kairos da Tang (no Timmy o A6h nao existe: viria o barramento solto)
+                    ret z
+                    ld bc,0FC3Bh
                     ld a,0A6h
                     out (c),a
                     inc b
@@ -6167,9 +6171,9 @@ VeF1                ld bc,0FC3Bh
                     ENDIF
 TxtACorrer          db "A carregar...",0
                     IF HIRES
-TxtMod              db "P pausa N/B muda",0
+TxtMod              db "P pausa N/B",0
                     ELSE
-TxtMod              db "P pausa N/B muda",0
+TxtMod              db "P pausa N/B",0
                     ENDIF
 TxtSemExt           db "Sem extensao",0
 TxtSemPlugin        db "Sem plugin para isto",0
