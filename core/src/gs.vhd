@@ -63,7 +63,7 @@ entity gs is
     fdd      : in  std_logic := '0';
     ti_in    : in  std_logic_vector(7 downto 0) := (others => '0');
     ti_out   : out std_logic_vector(7 downto 0);
-    dbg      : out std_logic_vector(31 downto 0)   -- (87i) diagnostico da FDD: comando, n.o de comandos, pista, PC alto
+    dbg      : out std_logic_vector(15 downto 0)   -- (87i) diagnostico da FDD: o ultimo comando do WD1770, o PC alto
   );
 end entity;
 
@@ -83,7 +83,7 @@ architecture rtl of gs is
   signal ch_a, ch_b, ch_c, ch_d : signed(7 downto 0) := (others => '0');
   signal pag : std_logic_vector(5 downto 0);
   signal ler, esc : std_logic;
-  signal f_dbg : std_logic_vector(23 downto 0);
+  signal f_dbg : std_logic_vector(7 downto 0);
   signal pc_hi : std_logic_vector(7 downto 0) := (others => '0');
   signal oa, ob, oc, od : signed(14 downto 0) := (others => '0');
   signal ol, orr : signed(14 downto 0) := (others => '0');

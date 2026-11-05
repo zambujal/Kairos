@@ -40,7 +40,7 @@ entity fdd3000 is
     ti_out  : out std_logic_vector(7 downto 0);   -- o que o Timex le' no EF
     paged   : out std_logic;                      -- 1 = ROM de arranque em 0000-07FF
     intrq   : out std_logic;
-    dbg     : out std_logic_vector(23 downto 0)      -- (87i) diagnostico: o ultimo comando, quantos comandos, a pista
+    dbg     : out std_logic_vector(7 downto 0)       -- (87i) diagnostico: o ultimo comando do WD1770
   );
 end entity;
 
@@ -66,7 +66,7 @@ architecture rtl of fdd3000 is
   signal st : std_logic_vector(7 downto 0);
   signal ra : std_logic_vector(7 downto 0);
   signal trk0 : std_logic;
-  signal d_cmd, d_n : unsigned(7 downto 0) := (others => '0');
+  signal d_cmd : unsigned(7 downto 0) := (others => '0');
 begin
   io    <= '1' when iorq_n = '0' and m1_n = '1' else '0';
   io_rd <= io and not rd_n;
@@ -101,7 +101,7 @@ begin
   ti_out <= ti_o;
   paged  <= pg;
   intrq  <= irq;
-  dbg    <= std_logic_vector(d_cmd) & std_logic_vector(d_n) & '0' & std_logic_vector(fis);
+  dbg    <= std_logic_vector(d_cmd);
 
   process(clk)
     variable fim : std_logic;
@@ -133,7 +133,7 @@ begin
               when "110" =>
                 case a(1 downto 0) is
                   when "00" =>                                   -- comando
-                    d_cmd <= unsigned(d); d_n <= d_n + 1;
+                    d_cmd <= unsigned(d);
                     if d(7 downto 4) = "1101" then               -- Force Interrupt
                       modo <= 0; busy <= '0'; drq <= '0'; t1 <= (others => '0');
                       if d(3 downto 0) /= "0000" then irq <= '1'; else irq <= '0'; end if;
