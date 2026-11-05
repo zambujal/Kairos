@@ -587,7 +587,9 @@ begin
         if ed_ant = '1' and op_c = x"45" then nmi_s <= '0'; end if;
         if op_c = x"ED" and ed_ant = '0' then ed_ant <= '1'; else ed_ant <= '0'; end if;
       end if;
-      if rst_n_i = '0' or fdd_on = '0' then nmi_s <= '0'; end if;
+      -- (87e) a FDD ligada de dentro do navegador (o plugin): a maquina fica normal ate' ao reset que ele pede
+      if io_wr = '1' and a = x"FD3B" and zx_reg = x"A7" then nmi_s <= do_cpu(0); end if;
+      if rst_n_i = '0' then nmi_s <= '0'; end if;
       if rst_n_i = '0' then ti_pag <= '0'; ti_sai <= '0'; end if;
       -- o RESET+NMI (master reset) e o A2h = 52h tiram a FDD: volta o TC2048 normal, o GS parado
       if (reset_n = '0' and nmi_n = '0') or (a = x"FD3B" and zx_reg = x"A2" and do_cpu = x"52" and io_wr = '1') then
