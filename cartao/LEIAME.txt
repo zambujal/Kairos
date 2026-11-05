@@ -3,11 +3,11 @@ https://github.com/zambujal/kairos
 
 1. GRAVAR O CORE NO TANG
 ------------------------
-O core esta' na pasta core/ deste cartao (kairos_core87.fs). Grava-se uma vez, no PC, com o
+O core esta' na pasta core/ deste cartao (kairos_core86.fs). Grava-se uma vez, no PC, com o
 Tang ligado directamente a uma porta USB do PC (sem hub). Depois de gravar, desligar e voltar a ligar.
 
 Linux (openFPGALoader):
-    openFPGALoader -b tangnano20k -f kairos_core87.fs
+    openFPGALoader -b tangnano20k -f kairos_core86.fs
     (Fedora: sudo dnf copr enable mobicarte/openFPGALoader && sudo dnf install openFPGALoader
      Debian/Ubuntu: sudo apt install openfpgaloader
      "unable to open ftdi device" = permissao de USB: com sudo, ou as regras udev do openFPGALoader)
@@ -16,7 +16,7 @@ Windows (Gowin Programmer, do Gowin EDA Education, www.gowinsemi.com):
     scan_device -> GW2AR-18C; duas vezes na linha do dispositivo:
       Access Mode: External Flash Mode
       Operation:   exFlash Erase, Program
-      FS File:     kairos_core87.fs
+      FS File:     kairos_core86.fs
       External Flash: Generic Flash, endereco 0x000000
     Program.
 
@@ -31,8 +31,7 @@ O cartao e' FAT32 e leva, por esta ordem:
      BIN/BROWSE.BIN, NAVHR.BIN   o navegador (normal e alta resolucao)
      BIN/GO128, GO256, GO1024, GO2068   mudam de maquina (o navegador usa-os)
      BIN/PENTA.BIN, NAVPT3.BIN, SOMNAV.BIN   Pentagon, leitor de PT3, musica de arranque
-     BIN/BPLUGINS/MOD, PT3, AY, TZX, DSK   plugins: MOD no General Sound, PT3 (AY e TurboSound), .AY, TZX,
-                                 DSK (discos TOS da Timex FDD3000)
+     BIN/BPLUGINS/MOD, PT3, AY, TZX   plugins: MOD no General Sound, PT3 (AY e TurboSound), .AY, TZX
      SYS/NAV.SOM                 a musica de arranque
      HELPME.TXT (na raiz)       a ajuda das teclas (F1)
      SYS/ROMS/TC2048.ROM (16384 bytes) e ESXMMC.BIN (8192 bytes): o core le-os ao ligar
@@ -49,14 +48,6 @@ O cartao e' FAT32 e leva, por esta ordem:
   "Maquina anterior?": ENTER (ou um clique) = sim; 3 s sem resposta = nao.
 - F1 (no navegador): abre a ajuda, o /HELPME.TXT da raiz do cartao. Precisa do plugin TXT em
   /BIN/BPLUGINS (do navegador do Bob Fossil).
-- Timex FDD3000 (core 87): ENTER num .DST (um .DSK de TOS com a extensao mudada para .DST, para nao colidir
-  com os plugins DSK do +3; os do +3 sao recusados) no navegador, so' no TIMEX 2048 ou no TC2068: arranca
-  com o Timex Interface e o TOS (o Z80 do General Sound faz de FDD; o GS fica calado). Precisa no cartao de
-  /SYS/ROMS/FDD3TI.ROM (a ROM de 4K do Timex Interface) e /SYS/ROMS/FDD3BOOT.ROM (o arranque da FDD), que nao vem
-  com o Kairos: tiram-se do Fuse com a FDD3000 (fdd3000e, de slawkis, sourceforge.net/projects/fdd3000e,
-  fuse-1.7.0-fdd3000-0.2.1-win32.7z) com o ferramentas/fdd_roms.py: a FDD3TI.ROM e' a roms/fdd3stavi.rom e a
-  FDD3BOOT.ROM vem de dentro do fuse.exe. Na FDD so' a 3,5 MHz. Para virar a disquete (o "lado B", ex. o _2.dst): NMI e ENTER no
-  outro .DST (faz o reset). O disco fica na memoria: o que se grava perde-se ao desligar. Ctrl+Alt+Shift volta ao TC2048.
 - F9 / F10: velocidade do Z80 (3,5 / 7 / 14 / 27 MHz).
 - Com rato USB: passar por cima escolhe a linha, clique esquerdo corre, clique direito = ESPACO, a roda
   muda de pagina, clique no caminho (linha de cima) sobe uma pasta, clique no nome da maquina abre o

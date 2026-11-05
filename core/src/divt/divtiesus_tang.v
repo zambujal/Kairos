@@ -39,8 +39,7 @@ module divtiesus_tang (
   output wire modo128,
   output wire modo2068,
   input  wire p1024,             // Tang: Pentagon 1024, o 7FFD sem trinco (bit 5 = banco)
-  input  wire sem_fita,          // (67) Tang: a cassete do ESP ligada: a DivMMC nao apanha o LOAD (04C6, 0562)
-  input  wire fdd                // (87) Tang: a FDD3000 (o Timex Interface pagina-se em 0000h/0008h): sem automap ai'
+  input  wire sem_fita           // (67) Tang: a cassete do ESP ligada: a DivMMC nao apanha o LOAD (04C6, 0562)
   );
 
   wire notplus3 = 1'b1;
@@ -80,7 +79,7 @@ module divtiesus_tang (
     .a(a), .d(din), .dout(dout_div), .doe(doe_div),
     .mreq_n(mreq_n), .iorq_n(iorq_n), .rd_n(rd_n), .wr_n(wr_n), .m1_n(m1_n),
     .nmi_button_n(nmi_button_n), .nmi_to_cpu_n(nmi_to_cpu_n),
-    .inrom48k(inrom48k), .modo128(modo128), .modo2068(modo2068), .exlo(exlo), .sem_fita(sem_fita), .menu128(menu128), .fdd(fdd),
+    .inrom48k(inrom48k), .modo128(modo128), .modo2068(modo2068), .exlo(exlo), .sem_fita(sem_fita), .menu128(menu128),
     .zxromcs(divmmc_zxromcs),
     .eeprom_cs(divmmc_eeprom_cs), .eeprom_we_n(eeprom_we_n_nc),
     .sram_cs(divmmc_sram_cs), .sram_write_n(divmmc_sram_write_n), .sram_hiaddr(divmmc_sram_hiaddr),

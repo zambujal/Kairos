@@ -43,7 +43,6 @@ module divmmc_mcleod (
   input wire modo2068,  // 1 = modo TC2068 do Kairos: outras traps (ver em baixo)
   input wire exlo,      // 1 = modo TC2068 com a EXROM em 0000-1FFF
   input wire menu128,   // (69) 1 = 128K com o menu da ROM: sem automap no 0000h (o resto das traps fica)
-  input wire fdd,       // (87) Tang: a FDD3000 (o Timex Interface em 0000-3FFF): so' o automap do NMI (0066h)
   input wire sem_fita,  // (67) Tang: 1 = a cassete do ESP esta' ligada: sem as traps da fita (04C6, 0562)
   output reg zxromcs,   // 1 to disable ZX ROM.
   // DivMMC onboard memory control
@@ -94,8 +93,8 @@ module divmmc_mcleod (
 
   always @(negedge mreq_n or negedge rst_n) begin
     if (rst_n == 1'b0) begin
-      divmmc_is_autopaged <= ~fdd;                  // (87) na FDD3000 o reset vai direito ao Timex Interface (sem o esxDOS)
-      divmmc_autopage_status_after_m1 <= ~fdd;
+      divmmc_is_autopaged <= 1'b1;
+      divmmc_autopage_status_after_m1 <= 1'b1;
       armado <= 1'b0;
     end
     else begin
@@ -103,14 +102,14 @@ module divmmc_mcleod (
         armado <= (modo2068 == 1'b1 && exlo == 1'b1 && a == 16'h0108);
       if (m1_n == 1'b0) begin
         // No modo 128K o 0066h tambem mapeia com a ROM0 (menu/BASIC 128), para o NMI funcionar
-        if ((fdd == 1'b1 && a==16'h0066) || fdd == 1'b0 && ((a==16'h0000 && menu128 == 1'b0) || (a==16'h0066 && modo128) || trap2068 || modo2068 == 1'b0 && inrom48k && (a==16'h0008 || a==16'h0038 || a==16'h0066 || (sem_fita == 1'b0 && (a==16'h04C6 || a==16'h0562)) ))) begin   // (87) na FDD3000 so' o NMI (0066h)  // Deferred automapping (maps at the next CPU clock cycle)
+        if ((a==16'h0000 && menu128 == 1'b0) || (a==16'h0066 && modo128) || trap2068 || modo2068 == 1'b0 && inrom48k && (a==16'h0008 || a==16'h0038 || a==16'h0066 || (sem_fita == 1'b0 && (a==16'h04C6 || a==16'h0562)) )) begin  // Deferred automapping (maps at the next CPU clock cycle)
           divmmc_autopage_status_after_m1 <= 1'b1;
         end
         else if (a==16'h0000 && menu128 == 1'b1) begin  // (69d) menu do 128: o 0000h desmapeia logo (o .go128 -divmenu
           divmmc_is_autopaged <= 1'b0;                  // salta para 0 ainda com o esxDOS mapeado; o reset limpa o menu128)
           divmmc_autopage_status_after_m1 <= 1'b0;
         end
-        else if (a[15:8]==8'h3D && (inrom48k || modo2068) && fdd == 1'b0) begin  // Non deferred automapping (Current CPU clock cycle)
+        else if (a[15:8]==8'h3D && (inrom48k || modo2068)) begin  // Non deferred automapping (Current CPU clock cycle)
           divmmc_is_autopaged <= 1'b1;
           divmmc_autopage_status_after_m1 <= 1'b1;
         end
