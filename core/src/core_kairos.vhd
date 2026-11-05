@@ -380,6 +380,7 @@ architecture rtl of core_kairos is
   signal n_ti, n_ef : unsigned(7 downto 0) := (others => '0');   -- (87i) diagnostico da FDD
   signal f_dbg : std_logic_vector(31 downto 0);
   signal dbg_cs : std_logic;
+  signal d_off : std_logic_vector(2 downto 0) := (others => '0');   -- (87l) o que desligou a FDD: 0 A7h=0, 1 RESET+NMI, 2 A2h=52h
   signal op_c : std_logic_vector(7 downto 0) := (others => '0');
   signal ld_pend, io_wr_d : std_logic := '0';
   signal ld_d : std_logic_vector(7 downto 0) := (others => '0');
@@ -486,7 +487,7 @@ begin
   -- como estava (a ROM do GS nunca e' tocada: com ROM recomeca do principio, sem ROM fica parado).
   -- ZXUNO A6h: bit 2 = o Z80 a 14 MHz enquanto o plugin escreve; com o bit 7, os bits 5-0 = quantos blocos.
   t_cs   <= '1' when a = x"FD3B" and zx_reg = x"A6" else '0';
-  dbg_cs <= '1' when a = x"FD3B" and zx_reg(7 downto 3) = "10101" and zx_reg(2 downto 0) /= "000" and zx_reg(2 downto 0) /= "111" else '0';   -- (87i) A9h-AEh lidos
+  dbg_cs <= '1' when a = x"FD3B" and zx_reg(7 downto 3) = "10101" and zx_reg(2 downto 0) /= "000" else '0';   -- (87i) A9h-AEh lidos
   t_ctl  <= io_wr and not io_wr_d and t_cs;
   t_at   <= gs_fita and not gs_rst;
   tp_ativa <= t_at;
@@ -522,7 +523,9 @@ begin
         if t_ctl = '1' then                          -- (81) A6h
           if do_cpu(7) = '1' then t_tot <= do_cpu(5 downto 0); else t_rap <= do_cpu(2); end if;
         end if;
-        if a = x"FD3B" and zx_reg = x"A7" then fdd_on <= do_cpu(0); ti_ld <= do_cpu(1); end if;   -- (87) a FDD3000
+        if a = x"FD3B" and zx_reg = x"A7" then fdd_on <= do_cpu(0); ti_ld <= do_cpu(1);
+          if do_cpu(0) = '1' then d_off <= (others => '0'); elsif fdd_on = '1' then d_off(0) <= '1'; end if;   -- (87l) quem desliga a FDD
+        end if;   -- (87) a FDD3000
         if a(7 downto 0) = x"EF" and fdd_on = '1' then ti2fdd <= do_cpu; end if;                  -- (87) a ligacao
         if a = x"FD3B" and zx_reg = x"A5" then rst_pend <= '1'; if do_cpu = x"4C" then ent_ld_p <= '1'; else ent_ld_p <= '0'; end if; end if;   -- (69p) reset quando o NMI acabar, depois o ENTER; (83) 4Ch: LOAD "" e ENTER
         if a = x"FD3B" and zx_reg = x"A4" and carga = '1' then      -- (esp61) programa de arranque
@@ -601,6 +604,7 @@ begin
       -- o RESET+NMI (master reset) e o A2h = 52h tiram a FDD: volta o TC2048 normal, o GS parado
       if (reset_n = '0' and nmi_n = '0') or (a = x"FD3B" and zx_reg = x"A2" and do_cpu = x"52" and io_wr = '1') then
         if fdd_on = '1' then gs_rst <= '1'; end if;
+        if fdd_on = '1' then if reset_n = '0' then d_off(1) <= '1'; else d_off(2) <= '1'; end if; end if;   -- (87l) 1 = RESET+NMI, 2 = A2h=52h
         fdd_on <= '0'; ti_ld <= '0'; ti_pag <= '0';
       end if;
     end if;
@@ -1106,6 +1110,7 @@ begin
           when "100" => di <= f_dbg(15 downto 8);
           when "101" => di <= f_dbg(7 downto 0);
           when "110" => di <= std_logic_vector(n_ti);
+          when "111" => di <= "0000" & fdd_on & d_off;      -- (87l) AFh: bit 3 a FDD ligada, bits 2-0 quem a desligou
           when others => di <= std_logic_vector(n_ef);
         end case;
       elsif t_cs = '1' then di <= "000000" & k_f1 & t_at;   -- (81) A6h: bit 0 = a fita a tocar (pelo GS); (86) bit 1 = F1
