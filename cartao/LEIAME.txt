@@ -49,7 +49,7 @@ O cartao e' FAT32 e leva, por esta ordem:
   "Maquina anterior?": ENTER (ou um clique) = sim; 3 s sem resposta = nao.
 - F1 (no navegador): abre a ajuda, o /HELPME.TXT da raiz do cartao. Precisa do plugin TXT em
   /BIN/BPLUGINS (do navegador do Bob Fossil).
-- Timex FDD3000 (core 87): ENTER num .DSK (disco TOS) no navegador, na maquina TIMEX 2048: o TC2048 arranca
+- Timex FDD3000 (core 87): ENTER num .DSK (disco TOS) no navegador, so' no TIMEX 2048 ou no TC2068: arranca
   com o Timex Interface e o TOS (o Z80 do General Sound faz de FDD; o GS fica calado). Precisa no cartao de
   /SYS/ROMS/FDD3TI.ROM (a ROM de 4K do Timex Interface) e /SYS/ROMS/FDD3BOOT.ROM (o arranque da FDD), que nao vem
   com o Kairos. O disco fica na memoria: o que se grava perde-se ao desligar. Ctrl+Alt+Shift volta ao TC2048.

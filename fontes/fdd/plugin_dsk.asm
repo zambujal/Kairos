@@ -10,7 +10,7 @@
 ;      (A0h = 0) e o reset quando o navegador sair (A5h): o TC2048 arranca pelo Timex Interface e o TOS.
 ; Para voltar ao TC2048 normal: o RESET+NMI (Ctrl+Alt+Shift).
 ; Os discos ficam na memoria: o que o TOS grava perde-se ao desligar (por agora nao volta ao cartao).
-; So' na maquina TIMEX 2048 (no ZX 128K e no Pentagon a memoria de 8000h e' outra).
+; So' no TIMEX 2048 e no TC2068 (no ZX 128K e no Pentagon a memoria de 8000h e' outra: recusa).
 ; (Kairos, 2026-11-05)
 ; Monta-se com  sjasmplus -I../nav --raw=DSK plugin_dsk.asm
 
@@ -353,7 +353,7 @@ LeFich              push de
 TxtTI               db "/SYS/ROMS/FDD3TI.ROM",0
 TxtBoot             db "/SYS/ROMS/FDD3BOOT.ROM",0
 TxtOk               db "FDD3000: o TOS arranca",0
-TxtMaq              db "DSK: so' no TIMEX 2048",0
+TxtMaq              db "DSK: so' no TIMEX 2048 / 2068",0
 TxtSemTI            db "Falta /SYS/ROMS/FDD3TI.ROM",0
 TxtSemBoot          db "Falta /SYS/ROMS/FDD3BOOT.ROM",0
 TxtAbre             db "DSK: nao abre",0
