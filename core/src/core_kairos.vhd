@@ -374,6 +374,10 @@ architecture rtl of core_kairos is
   -- O TI na SDRAM em 080000h: ROM de 4K (em 0000-1FFF, duas vezes), RAM de 8K (2000-3FFF). Porto xxEF: a ligacao.
   signal fdd_on, ti_ld, ti_pag, ti_sai, ti_l, ti_sel, ti_rd, ti_wr, ti_m1 : std_logic := '0';
   signal ti2fdd, fdd2ti : std_logic_vector(7 downto 0) := (others => '0');
+  -- (87c) o NMI na FDD3000: do M1 em 0066h ate' ao RETN o navegador / esxDOS tem a maquina normal (o TI escondido,
+  -- a DivMMC com o automap todo: o esxDOS chama a ROM e volta pelo RST 8)
+  signal nmi_s, fdd_dv, ed_ant, m1_d : std_logic := '0';
+  signal op_c : std_logic_vector(7 downto 0) := (others => '0');
   signal fdd_div : integer range 0 to 15 := 0;
   signal ld_pend, io_wr_d : std_logic := '0';
   signal ld_d : std_logic_vector(7 downto 0) := (others => '0');
@@ -457,7 +461,7 @@ begin
               zxromcs => dv_romcs, mapeado => dv_mapeado, be_n => dv_be_n, nmi_n => cpu_nmi_n, nmi_button_n => nmi_n,
               sclk => mmc_sclk, mosi => mmc_mosi, miso => mmc_miso, sd_cs0 => mmc_cs_n,
               eeprom_oe_n => dv_ee_n, sram_oe_n => dv_oe_n, sram_we_n => dv_we_n,
-              sram_hiaddr => dv_hi, modo128 => dv_m128, modo2068 => dv_m2068, p1024 => m1024, sem_fita => sem_fita_t, fdd => fdd_on);
+              sram_hiaddr => dv_hi, modo128 => dv_m128, modo2068 => dv_m2068, p1024 => m1024, sem_fita => sem_fita_t, fdd => fdd_dv);
 
   ---------------------------------------------------------------------------
   -- SCLD: portas (amostradas como no scld_regs: escrita do Z80 a meio do ciclo de E/S)
@@ -575,6 +579,15 @@ begin
         if ti_pag = '1' and a = x"0604" then ti_sai <= '1'; end if;
       end if;
       if ti_sai = '1' and m1_n = '1' then ti_pag <= '0'; ti_sai <= '0'; end if;
+      -- (87c) o NMI: comeca no M1 em 0066h, acaba no RETN (ED 45)
+      m1_d <= m1_n;
+      if m1_n = '0' and mreq_n = '0' then op_c <= di; end if;
+      if fdd_on = '1' and m1_n = '0' and mreq_n = '0' and rfsh_n = '1' and a = x"0066" and dv_mapeado = '0' then nmi_s <= '1'; end if;
+      if m1_d = '0' and m1_n = '1' then
+        if ed_ant = '1' and op_c = x"45" then nmi_s <= '0'; end if;
+        if op_c = x"ED" and ed_ant = '0' then ed_ant <= '1'; else ed_ant <= '0'; end if;
+      end if;
+      if rst_n_i = '0' or fdd_on = '0' then nmi_s <= '0'; end if;
       if rst_n_i = '0' then ti_pag <= '0'; ti_sai <= '0'; end if;
       -- o RESET+NMI (master reset) e o A2h = 52h tiram a FDD: volta o TC2048 normal, o GS parado
       if (reset_n = '0' and nmi_n = '0') or (a = x"FD3B" and zx_reg = x"A2" and do_cpu = x"52" and io_wr = '1') then
@@ -625,10 +638,11 @@ begin
   -- RAM interna 8000-FFFF: so' com o bloco na HOME e sem a DivTIESUS a servir (BE)
   interna <= '1' when a(15) = '1' and vram128 = '0' and home = '1' and dv_be_n = '1' else '0';
   -- (87) o Timex Interface em 0000-3FFF (ROM 0000-1FFF so' de leitura, menos na carga; RAM 2000-3FFF)
-  ti_m1  <= '1' when fdd_on = '1' and dv_mapeado = '0' and m1_n = '0' and (a = x"0000" or a = x"0008") else '0';
+  fdd_dv <= fdd_on and not nmi_s;
+  ti_m1  <= '1' when fdd_on = '1' and nmi_s = '0' and dv_mapeado = '0' and m1_n = '0' and (a = x"0000" or a = x"0008") else '0';
   -- o M1 em 0066h (o NMI do navegador) le' o PUSH AF da ROM do Timex, nao a do TI (a DivMMC mapeia a seguir)
   ti_sel <= '1' when a(15 downto 14) = "00" and mreq_n = '0' and rfsh_n = '1' and
-                     (((ti_pag = '1' or ti_m1 = '1') and dv_mapeado = '0' and not (m1_n = '0' and a = x"0066")) or
+                     (((ti_pag = '1' or ti_m1 = '1') and nmi_s = '0' and dv_mapeado = '0' and not (m1_n = '0' and a = x"0066")) or
                       (ti_ld = '1' and wr_n = '0')) else '0';
   ti_rd  <= ti_sel and not rd_n and not ti_ld;
   ti_wr  <= ti_sel and not wr_n and (a(13) or ti_ld);
@@ -1363,7 +1377,7 @@ begin
   gs_cs_rd <= '1' when io_rd = '1' and (a(7 downto 0) = x"BB" or a(7 downto 0) = x"B3") else '0';
   gs_cs_wr <= '1' when io_wr = '1' and (a(7 downto 0) = x"BB" or a(7 downto 0) = x"B3") else '0';
   gsnd: entity work.gs
-    port map (clk => clk, reset_n => rst_n_i and not gs_rst, ce => gs_ce,
+    port map (clk => clk, reset_n => (rst_n_i or fdd_on) and not gs_rst, ce => gs_ce,   -- (87c) a FDD nao faz reset com o Timex (e' outra caixa)
               cs_rd => gs_cs_rd, cs_wr => gs_cs_wr, a3 => a(3), din => do_cpu, dout => gs_q,
               m_a => gs_ma_c, m_rd => gs_rd_c, m_wr => gs_wr_c, m_d => gs_md_c, m_q => gs_mq, m_wait => gs_wait,
               out_l => gs_l, out_r => gs_r,

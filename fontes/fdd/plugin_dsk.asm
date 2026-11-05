@@ -1,6 +1,7 @@
 ; DSK: plugin do navegador (formato dos plugins do Bob Fossil) que arranca a Timex FDD3000 com um disco TOS (.DSK de CPC normal
 ; ou EXTENDED, 16 sectores de 256 numerados 0-15; os .dsk do +3 / CPC sao recusados) (core 87+). So' le' o cartao.
-;   1. a ROM do Timex Interface (/SYS/ROMS/FDD3TI.ROM, 4K: a fdd3timex.rom do Fuse com a FDD3000) para a ROM do
+;   1. a ROM do Timex Interface (/SYS/ROMS/FDD3TI.ROM, 4K: a fdd3stavi.rom do Fuse com a FDD3000, a que da' com
+;      o TC2048; a fdd3timex.rom nao arranca o TOS com a ROM do TC2048) para a ROM do
 ;      TI no core (ZXUNO A7h = 2: as escritas em 0000h-1FFFh vao para ela);
 ;   2. o arranque da FDD (/SYS/ROMS/FDD3BOOT.ROM, ate' 2K) para a pagina 0 da memoria do Z80 do GS (A0h = 1, A1h);
 ;   3. o disco: os sectores do .DSK (o normal "MV - CPC" e o "EXTENDED") para a memoria da FDD a partir de 20000h,
@@ -249,7 +250,17 @@ Fim                 ld a,(FH)
                     inc b
                     xor a
                     out (c),a
-                    dec b
+                    ; (87c) espera ~2,5 s (a 3,5 MHz) que a FDD arranque e carregue o TOS: o Timex Interface so' tenta
+                    ; falar com ela ~1 s depois do reset (na maquina real a FDD ja' estava ligada antes)
+                    ld e,6
+Espera              ld bc,0
+EspL                dec bc
+                    ld a,b
+                    or c
+                    jr nz,EspL
+                    dec e
+                    jr nz,Espera
+                    ld bc,0FC3Bh
                     ld a,0A5h           ; A5h: o reset quando o navegador sair (o TC2048 arranca pelo TI)
                     out (c),a
                     inc b
