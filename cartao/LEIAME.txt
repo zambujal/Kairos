@@ -3,11 +3,11 @@ https://github.com/zambujal/kairos
 
 1. GRAVAR O CORE NO TANG
 ------------------------
-O core esta' na pasta core/ deste cartao (kairos_core85c.fs). Grava-se uma vez, no PC, com o
+O core esta' na pasta core/ deste cartao (kairos_core86.fs). Grava-se uma vez, no PC, com o
 Tang ligado directamente a uma porta USB do PC (sem hub). Depois de gravar, desligar e voltar a ligar.
 
 Linux (openFPGALoader):
-    openFPGALoader -b tangnano20k -f kairos_core85c.fs
+    openFPGALoader -b tangnano20k -f kairos_core86.fs
     (Fedora: sudo dnf copr enable mobicarte/openFPGALoader && sudo dnf install openFPGALoader
      Debian/Ubuntu: sudo apt install openfpgaloader
      "unable to open ftdi device" = permissao de USB: com sudo, ou as regras udev do openFPGALoader)
@@ -16,7 +16,7 @@ Windows (Gowin Programmer, do Gowin EDA Education, www.gowinsemi.com):
     scan_device -> GW2AR-18C; duas vezes na linha do dispositivo:
       Access Mode: External Flash Mode
       Operation:   exFlash Erase, Program
-      FS File:     kairos_core85c.fs
+      FS File:     kairos_core86.fs
       External Flash: Generic Flash, endereco 0x000000
     Program.
 
@@ -33,6 +33,7 @@ O cartao e' FAT32 e leva, por esta ordem:
      BIN/PENTA.BIN, NAVPT3.BIN, SOMNAV.BIN   Pentagon, leitor de PT3, musica de arranque
      BIN/BPLUGINS/MOD, PT3, AY, TZX   plugins: MOD no General Sound, PT3 (AY e TurboSound), .AY, TZX
      SYS/NAV.SOM                 a musica de arranque
+     HELPME.TXT (na raiz)       a ajuda das teclas (F1)
      SYS/ROMS/TC2048.ROM (16384 bytes) e ESXMMC.BIN (8192 bytes): o core le-os ao ligar
   Opcionais em BIN/: 128.rom (modo 128K e Pentagon), 2068.rom (modo TC2068), GS105B.ROM (General
   Sound), PLUG2068/TAP (TAP no TC2068).
@@ -45,6 +46,8 @@ O cartao e' FAT32 e leva, por esta ordem:
 - No navegador: ENTER corre o ficheiro, ESPACO volta, 9 vai para a barra das pastas, 1-4 abrem o menu
   das maquinas. A ultima maquina fica gravada: no primeiro NMI depois de ligar pergunta
   "Maquina anterior?": ENTER (ou um clique) = sim; 3 s sem resposta = nao.
+- F1 (no navegador): abre a ajuda, o /HELPME.TXT da raiz do cartao. Precisa do plugin TXT em
+  /BIN/BPLUGINS (do navegador do Bob Fossil).
 - F9 / F10: velocidade do Z80 (3,5 / 7 / 14 / 27 MHz).
 - Com rato USB: passar por cima escolhe a linha, clique esquerdo corre, clique direito = ESPACO, a roda
   muda de pagina, clique no caminho (linha de cima) sobe uma pasta, clique no nome da maquina abre o
