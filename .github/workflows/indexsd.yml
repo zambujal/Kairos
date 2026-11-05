@@ -1,6 +1,6 @@
-# Faz o indexSD (janela dos indices do cartao) em executavel: indexSD.exe (Windows) e indexSD (Linux).
+# Faz o indexSD (janela dos indices do cartao) em executavel: indexSD.exe (Windows) e indexSD-linux (Linux),
+# e poe-nos na Release "indexSD" do repositorio (Releases -> indexSD), sempre a versao mais recente.
 # Corre quando muda alguma coisa em ferramentas/ ou a pedido (Actions -> indexSD -> Run workflow).
-# Os executaveis ficam em "Artifacts" no fim de cada execucao.
 name: indexSD
 on:
   workflow_dispatch:
@@ -9,6 +9,8 @@ on:
       - 'ferramentas/cartao.py'
       - 'ferramentas/indexSD_gui.pyw'
       - '.github/workflows/indexsd.yml'
+permissions:
+  contents: write
 jobs:
   build:
     strategy:
@@ -27,8 +29,25 @@ jobs:
           cd ferramentas
           cp indexSD_gui.pyw indexSD_gui.py
           python -m PyInstaller --onefile --windowed --name indexSD --paths . --hidden-import cartao indexSD_gui.py
-          cp config.ini dist/
+          if [ "$RUNNER_OS" = Linux ]; then mv dist/indexSD dist/indexSD-linux; fi
       - uses: actions/upload-artifact@v4
         with:
           name: indexSD-${{ runner.os }}
           path: ferramentas/dist/
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: art
+      - name: release indexSD
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp ferramentas/config.ini art/
+          ls -laR art
+          gh release view indexSD >/dev/null 2>&1 || gh release create indexSD --title "indexSD (indices do cartao)" \
+            --notes "Janela para fazer os indices do navegador do Kairos (_NAV) no cartao SD. indexSD.exe = Windows, indexSD-linux = Linux (chmod +x). O config.ini e' opcional (ao lado do programa ou na raiz do cartao). Refeito sozinho sempre que o cartao.py ou a janela mudam."
+          gh release upload indexSD art/indexSD-Windows/indexSD.exe art/indexSD-Linux/indexSD-linux art/config.ini --clobber
