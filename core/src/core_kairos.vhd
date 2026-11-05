@@ -377,8 +377,6 @@ architecture rtl of core_kairos is
   -- (87c) o NMI na FDD3000: do M1 em 0066h ate' ao RETN o navegador / esxDOS tem a maquina normal (o TI escondido,
   -- a DivMMC com o automap todo: o esxDOS chama a ROM e volta pelo RST 8)
   signal nmi_s, fdd_dv, ed_ant, m1_d : std_logic := '0';
-  signal f_dbg : std_logic_vector(15 downto 0);   -- (87i) diagnostico da FDD
-  signal dbg_cs : std_logic;
   signal op_c : std_logic_vector(7 downto 0) := (others => '0');
   signal ld_pend, io_wr_d : std_logic := '0';
   signal ld_d : std_logic_vector(7 downto 0) := (others => '0');
@@ -484,7 +482,6 @@ begin
   -- como estava (a ROM do GS nunca e' tocada: com ROM recomeca do principio, sem ROM fica parado).
   -- ZXUNO A6h: bit 2 = o Z80 a 14 MHz enquanto o plugin escreve; com o bit 7, os bits 5-0 = quantos blocos.
   t_cs   <= '1' when a = x"FD3B" and zx_reg = x"A6" else '0';
-  dbg_cs <= '1' when a = x"FD3B" and zx_reg(7 downto 1) = "1010101" else '0';   -- (87i) AAh / ABh lidos
   t_ctl  <= io_wr and not io_wr_d and t_cs;
   t_at   <= gs_fita and not gs_rst;
   tp_ativa <= t_at;
@@ -1094,8 +1091,6 @@ begin
       di <= x"FF";                                     -- aceitacao da INT
     elsif iorq_n = '0' then
       if ua_cs = '1' then di <= ua_q;                  -- UART do ZX-UNO (C6/C7), pelo ESP
-      elsif dbg_cs = '1' then                          -- (87i) a FDD: AAh o ultimo comando do WD1770, ABh o PC alto do Z80 dela
-        if zx_reg(0) = '0' then di <= f_dbg(15 downto 8); else di <= f_dbg(7 downto 0); end if;
       elsif t_cs = '1' then di <= "000000" & k_f1 & t_at;   -- (81) A6h: bit 0 = a fita a tocar (pelo GS); (86) bit 1 = F1
       elsif dv_oe = '1' then di <= dv_q;               -- DivTIESUS: EB (SPI), FD3B (registo DF)
       elsif mb_cs = '1' then di <= mb_q;               -- caixa de correio do ESP (EE3B / EF3B)
@@ -1387,7 +1382,7 @@ begin
               out_l => gs_l, out_r => gs_r,
               fita => gs_fita, c_livres => tp_livres, c_teclas => ld_visto & tp_esp & tp_cativa & tp_para & tp_pausak,
               c_wr => tp_wr, c_d => tp_d, c_est => gs_est4, c_fim => gs_cfim, c_bloco => gs_blk,
-              fdd => fdd_on, ti_in => ti2fdd, ti_out => fdd2ti, dbg => f_dbg);
+              fdd => fdd_on, ti_in => ti2fdd, ti_out => fdd2ti);
 
   ---------------------------------------------------------------------------
   -- quadro e INT: 48K 69888 T (INT 32 T); 128K 70908 T (228 x 311, INT 36 T);

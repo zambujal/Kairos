@@ -62,8 +62,7 @@ entity gs is
     -- (87) a FDD3000: com fdd = 1 este Z80 e' o da FDD (o GS calado); ver fdd3000.vhd
     fdd      : in  std_logic := '0';
     ti_in    : in  std_logic_vector(7 downto 0) := (others => '0');
-    ti_out   : out std_logic_vector(7 downto 0);
-    dbg      : out std_logic_vector(15 downto 0)   -- (87i) diagnostico da FDD: o ultimo comando do WD1770, o PC alto
+    ti_out   : out std_logic_vector(7 downto 0)
   );
 end entity;
 
@@ -83,8 +82,6 @@ architecture rtl of gs is
   signal ch_a, ch_b, ch_c, ch_d : signed(7 downto 0) := (others => '0');
   signal pag : std_logic_vector(5 downto 0);
   signal ler, esc : std_logic;
-  signal f_dbg : std_logic_vector(7 downto 0);
-  signal pc_hi : std_logic_vector(7 downto 0) := (others => '0');
   signal oa, ob, oc, od : signed(14 downto 0) := (others => '0');
   signal ol, orr : signed(14 downto 0) := (others => '0');
   signal c_lo : std_logic_vector(7 downto 0) := (others => '0');
@@ -101,18 +98,12 @@ architecture rtl of gs is
   signal int_gs : std_logic := '1';
 begin
   f_rst_n <= reset_n and fdd;
-  dbg <= f_dbg & pc_hi;
-  process(clk) begin
-    if rising_edge(clk) then
-      if m1_n = '0' and mreq_n = '0' then pc_hi <= a(15 downto 8); end if;
-    end if;
-  end process;
   fd: entity work.fdd3000
     generic map (CLK_HZ => CLK_HZ)
     port map (clk => clk, reset_n => f_rst_n, a => a(7 downto 0), d => do_c,
               iorq_n => iorq_n, rd_n => rd_n, wr_n => wr_n, m1_n => m1_n,
               q => f_q, q_mem => f_qmem, m_rd => f_mrd, m_wr => f_mwr, m_ad => f_ad,
-              ti_in => ti_in, ti_out => ti_out, paged => f_pg, intrq => f_irq, dbg => f_dbg);
+              ti_in => ti_in, ti_out => ti_out, paged => f_pg, intrq => f_irq);
   -- memoria da FDD (21 bits): ROM de arranque na pagina 0 (2K), RAM de 64K em 10000h, disco em 100000h
   f_rom <= '1' when f_pg = '1' and a(15 downto 11) = "00000" else '0';
   f_ma  <= '1' & std_logic_vector(f_ad) when (f_mrd or f_mwr) = '1' else   -- (87d) o disco em 100000h (sem somador)
