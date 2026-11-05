@@ -260,12 +260,48 @@ EspL                dec bc
                     jr nz,EspL
                     dec e
                     jr nz,Espera
+                    ; (87e) diagnostico: o que a FDD poe no porto EF (com o TOS pronto alterna 00 e 40)
+                    ld hl,0
+                    ld (C00),hl
+                    ld (C40),hl
+                    ld de,4000
+DLoop               in a,(0EFh)
+                    ld hl,CFF
+                    cp 0FFh
+                    jr z,DConta
+                    ld hl,C40
+                    cp 40h
+                    jr z,DConta
+                    ld hl,C00
+                    or a
+                    jr z,DConta
+                    ld hl,COut
+                    ld (DUlt),a
+DConta              inc (hl)
+                    jr nz,DNs
+                    dec (hl)            ; satura em FF
+DNs                 dec de
+                    ld a,d
+                    or e
+                    jr nz,DLoop
+                    ld hl,TxtD00
+                    ld a,(C00)
+                    call Hex2
+                    ld hl,TxtD40
+                    ld a,(C40)
+                    call Hex2
+                    ld hl,TxtDFF
+                    ld a,(CFF)
+                    call Hex2
+                    ld hl,TxtDUlt
+                    ld a,(DUlt)
+                    call Hex2
                     ld bc,0FC3Bh
                     ld a,0A5h           ; A5h: o reset quando o navegador sair (o TC2048 arranca pelo TI)
                     out (c),a
                     inc b
                     out (c),a
-                    ld bc,TxtOk
+                    ld bc,TxtDiag
                     ld a,31h
                     push af
                     xor a
@@ -311,6 +347,22 @@ ESemF               xor a               ; o GS fica parado (a ROM dele foi-se: o
                     ret
 
 ; ---------------------------------------------------------------- utilitarios
+; A em hexadecimal em (HL), 2 letras
+Hex2                push af
+                    rrca
+                    rrca
+                    rrca
+                    rrca
+                    call Hex1
+                    pop af
+Hex1                and 0Fh
+                    add a,'0'
+                    cp '9'+1
+                    jr c,H1
+                    add a,7
+H1                  ld (hl),a
+                    inc hl
+                    ret
 ; ZXUNO A7h = A
 SetA7               push bc
                     push af
@@ -376,6 +428,16 @@ LeFich              push de
 TxtTI               db "/SYS/ROMS/FDD3TI.ROM",0
 TxtBoot             db "/SYS/ROMS/FDD3BOOT.ROM",0
 TxtOk               db "FDD3000: o TOS arranca",0
+TxtDiag             db "FDD 00:"
+TxtD00              db "xx 40:"
+TxtD40              db "xx FF:"
+TxtDFF              db "xx ?"
+TxtDUlt             db "xx",0
+C00                 db 0
+C40                 db 0
+CFF                 db 0
+COut                db 0
+DUlt                db 0
 TxtMaq              db "DSK: so' no TIMEX 2048 / 2068",0
 TxtSemTI            db "Falta /SYS/ROMS/FDD3TI.ROM",0
 TxtSemBoot          db "Falta /SYS/ROMS/FDD3BOOT.ROM",0
