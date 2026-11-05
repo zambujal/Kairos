@@ -379,6 +379,7 @@ architecture rtl of core_kairos is
   signal nmi_s, fdd_dv, ed_ant, m1_d : std_logic := '0';
   signal f_disco : std_logic := '0';                            -- (88) a FDD3000 tem disco (A7h bit 3)
   signal m1_ant, nmi_ret : std_logic_vector(15 downto 0) := (others => '0');   -- (88b) o fim do NMI
+  signal m1mr, m1mr_d : std_logic := '0';
   signal ld_pend, io_wr_d : std_logic := '0';
   signal ld_d : std_logic_vector(7 downto 0) := (others => '0');
   signal gs_ce : std_logic := '0';
@@ -591,7 +592,8 @@ begin
       -- endereco de volta (o T80 responde ao NMI com um M1 no PC, sem o somar, antes do M1 em 0066h) e a sessao
       -- acaba no M1 nesse endereco logo a seguir a um M1 em 1FF8h-1FFFh. (Com o RETN a FDD ficava sem o TI e com a
       -- DivMMC toda depois do primeiro NMI.)
-      if m1_n = '0' and m1_d = '1' then
+      m1mr_d <= m1mr;
+      if m1mr = '1' and m1mr_d = '0' then              -- uma vez por M1 (com o MREQ: o endereco ja' esta' certo)
         m1_ant <= a;
         if a = x"0066" and dv_mapeado = '0' then nmi_ret <= m1_ant; end if;
         if nmi_s = '1' and m1_ant(15 downto 3) = "0001111111111" and a = nmi_ret then nmi_s <= '0'; end if;
@@ -649,6 +651,7 @@ begin
   -- RAM interna 8000-FFFF: so' com o bloco na HOME e sem a DivTIESUS a servir (BE)
   interna <= '1' when a(15) = '1' and vram128 = '0' and home = '1' and dv_be_n = '1' else '0';
   -- (87) o Timex Interface em 0000-3FFF (ROM 0000-1FFF so' de leitura, menos na carga; RAM 2000-3FFF)
+  m1mr   <= '1' when m1_n = '0' and mreq_n = '0' and rfsh_n = '1' else '0';
   fdd_dv <= fdd_on and (not nmi_s or not rst_n_i);   -- (87h) no reset ja' sem a sessao do NMI: senao a DivMMC arranca mapeada (o reset dela e' assincrono com ~fdd), o TI nao entra e o NMI morre
   ti_m1  <= '1' when fdd_on = '1' and nmi_s = '0' and dv_mapeado = '0' and m1_n = '0' and (a = x"0000" or a = x"0008") else '0';
   -- o M1 em 0066h (o NMI do navegador) le' o PUSH AF da ROM do Timex, nao a do TI (a DivMMC mapeia a seguir)
