@@ -31,8 +31,8 @@ O cartao e' FAT32 e leva, por esta ordem:
      BIN/BROWSE.BIN, NAVHR.BIN   o navegador (normal e alta resolucao)
      BIN/GO128, GO256, GO1024, GO2068   mudam de maquina (o navegador usa-os)
      BIN/PENTA.BIN, NAVPT3.BIN, SOMNAV.BIN   Pentagon, leitor de PT3, musica de arranque
-     BIN/BPLUGINS/MOD, PT3, AY, TZX, DSK   plugins: MOD no General Sound, PT3 (AY e TurboSound), .AY, TZX,
-                                 DSK (Timex FDD3000)
+     BIN/BPLUGINS/MOD, PT3, AY, TZX, DST   plugins: MOD no General Sound, PT3 (AY e TurboSound), .AY, TZX,
+                                 DST (discos TOS da Timex FDD3000)
      SYS/NAV.SOM                 a musica de arranque
      HELPME.TXT (na raiz)       a ajuda das teclas (F1)
      SYS/ROMS/TC2048.ROM (16384 bytes) e ESXMMC.BIN (8192 bytes): o core le-os ao ligar
@@ -49,11 +49,12 @@ O cartao e' FAT32 e leva, por esta ordem:
   "Maquina anterior?": ENTER (ou um clique) = sim; 3 s sem resposta = nao.
 - F1 (no navegador): abre a ajuda, o /HELPME.TXT da raiz do cartao. Precisa do plugin TXT em
   /BIN/BPLUGINS (do navegador do Bob Fossil).
-- Timex FDD3000 (core 87): ENTER num .DSK (disco TOS) no navegador, so' no TIMEX 2048 ou no TC2068: arranca
+- Timex FDD3000 (core 87): ENTER num .DST (disco TOS: o .DSK com a extensao
+  mudada para .DST, para nao se confundir com os .dsk do +3) no navegador, so' no TIMEX 2048 ou no TC2068: arranca
   com o Timex Interface e o TOS (o Z80 do General Sound faz de FDD; o GS fica calado). Precisa no cartao de
   /SYS/ROMS/FDD3TI.ROM (a ROM de 4K do Timex Interface) e /SYS/ROMS/FDD3BOOT.ROM (o arranque da FDD), que nao vem
-  com o Kairos. Para virar a disquete (o "lado B", ex. o _2.dsk): NMI e ENTER no
-  outro .DSK (faz o reset). O disco fica na memoria: o que se grava perde-se ao desligar. Ctrl+Alt+Shift volta ao TC2048.
+  com o Kairos. Para virar a disquete (o "lado B", ex. o _2.dst): NMI e ENTER no
+  outro .DST (faz o reset). O disco fica na memoria: o que se grava perde-se ao desligar. Ctrl+Alt+Shift volta ao TC2048.
 - F9 / F10: velocidade do Z80 (3,5 / 7 / 14 / 27 MHz).
 - Com rato USB: passar por cima escolhe a linha, clique esquerdo corre, clique direito = ESPACO, a roda
   muda de pagina, clique no caminho (linha de cima) sobe uma pasta, clique no nome da maquina abre o

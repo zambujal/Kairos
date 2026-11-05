@@ -626,8 +626,10 @@ begin
   interna <= '1' when a(15) = '1' and vram128 = '0' and home = '1' and dv_be_n = '1' else '0';
   -- (87) o Timex Interface em 0000-3FFF (ROM 0000-1FFF so' de leitura, menos na carga; RAM 2000-3FFF)
   ti_m1  <= '1' when fdd_on = '1' and dv_mapeado = '0' and m1_n = '0' and (a = x"0000" or a = x"0008") else '0';
+  -- o M1 em 0066h (o NMI do navegador) le' o PUSH AF da ROM do Timex, nao a do TI (a DivMMC mapeia a seguir)
   ti_sel <= '1' when a(15 downto 14) = "00" and mreq_n = '0' and rfsh_n = '1' and
-                     (((ti_pag = '1' or ti_m1 = '1') and dv_mapeado = '0') or (ti_ld = '1' and wr_n = '0')) else '0';
+                     (((ti_pag = '1' or ti_m1 = '1') and dv_mapeado = '0' and not (m1_n = '0' and a = x"0066")) or
+                      (ti_ld = '1' and wr_n = '0')) else '0';
   ti_rd  <= ti_sel and not rd_n and not ti_ld;
   ti_wr  <= ti_sel and not wr_n and (a(13) or ti_ld);
 
