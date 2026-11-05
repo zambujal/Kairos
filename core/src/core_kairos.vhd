@@ -203,7 +203,7 @@ architecture rtl of core_kairos is
           sclk, mosi : out std_logic; miso : in std_logic; sd_cs0 : out std_logic;
           eeprom_oe_n, sram_oe_n, sram_we_n : out std_logic;
           sram_hiaddr : out std_logic_vector(5 downto 0);
-          modo128, modo2068 : out std_logic; p1024 : in std_logic; sem_fita : in std_logic);
+          modo128, modo2068 : out std_logic; p1024 : in std_logic; sem_fita : in std_logic; fdd : in std_logic);
   end component;
 
   signal a, a_l : std_logic_vector(15 downto 0);
@@ -322,7 +322,7 @@ architecture rtl of core_kairos is
   signal q_g32 : std_logic_vector(31 downto 0) := (others => '0');
   -- cache do GS: 64 linhas de 4 bytes (mapeamento directo), escrita directa na SDRAM
   type c_dat_t is array (0 to 63) of std_logic_vector(31 downto 0);
-  type c_tag_t is array (0 to 63) of std_logic_vector(10 downto 0);
+  type c_tag_t is array (0 to 63) of std_logic_vector(12 downto 0);   -- (87) A20-A8 (2 MB na FDD)
   signal c_dat : c_dat_t;
   signal c_tag : c_tag_t;
   signal c_val : std_logic_vector(63 downto 0) := (others => '0');
@@ -367,7 +367,14 @@ architecture rtl of core_kairos is
   signal sid_div : integer range 0 to 53 := 0;             -- leitura do Z80 ja' em q_m
   -- General Sound
   signal gs_rst : std_logic := '1';                                 -- ZX-UNO A0h bit 0: GS parado (ate' haver ROM)
-  signal gs_lp : unsigned(18 downto 0) := (others => '0');           -- carga da ROM (ZX-UNO A1h); (81) 512K
+  signal gs_lp : unsigned(20 downto 0) := (others => '0');           -- carga da ROM (ZX-UNO A1h); (81) 512K; (87) 2 MB (FDD)
+  -- (87) a Timex FDD3000: ZX-UNO A7h bit 0 = a maquina com a FDD (o Z80 do GS e' o da FDD, o GS calado; o Timex
+  -- Interface pagina-se em 0000-3FFF no M1 em 0000h/0008h e sai no M1 em 0604h); bit 1 = carga da ROM do TI
+  -- (escritas em 0000-1FFF vao para ela). A8h = pagina de 32K do ponteiro da carga do GS/FDD (A1h), A9h = bits 14-8.
+  -- O TI na SDRAM em 080000h: ROM de 4K (em 0000-1FFF, duas vezes), RAM de 8K (2000-3FFF). Porto xxEF: a ligacao.
+  signal fdd_on, ti_ld, ti_pag, ti_sai, ti_l, ti_sel, ti_rd, ti_wr, ti_m1 : std_logic := '0';
+  signal ti2fdd, fdd2ti : std_logic_vector(7 downto 0) := (others => '0');
+  signal fdd_div : integer range 0 to 15 := 0;
   signal ld_pend, io_wr_d : std_logic := '0';
   signal ld_d : std_logic_vector(7 downto 0) := (others => '0');
   signal gs_ce : std_logic := '0';
@@ -450,7 +457,7 @@ begin
               zxromcs => dv_romcs, mapeado => dv_mapeado, be_n => dv_be_n, nmi_n => cpu_nmi_n, nmi_button_n => nmi_n,
               sclk => mmc_sclk, mosi => mmc_mosi, miso => mmc_miso, sd_cs0 => mmc_cs_n,
               eeprom_oe_n => dv_ee_n, sram_oe_n => dv_oe_n, sram_we_n => dv_we_n,
-              sram_hiaddr => dv_hi, modo128 => dv_m128, modo2068 => dv_m2068, p1024 => m1024, sem_fita => sem_fita_t);
+              sram_hiaddr => dv_hi, modo128 => dv_m128, modo2068 => dv_m2068, p1024 => m1024, sem_fita => sem_fita_t, fdd => fdd_on);
 
   ---------------------------------------------------------------------------
   -- SCLD: portas (amostradas como no scld_regs: escrita do Z80 a meio do ciclo de E/S)
@@ -507,6 +514,8 @@ begin
         if t_ctl = '1' then                          -- (81) A6h
           if do_cpu(7) = '1' then t_tot <= do_cpu(5 downto 0); else t_rap <= do_cpu(2); end if;
         end if;
+        if a = x"FD3B" and zx_reg = x"A7" then fdd_on <= do_cpu(0); ti_ld <= do_cpu(1); end if;   -- (87) a FDD3000
+        if a(7 downto 0) = x"EF" and fdd_on = '1' then ti2fdd <= do_cpu; end if;                  -- (87) a ligacao
         if a = x"FD3B" and zx_reg = x"A5" then rst_pend <= '1'; if do_cpu = x"4C" then ent_ld_p <= '1'; else ent_ld_p <= '0'; end if; end if;   -- (69p) reset quando o NMI acabar, depois o ENTER; (83) 4Ch: LOAD "" e ENTER
         if a = x"FD3B" and zx_reg = x"A4" and carga = '1' then      -- (esp61) programa de arranque
           carga_alvo <= do_cpu(0);
@@ -530,7 +539,7 @@ begin
         rep_cnt <= rep_cnt - 1; gs_fita <= '0'; t_limpa <= '1';
         if rep_cnt = 1 then gs_rst <= not gs_tinha; else gs_rst <= '1'; end if;
       end if;
-      if gs_parar = '1' and gs_fita = '0' then gs_rst <= '1'; end if;   -- o ESP para o General Sound (82c: nao a meio da fita)
+      if gs_parar = '1' and gs_fita = '0' and fdd_on = '0' then gs_rst <= '1'; end if;   -- (87) nao na FDD3000   -- o ESP para o General Sound (82c: nao a meio da fita)
       -- (69n) o plugin do TAP no ZX 128K faz reset para o menu e pede o ENTER: 2 s depois, 0,15 s carregado
       if ent_on = '1' then
         -- (69u) ate' 15 s, ou ate' o Tape Loader arrancar (opcode em 0562h da ROM 1: o LD-BYTES)
@@ -551,7 +560,7 @@ begin
       -- faz o mesmo reset do botao (Z80 e DivTIESUS, ~1,2 ms): no ZX 128K volta ao menu da Sinclair. O ENTER conta
       -- 2 s a partir daqui.
       if rst_pend = '1' and dv_mapeado = '0' then   -- (69t) era o dv_romcs: no modo 128 nunca descia
-        rst_pend <= '0'; carga_rst <= (others => '1'); ent_on <= '1'; ent_t <= (others => '0'); ent_s <= (others => '0'); ent_ld <= ent_ld_p; ld_int <= '0'; ent_f <= (others => '0');
+        rst_pend <= '0'; carga_rst <= (others => '1'); ent_on <= not fdd_on; ent_t <= (others => '0'); ent_s <= (others => '0'); ent_ld <= ent_ld_p; ld_int <= '0'; ent_f <= (others => '0');   -- (87) na FDD3000 sem o ENTER
       end if;
       if carga_rst(16) = '1' then carga_rst <= carga_rst - 1; end if;   -- (esp61) ~1,2 ms de reset no fim da carga
       -- (64) NMI automatico: 20 ms, 1,5 s depois do fim da carga (o TC2048 e o esxDOS ja' arrancaram)
@@ -560,6 +569,18 @@ begin
         if auto_t = 162000000 then rap_on <= '0'; auto_on <= '0'; else auto_t <= auto_t + 1; end if;
       end if;
       if rst_n_i = '0' then brd <= "111"; regff <= (others => '0'); dd1024 <= '0'; eff7b2 <= '0'; eff7b0 <= '0'; end if;   -- F4 e F3 sem reset
+      -- (87) o Timex Interface: entra no M1 em 0000h/0008h (sem o esxDOS mapeado), sai depois do M1 em 0604h
+      if m1_n = '0' and mreq_n = '0' and rfsh_n = '1' then
+        if ti_m1 = '1' then ti_pag <= '1'; end if;
+        if ti_pag = '1' and a = x"0604" then ti_sai <= '1'; end if;
+      end if;
+      if ti_sai = '1' and m1_n = '1' then ti_pag <= '0'; ti_sai <= '0'; end if;
+      if rst_n_i = '0' then ti_pag <= '0'; ti_sai <= '0'; end if;
+      -- o RESET+NMI (master reset) e o A2h = 52h tiram a FDD: volta o TC2048 normal, o GS parado
+      if (reset_n = '0' and nmi_n = '0') or (a = x"FD3B" and zx_reg = x"A2" and do_cpu = x"52" and io_wr = '1') then
+        if fdd_on = '1' then gs_rst <= '1'; end if;
+        fdd_on <= '0'; ti_ld <= '0'; ti_pag <= '0';
+      end if;
     end if;
   end process;
   border <= brd;
@@ -603,6 +624,12 @@ begin
   bnk     <= vram128 and b7ffd(1);                      -- 0 = banco 5, 1 = banco 7
   -- RAM interna 8000-FFFF: so' com o bloco na HOME e sem a DivTIESUS a servir (BE)
   interna <= '1' when a(15) = '1' and vram128 = '0' and home = '1' and dv_be_n = '1' else '0';
+  -- (87) o Timex Interface em 0000-3FFF (ROM 0000-1FFF so' de leitura, menos na carga; RAM 2000-3FFF)
+  ti_m1  <= '1' when fdd_on = '1' and dv_mapeado = '0' and m1_n = '0' and (a = x"0000" or a = x"0008") else '0';
+  ti_sel <= '1' when a(15 downto 14) = "00" and mreq_n = '0' and rfsh_n = '1' and
+                     (((ti_pag = '1' or ti_m1 = '1') and dv_mapeado = '0') or (ti_ld = '1' and wr_n = '0')) else '0';
+  ti_rd  <= ti_sel and not rd_n and not ti_ld;
+  ti_wr  <= ti_sel and not wr_n and (a(13) or ti_ld);
 
   ---------------------------------------------------------------------------
   -- memorias
@@ -736,16 +763,18 @@ begin
   sram_wr <= (not dv_we_n) and (not wr_n) and not big;
   int_rd  <= interna and not rd_n;
   int_wr  <= interna and not wr_n;
-  m_sd_a <= "001" & '0' & (not banco6(3)) & '0' & banco6(2 downto 0) & a(13 downto 0) when big = '1' and banco6(5 downto 4) = "00"
+  m_sd_a <= "00010000" & "000" & a(11 downto 0) when ti_sel = '1' and a(13) = '0'   -- (87) ROM do TI (4K, duas vezes)
+          else "00010000" & '0' & a(13 downto 0) when ti_sel = '1'                     -- (87) RAM do TI (8K)
+          else "001" & '0' & (not banco6(3)) & '0' & banco6(2 downto 0) & a(13 downto 0) when big = '1' and banco6(5 downto 4) = "00"
           else "010" & banco6 & a(13 downto 0) when big = '1'
           else "001" & '0' & dv_hi & a(12 downto 0) when (sram_rd = '1' or sram_wr = '1')
           else "00000000" & a(14 downto 0);
   m_sd_req <= '1' when mreq_n = '0' and rfsh_n = '1' and feito = '0' and
-                     (sram_rd = '1' or sram_wr = '1' or int_rd = '1' or int_wr = '1' or
+                     (sram_rd = '1' or sram_wr = '1' or int_rd = '1' or int_wr = '1' or ti_rd = '1' or ti_wr = '1' or
                       (big = '1' and (rd_n = '0' or wr_n = '0'))) else '0';
   m_sd_we <= not wr_n;
   m_acc <= '1' when mreq_n = '0' and rfsh_n = '1' and
-                    (sram_rd = '1' or sram_wr = '1' or int_rd = '1' or int_wr = '1' or
+                    (sram_rd = '1' or sram_wr = '1' or int_rd = '1' or int_wr = '1' or ti_rd = '1' or ti_wr = '1' or
                      (big = '1' and (rd_n = '0' or wr_n = '0'))) else '0';
   -- acerto na cache: o endereco ja' estava estavel 3 ciclos (z_mc = 3) e a procura e' desse endereco
   -- v3b: o MREQ sai do T80 logo a seguir a um flanco do clk, por isso o m_sd_a ja' e' valido no
@@ -1015,7 +1044,7 @@ begin
   process(clk)
   begin
     if rising_edge(clk) then
-      a_l <= a; big_l <= big; home_l <= home; vram_l <= vram; interna_l <= interna;
+      a_l <= a; big_l <= big; home_l <= home; vram_l <= vram; interna_l <= interna; ti_l <= ti_rd;
       dv_ee_l <= not dv_ee_n; dv_oe_l <= not dv_oe_n; dv_romcs_l <= dv_romcs;
       -- (69i) o esxDOS mapeia depois do opcode em 0066h e conta com o PUSH AF da ROM do 48 (a ROM 1). Na ROM 0
       -- do 128 (menu e BASIC 128) em 0066h esta' o fim de um LD HL,(5B58h) (5Bh): o NMI rebentava. O opcode
@@ -1059,6 +1088,7 @@ begin
           when x"F4" => di <= banksel;
           when x"CF" => di <= sid_q;                   -- SID (ZX-TSid)
           when x"1F" => di <= joy;                     -- Kempston (comando USB / Xbox)
+          when x"EF" => if fdd_on = '1' then di <= fdd2ti; else di <= x"FF"; end if;   -- (87) a FDD3000
           -- rato Kempston: FBDF = X, FFDF = Y, FADF = botoes (0 = carregado: bit 0 direito, 1 esquerdo, 2 meio)
           when x"DF" =>
             if a(15 downto 8) = x"FB" then di <= rato_x;
@@ -1070,6 +1100,8 @@ begin
       end if;
     elsif nmi66_l = '1' then
       di <= x"F5";                                     -- (69i) NMI na ROM 0: PUSH AF, como na ROM do 48
+    elsif ti_l = '1' then
+      di <= q_mz;                                     -- (87) o Timex Interface (ROM / RAM)
     elsif big_l = '1' then
       di <= q_mz;                                     -- Pentagon 1024: bancos de C000h
     elsif dv_oe_l = '1' then
@@ -1262,11 +1294,17 @@ begin
       -- o Z80 do GS so' anda de 2 em 2 ciclos, por isso o pedido continua a tempo
       gs_ma <= gs_ma_c; gs_md <= gs_md_c; gs_rd <= gs_rd_c; gs_wr <= gs_wr_c;
       gs_cnt <= gs_cnt + 1;
-      gs_ce <= not gs_cnt(0);                                          -- 27 MHz, como o MiSTer (28): as esperas
+      gs_ce <= not gs_cnt(0);
+      if fdd_on = '1' then                                             -- (87) a FDD3000: Z80 a ~4 MHz (54/13)
+        if fdd_div = 12 then fdd_div <= 0; gs_ce <= '1'; else fdd_div <= fdd_div + 1; gs_ce <= '0'; end if;
+      end if;
+                                                                       -- (o GS: 27 MHz, como o MiSTer (28): as esperas
                                                                        -- da SDRAM deixam-no perto dos 12 MHz do GS
       if io_wr = '1' and io_wr_d = '0' and a = x"FD3B" then
         if zx_reg = x"A0" then gs_lp <= (others => '0'); gs_lp(16) <= do_cpu(1); end if;   -- (81) A0h bit 1: na pagina 2
         if zx_reg = x"A1" and gs_rst = '1' then ld_pend <= '1'; ld_d <= do_cpu; end if;
+        if zx_reg = x"A8" then gs_lp <= unsigned(do_cpu(5 downto 0)) & "000000000000000"; end if;   -- (87)
+        if zx_reg = x"A9" then gs_lp(14 downto 0) <= unsigned(do_cpu(6 downto 0)) & x"00"; end if;   -- (87)
       end if;
       if ld_pend = '1' and g_vez = '1' and sd_livre = '1' and sd_rf = '0' then
         ld_pend <= '0'; gs_lp <= gs_lp + 1;
@@ -1282,13 +1320,13 @@ begin
   end process;
   -- GS 512 (como o original): so' as paginas 0-15; as outras leem FFh, sem esperar
   gs_campag <= '1' when gs_fita = '1' and gs_ma(20 downto 18) = "110" else '0';
-  gs_alto <= '1' when gs_ma(20 downto 19) /= "00" and gs_campag = '0' else '0';
+  gs_alto <= '1' when gs_ma(20 downto 19) /= "00" and gs_campag = '0' and fdd_on = '0' else '0';   -- (87) a FDD usa 2 MB
   tp_pausa <= gs_est4(2 downto 0);
   tp_cam <= gs_est4(3) and t_at;
   gs_acc  <= (gs_rd or gs_wr) and not gs_alto;
   -- cache: indice A7-A2, etiqueta A18-A8 (512K); uma leitura que acerta nao vai a' SDRAM
   c_idx  <= to_integer(unsigned(gs_ma(7 downto 2)));
-  c_hit  <= '1' when c_val(c_idx) = '1' and c_tag(c_idx) = gs_ma(18 downto 8) and gs_campag = '0' else '0';
+  c_hit  <= '1' when c_val(c_idx) = '1' and c_tag(c_idx) = gs_ma(20 downto 8) and gs_campag = '0' else '0';
   c_ler  <= gs_rd and not gs_alto and c_hit;
   with gs_ma(1 downto 0) select c_byte <=
     c_dat(c_idx)(7 downto 0)   when "00",
@@ -1306,7 +1344,7 @@ begin
         c_val <= (others => '0');                         -- ROM nova: cache vazia
       elsif g_emcurso = '1' and g_fim = '1' then
         if gs_rd = '1' and gs_campag = '0' then          -- leitura da SDRAM: enche a linha (a camada L nao)
-          c_dat(c_idx) <= q_g32; c_tag(c_idx) <= gs_ma(18 downto 8); c_val(c_idx) <= '1';
+          c_dat(c_idx) <= q_g32; c_tag(c_idx) <= gs_ma(20 downto 8); c_val(c_idx) <= '1';
         elsif gs_wr = '1' and c_hit = '1' then            -- escrita: actualiza o byte na linha
           w := c_dat(c_idx); b := to_integer(unsigned(gs_ma(1 downto 0)));
           w(b*8 + 7 downto b*8) := gs_md;
@@ -1316,7 +1354,7 @@ begin
     end if;
   end process;
   g_ok    <= '1' when gs_rst = '1' else gs_wr;
-  g_sa    <= "10" & "00" & std_logic_vector(gs_lp) when gs_rst = '1' else
+  g_sa    <= "10" & std_logic_vector(gs_lp) when gs_rst = '1' else
              "11000" & gs_ma(17 downto 0) when gs_campag = '1' else "10" & gs_ma;   -- (82) a camada L em 600000h
   g_sd    <= ld_d when gs_rst = '1' else gs_md;
   gs_mq <= x"FF" when gs_alto = '1' else c_byte when c_ler = '1' else q_g;
@@ -1328,7 +1366,8 @@ begin
               m_a => gs_ma_c, m_rd => gs_rd_c, m_wr => gs_wr_c, m_d => gs_md_c, m_q => gs_mq, m_wait => gs_wait,
               out_l => gs_l, out_r => gs_r,
               fita => gs_fita, c_livres => tp_livres, c_teclas => ld_visto & tp_esp & tp_cativa & tp_para & tp_pausak,
-              c_wr => tp_wr, c_d => tp_d, c_est => gs_est4, c_fim => gs_cfim, c_bloco => gs_blk);
+              c_wr => tp_wr, c_d => tp_d, c_est => gs_est4, c_fim => gs_cfim, c_bloco => gs_blk,
+              fdd => fdd_on, ti_in => ti2fdd, ti_out => fdd2ti);
 
   ---------------------------------------------------------------------------
   -- quadro e INT: 48K 69888 T (INT 32 T); 128K 70908 T (228 x 311, INT 36 T);

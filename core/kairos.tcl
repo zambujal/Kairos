@@ -31,6 +31,7 @@ add_file src/core_penta.vhd
 add_file src/teclas_seq.vhd
 add_file src/teclas_auto.vhd
 add_file src/teclas_arranque.vhd
+add_file src/fdd3000.vhd
 add_file src/gs.vhd
 add_file src/core_kairos.vhd
 add_file src/mcu_spi.vhd

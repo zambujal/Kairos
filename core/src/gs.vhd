@@ -58,7 +58,11 @@ entity gs is
     c_d      : out std_logic_vector(15 downto 0);
     c_est    : out std_logic_vector(3 downto 0);
     c_fim    : out std_logic;
-    c_bloco  : out std_logic_vector(5 downto 0)
+    c_bloco  : out std_logic_vector(5 downto 0);
+    -- (87) a FDD3000: com fdd = 1 este Z80 e' o da FDD (o GS calado); ver fdd3000.vhd
+    fdd      : in  std_logic := '0';
+    ti_in    : in  std_logic_vector(7 downto 0) := (others => '0');
+    ti_out   : out std_logic_vector(7 downto 0)
   );
 end entity;
 
@@ -66,7 +70,7 @@ architecture rtl of gs is
   signal a : std_logic_vector(15 downto 0);
   signal di, do_c : std_logic_vector(7 downto 0);
   signal m1_n, mreq_n, iorq_n, rd_n, wr_n, rfsh_n : std_logic;
-  signal int_n : std_logic := '1';
+  signal int_n : std_logic;
   signal acc : integer range 0 to 2*CLK_HZ := 0;
   signal tick : std_logic := '0';
   signal bit7, bit0 : std_logic := '0';
@@ -85,7 +89,27 @@ architecture rtl of gs is
   signal cest_r : std_logic_vector(3 downto 0) := (others => '0');
   signal cblo_r : std_logic_vector(5 downto 0) := (others => '0');
   signal cwr_r, cfim_r, iow_d : std_logic := '0';
+  -- (87) a FDD3000
+  signal f_q : std_logic_vector(7 downto 0);
+  signal f_qmem, f_mrd, f_mwr, f_pg, f_irq, f_rst_n : std_logic;
+  signal f_ad : unsigned(19 downto 0);
+  signal f_ma : std_logic_vector(20 downto 0);
+  signal f_rom : std_logic;
+  signal int_gs : std_logic := '1';
 begin
+  f_rst_n <= reset_n and fdd;
+  fd: entity work.fdd3000
+    generic map (CLK_HZ => CLK_HZ)
+    port map (clk => clk, reset_n => f_rst_n, a => a(7 downto 0), d => do_c,
+              iorq_n => iorq_n, rd_n => rd_n, wr_n => wr_n, m1_n => m1_n,
+              q => f_q, q_mem => f_qmem, m_rd => f_mrd, m_wr => f_mwr, m_ad => f_ad,
+              ti_in => ti_in, ti_out => ti_out, paged => f_pg, intrq => f_irq);
+  -- memoria da FDD (21 bits): ROM de arranque na pagina 0 (2K), RAM de 64K em 10000h, disco em 20000h
+  f_rom <= '1' when f_pg = '1' and a(15 downto 11) = "00000" else '0';
+  f_ma  <= std_logic_vector(to_unsigned(16#20000#, 21) + resize(f_ad, 21)) when (f_mrd or f_mwr) = '1' else
+           "0000000000" & a(10 downto 0) when f_rom = '1' else
+           "00001" & a;
+  int_n <= (not f_irq) when fdd = '1' else int_gs;
   cpu: entity work.T80se
     generic map (Mode => 0, T2Write => 1, IOWait => 1)
     port map (RESET_n => reset_n, CLK_n => clk, CLKEN => ce and not m_wait,
@@ -101,8 +125,8 @@ begin
       tick <= '0';
       if acc + 37480 >= CLK_HZ then acc <= acc + 37480 - CLK_HZ; tick <= '1';
       else acc <= acc + 37480; end if;
-      if tick = '1' then int_n <= '0'; end if;
-      if iorq_n = '0' and m1_n = '0' then int_n <= '1'; end if;
+      if tick = '1' then int_gs <= '0'; end if;
+      if iorq_n = '0' and m1_n = '0' then int_gs <= '1'; end if;
     end if;
   end process;
 
@@ -189,13 +213,15 @@ begin
   -- memoria
   pag  <= p_00 when a(15) = '1' else "000010" when fita = '1' and a(14) = '0' else "00000" & a(14);
   ler  <= '1' when mreq_n = '0' and rfsh_n = '1' and rd_n = '0' else '0';
-  esc  <= '1' when mreq_n = '0' and rfsh_n = '1' and wr_n = '0' and pag /= "000000" else '0';   -- ROM so' de leitura
-  m_a  <= pag & (a(15) and a(14)) & a(13 downto 0);
-  m_rd <= ler;
-  m_wr <= esc;
+  esc  <= '1' when mreq_n = '0' and rfsh_n = '1' and wr_n = '0' and
+                   ((fdd = '0' and pag /= "000000") or (fdd = '1' and f_rom = '0')) else '0';   -- ROM so' de leitura
+  m_a  <= f_ma when fdd = '1' else pag & (a(15) and a(14)) & a(13 downto 0);
+  m_rd <= ler or (f_mrd and fdd);
+  m_wr <= esc or (f_mwr and fdd);
   m_d  <= do_c;
 
-  di <= m_q when ler = '1' else
+  di <= m_q when ler = '1' or (fdd = '1' and f_qmem = '1') else
+        f_q when fdd = '1' and iorq_n = '0' and rd_n = '0' else
         p_bb when iorq_n = '0' and rd_n = '0' and a(3 downto 0) = x"1" else
         p_b3 when iorq_n = '0' and rd_n = '0' and a(3 downto 0) = x"2" else
         (bit7 & "111111" & bit0) when iorq_n = '0' and rd_n = '0' and a(3 downto 0) = x"4" else
@@ -217,6 +243,6 @@ begin
       end if;
     end if;
   end process;
-  out_l <= ol;
-  out_r <= orr;
+  out_l <= ol when fdd = '0' else (others => '0');     -- (87) na FDD o GS esta' calado
+  out_r <= orr when fdd = '0' else (others => '0');
 end architecture;
