@@ -379,7 +379,7 @@ architecture rtl of core_kairos is
   signal nmi_s, fdd_dv, ed_ant, m1_d : std_logic := '0';
   signal f_disco : std_logic := '0';                            -- (88) a FDD3000 tem disco (A7h bit 3)
   signal m1_ant, nmi_ret : std_logic_vector(15 downto 0) := (others => '0');   -- (88b) o fim do NMI
-  signal m1mr, m1mr_d : std_logic := '0';
+  signal m1mr, m1mr_d, n66 : std_logic := '0';
   signal ld_pend, io_wr_d : std_logic := '0';
   signal ld_d : std_logic_vector(7 downto 0) := (others => '0');
   signal gs_ce : std_logic := '0';
@@ -587,7 +587,9 @@ begin
       if ti_sai = '1' and m1_n = '1' then ti_pag <= '0'; ti_sai <= '0'; end if;
       -- (87c) o NMI: comeca no M1 em 0066h, acaba no RETN (ED 45)
       m1_d <= m1_n;
-      if fdd_on = '1' and m1_n = '0' and mreq_n = '0' and rfsh_n = '1' and a = x"0066" and dv_mapeado = '0' then nmi_s <= '1'; end if;
+      -- (88d) a sessao do NMI comeca no fim do M1 em 0066h (o PUSH AF ainda vem da ROM, com a DivMMC calada pelo fdd)
+      if fdd_on = '1' and m1_n = '0' and mreq_n = '0' and rfsh_n = '1' and a = x"0066" and dv_mapeado = '0' then n66 <= '1'; end if;
+      if n66 = '1' and m1_n = '1' then n66 <= '0'; nmi_s <= '1'; end if;
       -- (88b) o fim do NMI: o esxDOS nao usa RETN (volta com RET em 1FF8h-1FFFh, onde a DivMMC sai). Guarda-se o
       -- endereco de volta (o T80 responde ao NMI com um M1 no PC, sem o somar, antes do M1 em 0066h) e a sessao
       -- acaba no M1 nesse endereco logo a seguir a um M1 em 1FF8h-1FFFh. (Com o RETN a FDD ficava sem o TI e com a
@@ -600,7 +602,7 @@ begin
       end if;
       -- (87e) a FDD ligada de dentro do navegador (o plugin): a maquina fica normal ate' ao reset que ele pede
       if io_wr = '1' and a = x"FD3B" and zx_reg = x"A7" then nmi_s <= do_cpu(0); end if;
-      if rst_n_i = '0' then nmi_s <= '0'; end if;
+      if rst_n_i = '0' then nmi_s <= '0'; n66 <= '0'; end if;
       if rst_n_i = '0' then ti_pag <= '0'; ti_sai <= '0'; end if;
       -- o RESET+NMI (master reset) e o A2h = 52h tiram a FDD: volta o TC2048 normal, o GS parado
       if (reset_n = '0' and nmi_n = '0') or (a = x"FD3B" and zx_reg = x"A2" and do_cpu = x"52" and io_wr = '1') then

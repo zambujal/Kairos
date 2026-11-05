@@ -94,8 +94,8 @@ module divmmc_mcleod (
 
   always @(negedge mreq_n or negedge rst_n) begin
     if (rst_n == 1'b0) begin
-      divmmc_is_autopaged <= ~fdd;                  // (87) na FDD3000 o reset vai direito ao Timex Interface (sem o esxDOS)
-      divmmc_autopage_status_after_m1 <= ~fdd;
+      divmmc_is_autopaged <= 1'b1;                  // (88d) o reset de sempre (constante: um reset assincrono com um valor
+      divmmc_autopage_status_after_m1 <= 1'b1;      // variavel, o ~fdd do 87, nao e' de confiar na sintese); na FDD3000 conta o autop
       armado <= 1'b0;
     end
     else begin
@@ -124,7 +124,10 @@ module divmmc_mcleod (
   end
 
   // Signal NMI only when DivMMC memory is not paged. This prevents signal bouncing
-  assign nmi_to_cpu_n = (nmi_button_n == 1'b0 && divmmc_is_autopaged == 1'b0)? 1'b0 : 1'b1;
+  // (88d) na FDD3000 (fdd = 1: fora da sessao do NMI) a DivMMC nunca esta' mapeada: o reset vai direito ao Timex
+  // Interface e o NMI passa; o 0066h mapeia-a e o core poe fdd = 0 logo a seguir a esse M1 (o PUSH AF vem da ROM)
+  wire autop = divmmc_is_autopaged & ~fdd;
+  assign nmi_to_cpu_n = (nmi_button_n == 1'b0 && autop == 1'b0)? 1'b0 : 1'b1;
   
   // EEPROM, ROMCS and SRAM control and address lines
   always @* begin
@@ -134,7 +137,7 @@ module divmmc_mcleod (
     sram_write_n = 1'b1;
     eeprom_we_n = 1'b1;
 
-    if (conmem == 1'b1 || divmmc_is_autopaged == 1'b1 && (enable_autopage == 1'b1 || mapram_mode == 1'b1))
+    if (conmem == 1'b1 || autop == 1'b1 && (enable_autopage == 1'b1 || mapram_mode == 1'b1))
       zxromcs = 1'b1;
     else
       zxromcs = 1'b0;
@@ -164,7 +167,7 @@ module divmmc_mcleod (
     //0000-1fffh - Bank No.3, read-only
     //2000-3fffh - 8k bank, selected by BANK 0..1. If it's different from Bank No.3,
     //	   it's writable.
-    else if (mapram_mode == 1'b1 && conmem == 1'b0 && divmmc_is_autopaged == 1'b1) begin
+    else if (mapram_mode == 1'b1 && conmem == 1'b0 && autop == 1'b1) begin
       if (a[13] == 1'b0) begin
         if (rd_n == 1'b0) begin
           sram_cs = 1'b1;
@@ -190,7 +193,7 @@ module divmmc_mcleod (
     //0000-1fffh - EEPROM/EPROM/NOTHING(if empty socket, so open jumper in this case),
     //	   read-only.
     //2000-3fffh - 8k bank, selected by BANK 0..1, always writable.
-    else if (enable_autopage == 1'b1 && mapram_mode == 1'b0 && conmem == 1'b0 && divmmc_is_autopaged == 1'b1) begin
+    else if (enable_autopage == 1'b1 && mapram_mode == 1'b0 && conmem == 1'b0 && autop == 1'b1) begin
       if (a[13] == 1'b0) begin
         if (rd_n == 1'b0)
           eeprom_cs = 1'b1;
