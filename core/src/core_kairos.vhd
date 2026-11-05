@@ -378,7 +378,6 @@ architecture rtl of core_kairos is
   -- a DivMMC com o automap todo: o esxDOS chama a ROM e volta pelo RST 8)
   signal nmi_s, fdd_dv, ed_ant, m1_d : std_logic := '0';
   signal op_c : std_logic_vector(7 downto 0) := (others => '0');
-  signal fdd_div : integer range 0 to 15 := 0;
   signal ld_pend, io_wr_d : std_logic := '0';
   signal ld_d : std_logic_vector(7 downto 0) := (others => '0');
   signal gs_ce : std_logic := '0';
@@ -1312,9 +1311,8 @@ begin
       gs_ma <= gs_ma_c; gs_md <= gs_md_c; gs_rd <= gs_rd_c; gs_wr <= gs_wr_c;
       gs_cnt <= gs_cnt + 1;
       gs_ce <= not gs_cnt(0);
-      if fdd_on = '1' then                                             -- (87) a FDD3000: Z80 a ~4 MHz (54/13)
-        if fdd_div = 12 then fdd_div <= 0; gs_ce <= '1'; else fdd_div <= fdd_div + 1; gs_ce <= '0'; end if;
-      end if;
+      -- (87f) a FDD3000 com o relogio do GS (27 MHz, com as esperas da SDRAM): a ~4 MHz, sem a cache, ficava mais lenta
+      -- que a FDD real e o Timex Interface desistia a meio (a ligacao tem handshake: mais rapida nao faz mal)
                                                                        -- (o GS: 27 MHz, como o MiSTer (28): as esperas
                                                                        -- da SDRAM deixam-no perto dos 12 MHz do GS
       if io_wr = '1' and io_wr_d = '0' and a = x"FD3B" then
