@@ -377,7 +377,8 @@ architecture rtl of core_kairos is
   -- (87c) o NMI na FDD3000: do M1 em 0066h ate' ao RETN o navegador / esxDOS tem a maquina normal (o TI escondido,
   -- a DivMMC com o automap todo: o esxDOS chama a ROM e volta pelo RST 8)
   signal nmi_s, fdd_dv, ed_ant, m1_d : std_logic := '0';
-  signal f_dbg : std_logic_vector(15 downto 0);   -- (87i) diagnostico da FDD
+  signal n_ti, n_ef : unsigned(7 downto 0) := (others => '0');   -- (87i) diagnostico da FDD
+  signal f_dbg : std_logic_vector(31 downto 0);
   signal dbg_cs : std_logic;
   signal op_c : std_logic_vector(7 downto 0) := (others => '0');
   signal ld_pend, io_wr_d : std_logic := '0';
@@ -402,6 +403,7 @@ architecture rtl of core_kairos is
   signal ay2_sel, ay2_we, p_sel, p_dat, ts_cmd : std_logic;
   signal ts : std_logic_vector(1 downto 0) := "00";                  -- o FFFD vai para: 00 AY 2, 01 AY 1, 10 AY 3
   signal ay2_q, ay2_a, ay2_b, ay2_c, ay_qm : std_logic_vector(7 downto 0);
+  constant COM_AY2 : boolean := false;   -- (87k) so' para os testes da FDD: sem o 2.o AY (lugar para o diagnostico)
   constant COM_AY3 : boolean := false;   -- (69c) o 3.o AY saiu (faltava lugar na FPGA): o OUT FFFD,FD e' um OUT normal
   signal ay3_ok : std_logic;
   signal ay3_sel, ay3_we, ay3_on : std_logic := '0';                 -- (2026-10-23) 3.o AY (TurboSound Next: FD)
@@ -484,7 +486,7 @@ begin
   -- como estava (a ROM do GS nunca e' tocada: com ROM recomeca do principio, sem ROM fica parado).
   -- ZXUNO A6h: bit 2 = o Z80 a 14 MHz enquanto o plugin escreve; com o bit 7, os bits 5-0 = quantos blocos.
   t_cs   <= '1' when a = x"FD3B" and zx_reg = x"A6" else '0';
-  dbg_cs <= '1' when a = x"FD3B" and zx_reg(7 downto 1) = "1010101" else '0';   -- (87i) AAh / ABh lidos
+  dbg_cs <= '1' when a = x"FD3B" and zx_reg(7 downto 3) = "10101" and zx_reg(2 downto 0) /= "000" and zx_reg(2 downto 0) /= "111" else '0';   -- (87i) A9h-AEh lidos
   t_ctl  <= io_wr and not io_wr_d and t_cs;
   t_at   <= gs_fita and not gs_rst;
   tp_ativa <= t_at;
@@ -577,7 +579,7 @@ begin
       if rst_n_i = '0' then brd <= "111"; regff <= (others => '0'); dd1024 <= '0'; eff7b2 <= '0'; eff7b0 <= '0'; end if;   -- F4 e F3 sem reset
       -- (87) o Timex Interface: entra no M1 em 0000h/0008h (sem o esxDOS mapeado), sai depois do M1 em 0604h
       if m1_n = '0' and mreq_n = '0' and rfsh_n = '1' then
-        if ti_m1 = '1' then ti_pag <= '1'; end if;
+        if ti_m1 = '1' then ti_pag <= '1'; if ti_pag = '0' and n_ti /= 255 then n_ti <= n_ti + 1; end if; end if;   -- (87i) quantas vezes o TI entrou
         if ti_pag = '1' and a = x"0604" then ti_sai <= '1'; end if;
       end if;
       if ti_sai = '1' and m1_n = '1' then ti_pag <= '0'; ti_sai <= '0'; end if;
@@ -592,6 +594,9 @@ begin
       -- (87e) a FDD ligada de dentro do navegador (o plugin): a maquina fica normal ate' ao reset que ele pede
       if io_wr = '1' and a = x"FD3B" and zx_reg = x"A7" then nmi_s <= do_cpu(0); end if;
       if rst_n_i = '0' then nmi_s <= '0'; end if;
+      -- (87i) diagnostico: o plugin (A7h) zera; OUT EF conta (as escritas do Timex para a FDD)
+      if io_wr = '1' and io_wr_d = '0' and a(7 downto 0) = x"EF" and fdd_on = '1' then n_ef <= n_ef + 1; end if;
+      if io_wr = '1' and a = x"FD3B" and zx_reg = x"A7" then n_ti <= (others => '0'); n_ef <= (others => '0'); end if;
       if rst_n_i = '0' then ti_pag <= '0'; ti_sai <= '0'; end if;
       -- o RESET+NMI (master reset) e o A2h = 52h tiram a FDD: volta o TC2048 normal, o GS parado
       if (reset_n = '0' and nmi_n = '0') or (a = x"FD3B" and zx_reg = x"A2" and do_cpu = x"52" and io_wr = '1') then
@@ -1094,8 +1099,15 @@ begin
       di <= x"FF";                                     -- aceitacao da INT
     elsif iorq_n = '0' then
       if ua_cs = '1' then di <= ua_q;                  -- UART do ZX-UNO (C6/C7), pelo ESP
-      elsif dbg_cs = '1' then                          -- (87i) a FDD: AAh o ultimo comando do WD1770, ABh o PC alto do Z80 dela
-        if zx_reg(0) = '0' then di <= f_dbg(15 downto 8); else di <= f_dbg(7 downto 0); end if;
+      elsif dbg_cs = '1' then                          -- (87i) a FDD: AAh o ultimo comando do WD1770, ABh quantos, ACh a pista,
+        case zx_reg(2 downto 0) is                     -- ADh o PC alto do Z80 da FDD, AEh quantas vezes o TI entrou, A9h quantos OUT EF
+          when "010" => di <= f_dbg(31 downto 24);
+          when "011" => di <= f_dbg(23 downto 16);
+          when "100" => di <= f_dbg(15 downto 8);
+          when "101" => di <= f_dbg(7 downto 0);
+          when "110" => di <= std_logic_vector(n_ti);
+          when others => di <= std_logic_vector(n_ef);
+        end case;
       elsif t_cs = '1' then di <= "000000" & k_f1 & t_at;   -- (81) A6h: bit 0 = a fita a tocar (pelo GS); (86) bit 1 = F1
       elsif dv_oe = '1' then di <= dv_q;               -- DivTIESUS: EB (SPI), FD3B (registo DF)
       elsif mb_cs = '1' then di <= mb_q;               -- caixa de correio do ESP (EE3B / EF3B)
@@ -1223,12 +1235,17 @@ begin
               busctrl_addr => ay_sel, busctrl_we => ay_we, ctrl_aymode => '1',
               port_a_i => (others => '1'), port_a_o => open, port_b_i => (others => '1'), port_b_o => open,
               O_AUDIO_A => ay_a, O_AUDIO_B => ay_b, O_AUDIO_C => ay_c);
+  ay2_g: if COM_AY2 generate
   ay2: entity work.YM2149
     port map (CLK => clk, ENA => ay_en, RESET_H => not rst_n_i, I_SEL_L => '1',
               I_DA => do_cpu, O_DA => ay2_q, I_REG => '0',
               busctrl_addr => ay2_sel, busctrl_we => ay2_we, ctrl_aymode => '1',
               port_a_i => (others => '1'), port_a_o => open, port_b_i => (others => '1'), port_b_o => open,
               O_AUDIO_A => ay2_a, O_AUDIO_B => ay2_b, O_AUDIO_C => ay2_c);
+  end generate;
+  sem_ay2_g: if not COM_AY2 generate
+    ay2_q <= x"FF"; ay2_a <= (others => '0'); ay2_b <= (others => '0'); ay2_c <= (others => '0');
+  end generate;
   ay3_ok <= ay3_lig when COM_AY3 else '0';
   ay3_g: if COM_AY3 generate
   ay3: entity work.YM2149
