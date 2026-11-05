@@ -296,11 +296,8 @@ DNs                 dec de
                     ld hl,TxtDUlt
                     ld a,(DUlt)
                     call Hex2
-                    ld bc,0FC3Bh
-                    ld a,0A5h           ; A5h: o reset quando o navegador sair (o TC2048 arranca pelo TI)
-                    out (c),a
-                    inc b
-                    out (c),a
+                    ; (87e) sem o reset automatico: a mensagem fica no navegador; o reset faz-se com Ctrl+Alt+AltGr
+                    ; (o reset normal deixa a FDD ligada e a correr: o TC2048 arranca pelo Timex Interface)
                     ld bc,TxtDiag
                     ld a,31h
                     push af
@@ -432,7 +429,7 @@ TxtDiag             db "FDD 00:"
 TxtD00              db "xx 40:"
 TxtD40              db "xx FF:"
 TxtDFF              db "xx ?"
-TxtDUlt             db "xx",0
+TxtDUlt             db "xx Ctrl+Alt+AltGr",0
 C00                 db 0
 C40                 db 0
 CFF                 db 0
