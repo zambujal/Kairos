@@ -379,7 +379,7 @@ architecture rtl of core_kairos is
   signal nmi_s, fdd_dv, ed_ant, m1_d : std_logic := '0';
   signal f_disco, f_pausa, g_carga : std_logic := '0';   -- (88) a FDD3000 tem disco (A7h bit 3); (88e) a FDD em pausa (bit 4)
   signal m1_ant, nmi_ret : std_logic_vector(15 downto 0) := (others => '0');   -- (88b) o fim do NMI
-  signal m1mr, m1mr_d, n66 : std_logic := '0';
+  signal m1mr, m1mr_d, n66, n66_fdd, nmi_pend, nmi_g_d : std_logic := '0';   -- (88f) nmi_pend: um NMI verdadeiro
   signal ld_pend, io_wr_d : std_logic := '0';
   signal ld_d : std_logic_vector(7 downto 0) := (others => '0');
   signal gs_ce : std_logic := '0';
@@ -588,8 +588,15 @@ begin
       -- (87c) o NMI: comeca no M1 em 0066h, acaba no RETN (ED 45)
       m1_d <= m1_n;
       -- (88d) a sessao do NMI comeca no fim do M1 em 0066h (o PUSH AF ainda vem da ROM, com a DivMMC calada pelo fdd)
-      if fdd_on = '1' and m1_n = '0' and mreq_n = '0' and rfsh_n = '1' and a = x"0066" and dv_mapeado = '0' then n66 <= '1'; end if;
-      if n66 = '1' and m1_n = '1' then n66 <= '0'; nmi_s <= '1'; end if;
+      -- (88f) so' um NMI verdadeiro: o TI tem codigo em 0066h (LD DE,026Bh) e passava por la' a ligar-se a' FDD; o
+      -- core tomava-o por um NMI (o TI escondido, o M1 lido da ROM do Timex) e o TI encravava. nmi_pend = o NMI chegou
+      -- ao Z80 (o flanco) e ainda nao foi ao 0066h.
+      nmi_g_d <= cpu_nmi_g;
+      if cpu_nmi_g = '0' and nmi_g_d = '1' then nmi_pend <= '1'; end if;
+      if nmi_pend = '1' and m1_n = '0' and mreq_n = '0' and rfsh_n = '1' and a = x"0066" then
+        n66 <= '1'; n66_fdd <= fdd_on and not dv_mapeado;
+      end if;
+      if n66 = '1' and m1_n = '1' then n66 <= '0'; nmi_pend <= '0'; if n66_fdd = '1' then nmi_s <= '1'; end if; end if;
       -- (88b) o fim do NMI: o esxDOS nao usa RETN (volta com RET em 1FF8h-1FFFh, onde a DivMMC sai). Guarda-se o
       -- endereco de volta (o T80 responde ao NMI com um M1 no PC, sem o somar, antes do M1 em 0066h) e a sessao
       -- acaba no M1 nesse endereco logo a seguir a um M1 em 1FF8h-1FFFh. (Com o RETN a FDD ficava sem o TI e com a
@@ -597,12 +604,12 @@ begin
       m1mr_d <= m1mr;
       if m1mr = '1' and m1mr_d = '0' then              -- uma vez por M1 (com o MREQ: o endereco ja' esta' certo)
         m1_ant <= a;
-        if a = x"0066" and dv_mapeado = '0' then nmi_ret <= m1_ant; end if;
+        if a = x"0066" and dv_mapeado = '0' and nmi_pend = '1' then nmi_ret <= m1_ant; end if;
         if nmi_s = '1' and m1_ant(15 downto 3) = "0001111111111" and a = nmi_ret then nmi_s <= '0'; end if;
       end if;
       -- (87e) a FDD ligada de dentro do navegador (o plugin): a maquina fica normal ate' ao reset que ele pede
       if io_wr = '1' and a = x"FD3B" and zx_reg = x"A7" then nmi_s <= do_cpu(0); end if;
-      if rst_n_i = '0' then nmi_s <= '0'; n66 <= '0'; end if;
+      if rst_n_i = '0' then nmi_s <= '0'; n66 <= '0'; nmi_pend <= '0'; end if;
       if rst_n_i = '0' then ti_pag <= '0'; ti_sai <= '0'; end if;
       -- o RESET+NMI (master reset) e o A2h = 52h tiram a FDD: volta o TC2048 normal, o GS parado
       if (reset_n = '0' and nmi_n = '0') or (a = x"FD3B" and zx_reg = x"A2" and do_cpu = x"52" and io_wr = '1') then
@@ -658,7 +665,7 @@ begin
   ti_m1  <= '1' when fdd_on = '1' and nmi_s = '0' and dv_mapeado = '0' and m1_n = '0' and (a = x"0000" or a = x"0008") else '0';
   -- o M1 em 0066h (o NMI do navegador) le' o PUSH AF da ROM do Timex, nao a do TI (a DivMMC mapeia a seguir)
   ti_sel <= '1' when a(15 downto 14) = "00" and mreq_n = '0' and rfsh_n = '1' and
-                     (((ti_pag = '1' or ti_m1 = '1') and nmi_s = '0' and dv_mapeado = '0' and not (m1_n = '0' and a = x"0066")) or
+                     (((ti_pag = '1' or ti_m1 = '1') and nmi_s = '0' and dv_mapeado = '0' and not (m1_n = '0' and a = x"0066" and nmi_pend = '1')) or
                       (ti_ld = '1' and wr_n = '0')) else '0';
   ti_rd  <= ti_sel and not rd_n and not ti_ld;
   ti_wr  <= ti_sel and not wr_n and (a(13) or ti_ld);
