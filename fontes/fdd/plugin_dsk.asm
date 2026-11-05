@@ -250,41 +250,36 @@ Fim                 ld a,(FH)
                     inc b
                     xor a
                     out (c),a
-                    ; (87c) espera ~2,5 s (a 3,5 MHz) que a FDD arranque e carregue o TOS: o Timex Interface so' tenta
-                    ; falar com ela ~1 s depois do reset (na maquina real a FDD ja' estava ligada antes)
-                    ld e,6
-Espera              ld bc,0
-EspL                dec bc
-                    ld a,b
-                    or c
-                    jr nz,EspL
-                    dec e
-                    jr nz,Espera
-                    ; (87e) diagnostico: o que a FDD poe no porto EF (com o TOS pronto alterna 00 e 40)
+                    ; (87f) espera que a FDD tenha o TOS pronto: com ele a espera do Timex o porto EF alterna 00 e 40h
+                    ; (o navegador corre mais depressa que 3,5 MHz: uma espera contada em voltas nao serve). se nunca aparecer o 40h: o diagnostico (o que se leu) e sem reset
                     ld hl,0
                     ld (C00),hl
                     ld (C40),hl
-                    ld de,4000
-DLoop               in a,(0EFh)
+                    ld e,32             ; 32 x 65536 leituras: ~40 s a 3,5 MHz, ~5 s a 27 MHz (a FDD precisa de ~2 s)
+EspFdd              ld bc,0
+EFl                 in a,(0EFh)
+                    cp 40h
+                    jr z,FddPronta
+                    push hl
                     ld hl,CFF
                     cp 0FFh
-                    jr z,DConta
-                    ld hl,C40
-                    cp 40h
-                    jr z,DConta
+                    jr z,EConta
                     ld hl,C00
                     or a
-                    jr z,DConta
+                    jr z,EConta
                     ld hl,COut
                     ld (DUlt),a
-DConta              inc (hl)
-                    jr nz,DNs
+EConta              inc (hl)
+                    jr nz,ENs
                     dec (hl)            ; satura em FF
-DNs                 dec de
-                    ld a,d
-                    or e
-                    jr nz,DLoop
-                    ld hl,TxtD00
+ENs                 pop hl
+                    dec bc
+                    ld a,b
+                    or c
+                    jr nz,EFl
+                    dec e
+                    jr nz,EspFdd
+                    ld hl,TxtD00        ; a FDD nao ficou pronta: o que se leu, sem reset
                     ld a,(C00)
                     call Hex2
                     ld hl,TxtD40
@@ -296,9 +291,17 @@ DNs                 dec de
                     ld hl,TxtDUlt
                     ld a,(DUlt)
                     call Hex2
-                    ; (87e) sem o reset automatico: a mensagem fica no navegador; o reset faz-se com Ctrl+Alt+AltGr
-                    ; (o reset normal deixa a FDD ligada e a correr: o TC2048 arranca pelo Timex Interface)
                     ld bc,TxtDiag
+                    ld a,31h
+                    jr FimSai
+FddPronta           ld bc,0FC3Bh
+                    ld a,0A5h           ; A5h: o reset quando o navegador sair (o TC2048 arranca pelo TI)
+                    out (c),a
+                    inc b
+                    out (c),a
+                    ld bc,TxtOk
+                    ld a,31h
+FimSai
                     ld a,31h
                     push af
                     xor a
@@ -425,11 +428,11 @@ LeFich              push de
 TxtTI               db "/SYS/ROMS/FDD3TI.ROM",0
 TxtBoot             db "/SYS/ROMS/FDD3BOOT.ROM",0
 TxtOk               db "FDD3000: o TOS arranca",0
-TxtDiag             db "FDD 00:"
+TxtDiag             db "FDD parada 00:"
 TxtD00              db "xx 40:"
 TxtD40              db "xx FF:"
 TxtDFF              db "xx ?"
-TxtDUlt             db "xx Ctrl+Alt+AltGr",0
+TxtDUlt             db "xx (sem TOS)",0
 C00                 db 0
 C40                 db 0
 CFF                 db 0
