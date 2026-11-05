@@ -19,7 +19,8 @@ O teclado de PC é visto pelo core como o teclado do Spectrum:
 
 O rato USB é o rato Kempston; um comando USB (ou comando Xbox) é o joystick Kempston.
 As combinações com a tecla Windows (Win+J, Win+S, Win+C, Win+R, Win+'+', Win+'-') são só para a placa
-ESP32 e não fazem nada sem ela.
+ESP32 e não fazem nada sem ela. Com a placa ESP32 (firmware 169+): **F1** abre a ajuda do menu do ESP e **F2**
+passa pelas máquinas e pelo General Sound, em ciclo (ENTER confirma).
 
 ## Botões do Tang Nano 20K
 
@@ -36,6 +37,7 @@ ESP32 e não fazem nada sem ela.
 | 7 / 6 (setas cima/baixo) | anda na lista; SYM+7 / SYM+6 página |
 | 5 / 8 (setas esq./dir.) | coluna das letras / coluna dos ficheiros |
 | ENTER | corre o ficheiro ou entra na pasta |
+| F1 | ajuda: abre o `/HELPME.TXT` (core 86+, NAV v85+, plugin TXT em `/BIN/BPLUGINS`) |
 | ESPAÇO | pasta de cima |
 | A–Z | salta para a letra |
 | 0 | todas as máquinas; 1 48K; 2 48K+AY; 3 128K; 4 Timex; 9 outras (filtro, só com índices) |
