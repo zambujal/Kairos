@@ -322,7 +322,7 @@ architecture rtl of core_kairos is
   signal q_g32 : std_logic_vector(31 downto 0) := (others => '0');
   -- cache do GS: 64 linhas de 4 bytes (mapeamento directo), escrita directa na SDRAM
   type c_dat_t is array (0 to 63) of std_logic_vector(31 downto 0);
-  type c_tag_t is array (0 to 63) of std_logic_vector(12 downto 0);   -- (87) A20-A8 (2 MB na FDD)
+  type c_tag_t is array (0 to 63) of std_logic_vector(10 downto 0);
   signal c_dat : c_dat_t;
   signal c_tag : c_tag_t;
   signal c_val : std_logic_vector(63 downto 0) := (others => '0');
@@ -779,8 +779,7 @@ begin
   sram_wr <= (not dv_we_n) and (not wr_n) and not big;
   int_rd  <= interna and not rd_n;
   int_wr  <= interna and not wr_n;
-  m_sd_a <= "00010000" & "000" & a(11 downto 0) when ti_sel = '1' and a(13) = '0'   -- (87) ROM do TI (4K, duas vezes)
-          else "00010000" & '0' & a(13 downto 0) when ti_sel = '1'                     -- (87) RAM do TI (8K)
+  m_sd_a <= "000100000" & a(13) & (a(13) and a(12)) & a(11 downto 0) when ti_sel = '1'   -- (87) TI: ROM 4K (duas vezes) / RAM 8K
           else "001" & '0' & (not banco6(3)) & '0' & banco6(2 downto 0) & a(13 downto 0) when big = '1' and banco6(5 downto 4) = "00"
           else "010" & banco6 & a(13 downto 0) when big = '1'
           else "001" & '0' & dv_hi & a(12 downto 0) when (sram_rd = '1' or sram_wr = '1')
@@ -1342,7 +1341,7 @@ begin
   gs_acc  <= (gs_rd or gs_wr) and not gs_alto;
   -- cache: indice A7-A2, etiqueta A18-A8 (512K); uma leitura que acerta nao vai a' SDRAM
   c_idx  <= to_integer(unsigned(gs_ma(7 downto 2)));
-  c_hit  <= '1' when c_val(c_idx) = '1' and c_tag(c_idx) = gs_ma(20 downto 8) and gs_campag = '0' else '0';
+  c_hit  <= '1' when c_val(c_idx) = '1' and c_tag(c_idx) = gs_ma(18 downto 8) and gs_campag = '0' and fdd_on = '0' else '0';   -- (87d) na FDD sem a cache
   c_ler  <= gs_rd and not gs_alto and c_hit;
   with gs_ma(1 downto 0) select c_byte <=
     c_dat(c_idx)(7 downto 0)   when "00",
@@ -1360,7 +1359,7 @@ begin
         c_val <= (others => '0');                         -- ROM nova: cache vazia
       elsif g_emcurso = '1' and g_fim = '1' then
         if gs_rd = '1' and gs_campag = '0' then          -- leitura da SDRAM: enche a linha (a camada L nao)
-          c_dat(c_idx) <= q_g32; c_tag(c_idx) <= gs_ma(20 downto 8); c_val(c_idx) <= '1';
+          c_dat(c_idx) <= q_g32; c_tag(c_idx) <= gs_ma(18 downto 8); c_val(c_idx) <= '1';
         elsif gs_wr = '1' and c_hit = '1' then            -- escrita: actualiza o byte na linha
           w := c_dat(c_idx); b := to_integer(unsigned(gs_ma(1 downto 0)));
           w(b*8 + 7 downto b*8) := gs_md;

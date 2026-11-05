@@ -104,9 +104,9 @@ begin
               iorq_n => iorq_n, rd_n => rd_n, wr_n => wr_n, m1_n => m1_n,
               q => f_q, q_mem => f_qmem, m_rd => f_mrd, m_wr => f_mwr, m_ad => f_ad,
               ti_in => ti_in, ti_out => ti_out, paged => f_pg, intrq => f_irq);
-  -- memoria da FDD (21 bits): ROM de arranque na pagina 0 (2K), RAM de 64K em 10000h, disco em 20000h
+  -- memoria da FDD (21 bits): ROM de arranque na pagina 0 (2K), RAM de 64K em 10000h, disco em 100000h
   f_rom <= '1' when f_pg = '1' and a(15 downto 11) = "00000" else '0';
-  f_ma  <= std_logic_vector(to_unsigned(16#20000#, 21) + resize(f_ad, 21)) when (f_mrd or f_mwr) = '1' else
+  f_ma  <= '1' & std_logic_vector(f_ad) when (f_mrd or f_mwr) = '1' else   -- (87d) o disco em 100000h (sem somador)
            "0000000000" & a(10 downto 0) when f_rom = '1' else
            "00001" & a;
   int_n <= (not f_irq) when fdd = '1' else int_gs;

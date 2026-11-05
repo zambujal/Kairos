@@ -14,8 +14,8 @@
 --   Disco na SDRAM: 80 pistas x 2 faces x 16 sectores de 256 bytes (o TOS): o byte b do sector s da pista p,
 --   face f, esta' em ((p*2 + f)*16 + s)*256 + b (20 bits). Sectores de 0 a 15 (o arranque le' o sector 0).
 --   O WD1770 aqui: Restore, Seek, Step/Step-in/Step-out, Read/Write Sector (tambem varios), Read Address,
---   Read/Write Track (so' conta os bytes: a formatacao nao apaga o disco), Force Interrupt. Sem tempos reais:
---   os comandos acabam logo (o Tipo I ao fim de ~40 us). INTRQ vai ao INT do Z80.
+--   Read/Write Track (acabam logo: a formatacao nao apaga o disco), Force Interrupt. Sem tempos reais:
+--   os comandos acabam logo (o Tipo I ao fim de ~1 us). INTRQ vai ao INT do Z80.
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
@@ -49,12 +49,12 @@ architecture rtl of fdd3000 is
   signal fis : unsigned(6 downto 0) := (others => '0');    -- a pista onde a cabeca esta'
   signal dir_in : std_logic := '1';
   signal busy, drq, irq, rnf, tipo1 : std_logic := '0';
-  -- modo: 0 nada, 1 ler sector, 2 escrever sector, 3 ler endereco, 4 ler pista, 5 escrever pista
-  signal modo : integer range 0 to 5 := 0;
+  -- modo: 0 nada, 1 ler sector, 2 escrever sector, 3 ler endereco
+  signal modo : integer range 0 to 3 := 0;
   signal multi : std_logic := '0';
-  signal cnt : unsigned(12 downto 0) := (others => '0');
-  signal t1 : integer range 0 to 4095 := 0;                 -- o fim do Tipo I
-  signal idx_c : integer range 0 to CLK_HZ / 5 := 0;          -- 300 rpm: um furo a cada 200 ms
+  signal cnt : unsigned(8 downto 0) := (others => '0');
+  signal t1 : unsigned(5 downto 0) := (others => '0');      -- o fim do Tipo I (~1 us)
+  signal idx_c : unsigned(23 downto 0) := (others => '0');  -- (87d) o furo do indice: ~310 ms a 54 MHz, ~5 ms
   signal idx : std_logic := '0';
   signal io_d : std_logic := '0';
   signal pa_d : std_logic_vector(7 downto 0) := (others => '0');
@@ -64,7 +64,6 @@ architecture rtl of fdd3000 is
   signal st : std_logic_vector(7 downto 0);
   signal ra : std_logic_vector(7 downto 0);
   signal trk0 : std_logic;
-  constant PISTA : integer := 6250;                           -- bytes de uma pista MFM (Read/Write Track)
 begin
   io    <= '1' when iorq_n = '0' and m1_n = '1' else '0';
   io_rd <= io and not rd_n;
@@ -89,7 +88,6 @@ begin
        std_logic_vector(r_trk)                when grp = "110" and a(1 downto 0) = "01" else
        std_logic_vector(r_sec)                when grp = "110" and a(1 downto 0) = "10" else
        ra                                     when dados = '1' and modo = 3 else
-       x"4E"                                  when dados = '1' and modo = 4 else
        std_logic_vector(r_dat)                when dados = '1' else
        x"FF";
   q_mem <= '1' when dados = '1' and modo = 1 and busy = '1' else '0';
@@ -106,8 +104,8 @@ begin
   begin
     if rising_edge(clk) then
       -- o furo do indice
-      if idx_c = CLK_HZ / 5 - 1 then idx_c <= 0; else idx_c <= idx_c + 1; end if;
-      if idx_c < CLK_HZ / 250 then idx <= '1'; else idx <= '0'; end if;   -- 4 ms
+      idx_c <= idx_c + 1;
+      if idx_c(23 downto 18) = 0 then idx <= '1'; else idx <= '0'; end if;
 
       io_d <= io;
       if io = '1' then pa_d <= a; end if;
@@ -115,7 +113,7 @@ begin
         ti_o <= (others => '0'); pg <= '1'; face <= '0'; drv0 <= '1';
         r_trk <= (others => '0'); r_sec <= (others => '0'); r_dat <= (others => '0');
         fis <= (others => '0'); busy <= '0'; drq <= '0'; irq <= '0'; rnf <= '0'; tipo1 <= '1';
-        modo <= 0; t1 <= 0;
+        modo <= 0; t1 <= (others => '0');
       else
         if t1 /= 0 then
           t1 <= t1 - 1;
@@ -132,12 +130,12 @@ begin
                 case a(1 downto 0) is
                   when "00" =>                                   -- comando
                     if d(7 downto 4) = "1101" then               -- Force Interrupt
-                      modo <= 0; busy <= '0'; drq <= '0'; t1 <= 0;
+                      modo <= 0; busy <= '0'; drq <= '0'; t1 <= (others => '0');
                       if d(3 downto 0) /= "0000" then irq <= '1'; else irq <= '0'; end if;
                     elsif busy = '0' then
                       irq <= '0'; rnf <= '0'; cnt <= (others => '0'); multi <= d(4);
                       if d(7) = '0' then                         -- Tipo I
-                        tipo1 <= '1'; busy <= '1'; t1 <= 2047;
+                        tipo1 <= '1'; busy <= '1'; t1 <= (others => '1');
                         case d(7 downto 5) is
                           when "000" =>
                             if d(4) = '0' then fis <= (others => '0'); r_trk <= (others => '0');   -- Restore
@@ -165,8 +163,7 @@ begin
                             if d(5) = '0' then modo <= 1; else modo <= 2; end if;
                           end if;
                         elsif d(7 downto 4) = "1100" then busy <= '1'; drq <= '1'; modo <= 3;   -- Read Address
-                        elsif d(7 downto 4) = "1110" then busy <= '1'; drq <= '1'; modo <= 4;   -- Read Track
-                        else busy <= '1'; drq <= '1'; modo <= 5;                                 -- Write Track
+                        else irq <= '1';                       -- (87d) Read / Write Track: acabam logo
                         end if;
                       end if;
                     end if;
@@ -191,8 +188,7 @@ begin
                   fim := '1';
                 end if;
               end if;
-            when 3 => if cnt = 5 then fim := '1'; end if;
-            when others => if cnt = PISTA - 1 then fim := '1'; end if;
+            when others => if cnt = 5 then fim := '1'; end if;
           end case;
           if fim = '1' then modo <= 0; busy <= '0'; drq <= '0'; irq <= '1'; end if;
         end if;

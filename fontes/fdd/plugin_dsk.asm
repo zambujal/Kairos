@@ -4,7 +4,7 @@
 ;      o TC2048; a fdd3timex.rom nao arranca o TOS com a ROM do TC2048) para a ROM do
 ;      TI no core (ZXUNO A7h = 2: as escritas em 0000h-1FFFh vao para ela);
 ;   2. o arranque da FDD (/SYS/ROMS/FDD3BOOT.ROM, ate' 2K) para a pagina 0 da memoria do Z80 do GS (A0h = 1, A1h);
-;   3. o disco: os sectores do .DSK (o normal "MV - CPC" e o "EXTENDED") para a memoria da FDD a partir de 20000h,
+;   3. o disco: os sectores do .DSK (o normal "MV - CPC" e o "EXTENDED") para a memoria da FDD a partir de 100000h,
 ;      no sitio ((pista*2 + face)*16 + sector)*256 (o fdd3000.vhd le-os dai'): 256 bytes por sector, sectores 0-15,
 ;      ate' 84 pistas e 2 faces (o TOS: 140K de 3" e 620K de 3,5");
 ;   Num disco de duas faces em dois .DSK (o _2 e' o "lado B"): ENTER no outro .DSK = virar a disquete e reset.
@@ -212,7 +212,7 @@ STam                ld a,(ix+3)         ; so' sectores de 256 bytes (N = 1) com 
                     ld e,a              ; E = S mod 128
                     add hl,hl           ; H = S / 128
                     ld a,h
-                    add a,4
+                    add a,32            ; (87d) o disco em 100000h da memoria da FDD (pagina 32)
                     ld bc,0FC3Bh
                     ld d,a
                     ld a,0A8h
