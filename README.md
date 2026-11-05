@@ -17,6 +17,12 @@ do cartão e do teclado.
 A placa com ESP32-S3 (capas, rede, NAS, MP3) é outro projecto; nada aqui depende dela. Até 1 de Novembro
 de 2026 chamou-se Timorphius; antes, Timextenso e Timmy.
 
+**De onde veio:** o Kairos nasceu do **Timmy**, uma máquina real (clone do TC2048 com Z80 verdadeiro e a RAM
+de vídeo 4464 do Timex) montada com dois CPLD: o SCLD num XC95288XL e a DivTIESUS de 512K num EPM240. Foi lá
+que se fizeram o 128K, o Pentagon, o TC2068, a ROM em RAM, a sombra da RAM de vídeo e o navegador; o Kairos
+levou esse código para a FPGA e juntou o que um CPLD não comporta. Os dois CPLD estão em
+https://github.com/zambujal/divtiesus-scld-timex . O navegador e os programas do cartão servem nas duas.
+
 ## Pôr a funcionar
 
 Os pormenores estão em [docs/instalacao.md](docs/instalacao.md); as teclas em [docs/teclas.md](docs/teclas.md).

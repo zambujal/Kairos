@@ -17,6 +17,12 @@ All it needs is the Tang, the card and the keyboard.
 The ESP32-S3 board (covers, network, NAS, MP3) is a separate project; nothing here depends on it. Until
 1 November 2026 this was called Timorphius; before that, Timextenso and Timmy.
 
+**Where it came from:** Kairos grew out of the **Timmy**, a real machine (a TC2048 clone with a real Z80 and
+the Timex 4464 video RAM) built around two CPLDs: the SCLD on an XC95288XL and the 512K DivTIESUS on an
+EPM240. The 128K mode, Pentagon, TC2068, ROM in RAM, the video RAM shadow and the browser were all made
+there first; Kairos took that code to the FPGA and added what a CPLD cannot hold. The two CPLDs are at
+https://github.com/zambujal/divtiesus-scld-timex . The browser and the card programs work on both.
+
 ## Getting it running
 
 Details in [docs/install.en.md](docs/install.en.md); keys in [docs/teclas.md](docs/teclas.md).
