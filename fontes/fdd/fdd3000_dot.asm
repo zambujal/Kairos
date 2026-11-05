@@ -1,7 +1,7 @@
 ; FDD3000: comando do esxDOS (/BIN/FDD3000) que arranca a maquina "TIMEX FDD3000" (core 88+): o TC2048
 ; com a Timex FDD3000 ligada, como se a disquete estivesse desligada. O menu das maquinas do navegador
 ; corre-o (".fdd3000"). Sem disco: a FDD fica a' espera de um (o arranque dela le' o sector 0 ate' haver);
-; o disco mete-se depois com ENTER num .DST no navegador (o plugin DST).
+; o disco mete-se depois com ENTER num .DSK no navegador (o plugin DSK).
 ;   1. /SYS/ROMS/FDD3TI.ROM (4K, a ROM do Timex Interface) para a memoria do TI no core (ZXUNO A7h = 2);
 ;   2. /SYS/ROMS/FDD3BOOT.ROM (2K, o arranque da FDD) para a memoria do Z80 da FDD (A0h = 1, A1h);
 ;   3. F3 = 0 (TIMEX 2048), A7h = 1 (a FDD, sem disco), A0h = 0 (o Z80 da FDD arranca) e A7h = 5:
