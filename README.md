@@ -20,7 +20,8 @@ de 2026 chamou-se Timorphius; antes, Timextenso e Timmy.
 **De onde veio:** o Kairos nasceu do **Timmy**, uma máquina real: um clone do TC2048 com Z80 verdadeiro, a
 RAM de vídeo 4464 do Timex e o SCLD num CPLD (XC95288XL). Ligada a ele, como **addon**, está uma interface
 **DivTIESUS** (DivMMC, num EPM240), à qual foi trocada a SRAM por uma de **512K**; essa SRAM passou a servir
-também de memória para o Timmy (bancos do 128K, ROM em RAM, sombra da RAM de vídeo). Foi aí que se fizeram o
+também de memória para o Timmy (bancos do 128K, ROM em RAM, sombra da RAM de vídeo). Sem o addon o Timmy
+funciona normalmente, como um TC2048. Foi aí que se fizeram o
 128K, o Pentagon, o TC2068 e o navegador; o Kairos levou esse código para a FPGA e juntou o que um CPLD não
 comporta. O SCLD e a DivTIESUS estão em https://github.com/zambujal/divtiesus-scld-timex . O navegador e os
 programas do cartão servem nas duas.

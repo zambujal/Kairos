@@ -20,7 +20,8 @@ The ESP32-S3 board (covers, network, NAS, MP3) is a separate project; nothing he
 **Where it came from:** Kairos grew out of the **Timmy**, a real machine: a TC2048 clone with a real Z80,
 the Timex 4464 video RAM and the SCLD in a CPLD (XC95288XL). Plugged into it as an **add-on** is a
 **DivTIESUS** interface (DivMMC, on an EPM240) whose SRAM was swapped for a **512K** one; that SRAM also became
-memory for the Timmy (128K banks, ROM in RAM, video RAM shadow). The 128K mode, Pentagon, TC2068 and the
+memory for the Timmy (128K banks, ROM in RAM, video RAM shadow). Without the add-on the Timmy works normally,
+as a TC2048. The 128K mode, Pentagon, TC2068 and the
 browser were made there first; Kairos took that code to the FPGA and added what a CPLD cannot hold. The SCLD
 and DivTIESUS are at https://github.com/zambujal/divtiesus-scld-timex . The browser and card programs work on both.
 
