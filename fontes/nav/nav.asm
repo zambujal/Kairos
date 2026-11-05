@@ -2618,8 +2618,7 @@ DFHn                ld a,(F3extra)      ; Pentagon (F3 bit 7)
                     cp 0Ch
                     jr nz,DFHp
                     ld hl,TxtP1024Nome
-DFHp                ld d,0
-                    ld e,0
+DFHp                call DFfdd          ; (v86) DE = 0; com a FDD3000 ligada: "TIMEX FDD3000"
                     ld b,16
                     call Escreve
                     ld d,0
@@ -2691,9 +2690,7 @@ DFattr              ld d,1
 NMENU               equ 10                  ; (v86) + TIMEX FDD3000 (a' direita, debaixo do GS). v41: sem o ZX 128K MENU (o ZX 128K ja' arranca o menu). v27: 8 maquinas a' esquerda (PENTAGON 128 e, so' na Tang, 256 e
 MNESQ               equ 8                   ; 1024) e o GS a' direita (so' na Tang); o clone mostra 6
 Menu                call VeTang         ; v24g: Tang (registo ZXUNO A3h = 54h) ou clone
-                    ld a,(Filtro)
-                    dec a
-                    ld (MenuSel),a
+                    call MenuIni        ; (v86) a maquina actual (o TIMEX FDD3000 tambem)
 MNdesenha           ld a,1              ; v19: o ENTER/fogo que abriu o menu tem de ser largado,
                     ld (Larga),a        ; senao escolhia logo a maquina e saia
                     call LimpaEcra
@@ -2873,10 +2870,7 @@ MNmaq               xor a
                     cp MNESQ+1          ; v24d: General Sound (nao e' maquina: carrega a ROM do GS)
                     jp z,CarregaGS
                     cp MNESQ+2          ; (v86) TIMEX FDD3000: o .fdd3000 carrega as ROMs e arranca-a
-                    jr nz,MNnfdd
-                    ld ix,TxtGoFdd
-                    jp ExecGo
-MNnfdd
+                    jp z,MNfdd
                     push af
                     call MusCala        ; v23: tambem calada ao mudar para o Pentagon
                     pop af
@@ -5631,10 +5625,36 @@ MCcala              ld a,2006h & 0FFh   ; cala ja' (MusCala ve' o MusLiga deslig
 TxtNavPt3           db "/BIN/NAVPT3.BIN",0
 TxtMusica           db "/SYS/NAV.PT3",0
 TxtExtPt3           db "PT3"
-TxtMusNova          db "Musica de fundo: este PT3",0
-TxtMusGrande        db "PT3 grande demais para musica",0
-TxtMusLig           db "Musica ligada",0
-TxtMusDesl          db "Musica desligada",0
+TxtMusNova          db "Musica: este PT3",0
+TxtMusGrande        db "PT3 grande demais",0
+TxtMusLig           db "Com musica",0
+TxtMusDesl          db "Sem musica",0
+; (v86) a maquina TIMEX FDD3000 (core 88): NZ = a FDD ligada. So' no Kairos da Tang: la' o porto EF da' FFh
+; sem a FDD e a FDD nunca escreve FFh nele (no Timmy viria o barramento solto)
+VeFdd               call VeTang         ; (le' o A3h: o EhTang ainda pode estar a 0 no inicio do NAV)
+                    ret z
+                    in a,(0EFh)
+                    inc a
+                    ret
+MenuIni             ld a,(Filtro)       ; a linha do menu: a maquina actual, ou o TIMEX FDD3000
+                    dec a
+                    ld (MenuSel),a
+                    call VeFdd
+                    ret z
+                    ld a,MNESQ+1
+                    ld (MenuSel),a
+                    ret
+MNfdd               call VeFdd          ; ja' e' a FDD3000: nada (como a mesma maquina)
+                    jp nz,DesenhaFiltro
+                    ld ix,TxtGoFdd
+                    jp ExecGo
+                    IF HIRES
+DFfdd               call VeFdd
+                    jr z,DFf0
+                    ld hl,TxtFddNome
+DFf0                ld de,0
+                    ret
+                    ENDIF
 MusOk               db 0
 MLpag               db 80h+PMUS         ; v52
 MusLiga             db 0
@@ -6181,18 +6201,18 @@ VeF1                call VeTang         ; so' no Kairos da Tang (no Timmy o A6h 
                     ld hl,TxtF1
                     jp Corre
                     ENDIF
-TxtACorrer          db "A carregar...",0
+TxtACorrer          db "A carregar",0
                     IF HIRES
 TxtMod              db "P pausa N/B",0
                     ELSE
 TxtMod              db "P pausa N/B",0
                     ENDIF
 TxtSemExt           db "Sem extensao",0
-TxtSemPlugin        db "Sem plugin para isto",0
+TxtSemPlugin        db "Sem plugin",0
 TxtErroPlugin       db "Erro no plugin",0
-TxtErroPasta        db "Nao entrei na pasta",0
+TxtErroPasta        db "Erro na pasta",0
                     IF HIRES
-TxtReinicia         db "Mudar a maquina? ENTER sim",0
+TxtReinicia         db "Mudar? ENTER sim",0
                     ELSE
 TxtReinicia         db "Reiniciar? ENTER sim",0
                     ENDIF
@@ -6205,7 +6225,7 @@ PB0                 equ 17
                     ENDIF
 LTXTANT             equ $-TxtAnterior
 TxtMenuTit          db "  ESCOLHER A MAQUINA",0
-TxtMenuAj           db "ENTER muda   SPC volta",0  ; v37: sem a maquina de arranque (D)
+TxtMenuAj           db "ENTER muda  SPC volta",0  ; v37: sem a maquina de arranque (D)
 TabMenu             db "TIMEX 2048",0,0
                     db "ZX 48K",0,0
                     db "ZX 128K",0,0
@@ -6215,7 +6235,7 @@ TabPenta            db "PENTAGON 128 ",0,0
                     db "PENTAGON 256 ",0,0     ; v27 (so' na Tang)
                     db "PENTAGON 1024",0,0     ; v26 (so' na Tang)
                     db "GENERAL SOUND",0,0
-                    db "TIMEX FDD3000",0,0     ; (v86) o .fdd3000 (core 88)
+TxtFddNome          db "TIMEX FDD3000",0,0     ; (v86) o .fdd3000 (core 88)
 TxtAMudar           db "A reiniciar",0
 TxtSemRom           db "Falta a ROM",0
 TxtRom              db "/BIN/128.rom",0
