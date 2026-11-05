@@ -1,5 +1,6 @@
-; DSK: plugin do navegador (formato dos plugins do Bob Fossil) que arranca a Timex FDD3000 com um disco TOS (.DSK de CPC normal
+; DST (/BIN/BPLUGINS/DST): plugin do navegador (formato dos plugins do Bob Fossil) que arranca a Timex FDD3000 com um disco TOS (.DSK de CPC normal
 ; ou EXTENDED, 16 sectores de 256 numerados 0-15; os .dsk do +3 / CPC sao recusados) (core 87+). So' le' o cartao.
+; Os discos TOS ficam com a extensao .DST (o .DSK de TOS renomeado) para nao colidir com plugins DSK do +3.
 ;   1. a ROM do Timex Interface (/SYS/ROMS/FDD3TI.ROM, 4K: a fdd3stavi.rom do Fuse com a FDD3000, a que da' com
 ;      o TC2048; a fdd3timex.rom nao arranca o TOS com a ROM do TC2048) para a ROM do
 ;      TI no core (ZXUNO A7h = 2: as escritas em 0000h-1FFFh vao para ela);
