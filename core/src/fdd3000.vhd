@@ -15,7 +15,8 @@
 --   face f, esta' em ((p*2 + f)*16 + s)*256 + b (20 bits). Sectores de 0 a 15 (o arranque le' o sector 0).
 --   O WD1770 aqui: Restore, Seek, Step/Step-in/Step-out, Read/Write Sector (tambem varios), Read Address,
 --   Read/Write Track (acabam logo: a formatacao nao apaga o disco), Force Interrupt. Sem tempos reais:
---   os comandos acabam logo (o Tipo I ao fim de ~1 us). INTRQ vai ao INT do Z80.
+--   os comandos acabam logo (o Tipo I ao fim de ~1,2 ms: com ~1 us a FDD lia o estado ja' sem busy, apagava o INTRQ
+--   e ficava a' espera da interrupcao; o Seek da pista 3 falhava e o jogo ia para o (c) Sinclair). INTRQ vai ao INT do Z80.
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
@@ -53,7 +54,7 @@ architecture rtl of fdd3000 is
   signal modo : integer range 0 to 3 := 0;
   signal multi : std_logic := '0';
   signal cnt : unsigned(8 downto 0) := (others => '0');
-  signal t1 : unsigned(5 downto 0) := (others => '0');      -- o fim do Tipo I (~1 us)
+  signal t1 : unsigned(15 downto 0) := (others => '0');     -- (87g) o fim do Tipo I (~1,2 ms): o TOS le' o estado antes do fim
   signal idx_c : unsigned(23 downto 0) := (others => '0');  -- (87d) o furo do indice: ~310 ms a 54 MHz, ~5 ms
   signal idx : std_logic := '0';
   signal io_d : std_logic := '0';
