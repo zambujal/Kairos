@@ -378,7 +378,7 @@ architecture rtl of core_kairos is
   -- a DivMMC com o automap todo: o esxDOS chama a ROM e volta pelo RST 8)
   signal nmi_s, fdd_dv, ed_ant, m1_d : std_logic := '0';
   signal f_disco : std_logic := '0';                            -- (88) a FDD3000 tem disco (A7h bit 3)
-  signal op_c : std_logic_vector(7 downto 0) := (others => '0');
+  signal m1_ant, nmi_ret : std_logic_vector(15 downto 0) := (others => '0');   -- (88b) o fim do NMI
   signal ld_pend, io_wr_d : std_logic := '0';
   signal ld_d : std_logic_vector(7 downto 0) := (others => '0');
   signal gs_ce : std_logic := '0';
@@ -586,11 +586,15 @@ begin
       if ti_sai = '1' and m1_n = '1' then ti_pag <= '0'; ti_sai <= '0'; end if;
       -- (87c) o NMI: comeca no M1 em 0066h, acaba no RETN (ED 45)
       m1_d <= m1_n;
-      if m1_n = '0' and mreq_n = '0' then op_c <= di; end if;
       if fdd_on = '1' and m1_n = '0' and mreq_n = '0' and rfsh_n = '1' and a = x"0066" and dv_mapeado = '0' then nmi_s <= '1'; end if;
-      if m1_d = '0' and m1_n = '1' then
-        if ed_ant = '1' and op_c = x"45" then nmi_s <= '0'; end if;
-        if op_c = x"ED" and ed_ant = '0' then ed_ant <= '1'; else ed_ant <= '0'; end if;
+      -- (88b) o fim do NMI: o esxDOS nao usa RETN (volta com RET em 1FF8h-1FFFh, onde a DivMMC sai). Guarda-se o
+      -- endereco de volta (o T80 responde ao NMI com um M1 no PC, sem o somar, antes do M1 em 0066h) e a sessao
+      -- acaba no M1 nesse endereco logo a seguir a um M1 em 1FF8h-1FFFh. (Com o RETN a FDD ficava sem o TI e com a
+      -- DivMMC toda depois do primeiro NMI.)
+      if m1_n = '0' and m1_d = '1' then
+        m1_ant <= a;
+        if a = x"0066" and dv_mapeado = '0' then nmi_ret <= m1_ant; end if;
+        if nmi_s = '1' and m1_ant(15 downto 3) = "0001111111111" and a = nmi_ret then nmi_s <= '0'; end if;
       end if;
       -- (87e) a FDD ligada de dentro do navegador (o plugin): a maquina fica normal ate' ao reset que ele pede
       if io_wr = '1' and a = x"FD3B" and zx_reg = x"A7" then nmi_s <= do_cpu(0); end if;
