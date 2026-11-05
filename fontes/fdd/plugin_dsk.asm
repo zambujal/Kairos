@@ -6,6 +6,7 @@
 ;   3. o disco: os sectores do .DSK (o normal "MV - CPC" e o "EXTENDED") para a memoria da FDD a partir de 20000h,
 ;      no sitio ((pista*2 + face)*16 + sector)*256 (o fdd3000.vhd le-os dai'): 256 bytes por sector, sectores 0-15,
 ;      ate' 84 pistas e 2 faces (o TOS: 140K de 3" e 620K de 3,5");
+;   Num disco de duas faces em dois .DSK (o _2 e' o "lado B"): ENTER no outro .DSK = virar a disquete e reset.
 ;   4. a maquina com a FDD (A7h = 1: o Z80 do GS passa a ser o da FDD, o GS calado), o Z80 da FDD a correr
 ;      (A0h = 0) e o reset quando o navegador sair (A5h): o TC2048 arranca pelo Timex Interface e o TOS.
 ; Para voltar ao TC2048 normal: o RESET+NMI (Ctrl+Alt+Shift).
@@ -38,6 +39,17 @@ Inicio              push ix
                     in a,(0F4h)         ; so' no TIMEX 2048 (F4 = F0h e' o ZX 128K / Pentagon)
                     cp 0F0h
                     jp z,ErroMaq
+                    ; ja' na FDD (outro disco, ou o outro lado): o Z80 da FDD parado e a FDD desligada antes de
+                    ; usar o esxDOS (com a FDD o 0008h e' do Timex Interface, sem o automap da DivMMC)
+                    di
+                    ld bc,0FC3Bh
+                    ld a,0A0h
+                    out (c),a
+                    inc b
+                    ld a,1
+                    out (c),a
+                    xor a
+                    call SetA7
                     ; ------------------------------------------------ 1. a ROM do Timex Interface
                     ld hl,TxtTI
                     ld de,BUF

@@ -52,7 +52,8 @@ O cartao e' FAT32 e leva, por esta ordem:
 - Timex FDD3000 (core 87): ENTER num .DSK (disco TOS) no navegador, so' no TIMEX 2048 ou no TC2068: arranca
   com o Timex Interface e o TOS (o Z80 do General Sound faz de FDD; o GS fica calado). Precisa no cartao de
   /SYS/ROMS/FDD3TI.ROM (a ROM de 4K do Timex Interface) e /SYS/ROMS/FDD3BOOT.ROM (o arranque da FDD), que nao vem
-  com o Kairos. O disco fica na memoria: o que se grava perde-se ao desligar. Ctrl+Alt+Shift volta ao TC2048.
+  com o Kairos. Para virar a disquete (o "lado B", ex. o _2.dsk): NMI e ENTER no
+  outro .DSK (faz o reset). O disco fica na memoria: o que se grava perde-se ao desligar. Ctrl+Alt+Shift volta ao TC2048.
 - F9 / F10: velocidade do Z80 (3,5 / 7 / 14 / 27 MHz).
 - Com rato USB: passar por cima escolhe a linha, clique esquerdo corre, clique direito = ESPACO, a roda
   muda de pagina, clique no caminho (linha de cima) sobe uma pasta, clique no nome da maquina abre o
