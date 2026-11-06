@@ -903,7 +903,10 @@ begin
   -- O reset mestre (RESET+NMI) usa o botao directamente, sem esta espera.
   -- (69o) mas so' ate' 40 ms: num jogo de 128K com a ROM 0 sempre ligada (e a interrupcao dele) a ROM 1 pode nunca
   -- aparecer; ai' o NMI passa na mesma (com o F5 do 69i em 0066h)
-  cpu_nmi_g <= cpu_nmi_n or (modo128 and not rom7 and not nmi_fura);
+  -- (88i) na FDD3000 nao entra outro NMI durante a sessao do NMI: o botao (e a tecla Home) chegam como nivel, todo o
+  -- tempo do toque; mal o esxDOS se desmapeava (um instante) entrava outro NMI, o esxDOS voltava logo (ja' estava no
+  -- NMI) e esse regresso fechava a sessao a meio (o nmi_ret dele): o TI voltava e o navegador nunca aparecia
+  cpu_nmi_g <= cpu_nmi_n or (modo128 and not rom7 and not nmi_fura) or (fdd_on and nmi_s);
   process(clk)
   begin
     if rising_edge(clk) then
