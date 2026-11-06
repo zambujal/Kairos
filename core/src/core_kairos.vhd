@@ -82,6 +82,7 @@ entity core_kairos is
                                                    --   o NMI da maquina por defeito (o top so' o da' sem o ESP)
     arr_rapido : out std_logic;                    -- (65) 1 = arranque: o top poe o Z80 a 14 MHz (carga e 3 s depois)
     halt_n   : out std_logic;
+    fdd_luz  : out std_logic;                      -- (89) a FDD3000 a ler ou escrever o disco (a luz da drive)
     pronta   : out std_logic;
     sd_teste : out std_logic;
     sd_teste2 : out std_logic;
@@ -388,6 +389,7 @@ architecture rtl of core_kairos is
   signal ld_pend, io_wr_d : std_logic := '0';
   signal ld_d : std_logic_vector(7 downto 0) := (others => '0');
   signal gs_ce : std_logic := '0';
+  signal fdd_ativa : std_logic;                 -- (89) a luz da drive
   signal gs_cnt : unsigned(1 downto 0) := (others => '0');
   signal gs_cs_rd, gs_cs_wr, gs_rd, gs_wr, gs_wait, gs_acc : std_logic;
   signal gs_ma, gs_ma_c : std_logic_vector(20 downto 0);
@@ -1417,7 +1419,8 @@ begin
               out_l => gs_l, out_r => gs_r,
               fita => gs_fita, c_livres => tp_livres, c_teclas => ld_visto & tp_esp & tp_cativa & tp_para & tp_pausak,
               c_wr => tp_wr, c_d => tp_d, c_est => gs_est4, c_fim => gs_cfim, c_bloco => gs_blk,
-              fdd => fdd_on, disco => f_disco, ti_in => ti2fdd_f, ti_out => fdd2ti);
+              fdd => fdd_on, disco => f_disco, ti_in => ti2fdd_f, ti_out => fdd2ti, f_ativa => fdd_ativa);
+  fdd_luz <= fdd_ativa and fdd_on;
 
   ---------------------------------------------------------------------------
   -- quadro e INT: 48K 69888 T (INT 32 T); 128K 70908 T (228 x 311, INT 36 T);

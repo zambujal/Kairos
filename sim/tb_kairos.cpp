@@ -293,6 +293,8 @@ int main(int argc, char** argv) {
   int mo_ant = -1, hc_ant = -1, ff7_ant = -1, hsr_ant = -1, pag_tr = -1;
   uint16_t salto_de = 0, salto_para = 0; long repete = 0;
   uint16_t saltof_de = 0, saltof_para = 0; long repetef = 0;
+  uint16_t fe_a = 0; bool fe_rd = false; long n_fe = 0, n_fant = 0;   // (2026-11-06) as leituras do teclado
+  bool luz_ant = false; long n_luz = 0; double luz_ms = 0;              // (89) a luz da drive (o WD1770 ocupado)
 
   for (long long& cyc = e.cyc; cyc < N; ) {
     const double ms = cyc / (double)CICLOS_MS;
@@ -389,6 +391,30 @@ int main(int argc, char** argv) {
     // ---- o PC dos dois Z80 (o endereco no M1) para a linha de estado
     if (!c->P_cpu_m1) pc_m1 = c->P_cpu_a;
     if (!c->P_gs_m1) pcf_m1 = c->P_gs_a;
+    // ---- (2026-11-06) o teclado: em cada leitura do porto xxFE, o byte que o Z80 guardou (DI_Reg) no fim do ciclo de
+    //      E/S. Uma tecla carregada com o mat a 0 (o banco nao carrega em nenhuma) e' uma tecla fantasma.
+    if (!c->P_cpu_iorq && !c->P_cpu_rd && c->P_cpu_m1) { fe_a = c->P_cpu_a; fe_rd = true; }
+    else if (fe_rd && c->P_cpu_iorq) {
+      fe_rd = false;
+      if ((fe_a & 0xFF) == 0xFE) {
+        n_fe++;
+        uint8_t v = c->P_cpu_di_reg;
+        if ((v & 0x1F) != 0x1F && t->mat == 0) {
+          static const char* nomes_k[8][5] = {{"CS","Z","X","C","V"}, {"A","S","D","F","G"}, {"Q","W","E","R","T"},
+            {"1","2","3","4","5"}, {"0","9","8","7","6"}, {"P","O","I","U","Y"}, {"ENT","L","K","J","H"}, {"SPC","SS","M","N","B"}};
+          if (++n_fant <= 60) {
+            char k[200] = ""; size_t n = 0;
+            for (int f = 0; f < 8; f++) if (!((fe_a >> (8 + f)) & 1))
+              for (int b = 0; b < 5; b++) if (!((v >> b) & 1)) n += snprintf(k + n, sizeof k - n, " %s", nomes_k[f][b]);
+            printf("%10.3f ms TECLA FANTASMA: IN (%04X) = %02X:%s (PC %04X)\n", ms, fe_a, v, k, pc_m1);
+          }
+        }
+      }
+    }
+    // ---- (89) a luz da drive da FDD3000 (o core diz quando o controlador le' ou escreve)
+    if (t->fdd_luz && !luz_ant) n_luz++;
+    if (t->fdd_luz) luz_ms += 1.0 / 54000.0;
+    luz_ant = t->fdd_luz;
     // ---- o traco dos saltos (o PC que nao segue o anterior) e das mudancas de modo
     if (tr && ms >= tr_i && ms <= tr_f) {
       uint8_t m1 = c->P_cpu_m1;
@@ -439,6 +465,8 @@ int main(int argc, char** argv) {
              ms, pc_m1, pcf_m1, pag, f2t, t2f, t->border, (unsigned)c->R_regff,
              (unsigned)c->__PVT__dv__DOT__bancos_128k__DOT__hsr, (int)c->__PVT__dv__DOT__bancos_128k__DOT__ff7,
              s.ncmds, s.n17, s.n18, s.n24);
+      printf("%10.3f ms teclado: %ld leituras do FE, %ld com tecla fantasma; luz da drive: %ld acessos, %.2f ms acesa\n",
+             ms, n_fe, n_fant, n_luz, luz_ms);
       fflush(stdout);
     }
   }

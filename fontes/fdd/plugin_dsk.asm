@@ -15,6 +15,9 @@
 ; Para tirar a FDD: o RESET+NMI (Ctrl+Alt+Shift) ou outra maquina no menu.
 ; Os discos ficam na memoria: o que o TOS grava perde-se ao desligar (por agora nao volta ao cartao).
 ; So' no TIMEX 2048 e no TC2068 (no ZX 128K e no Pentagon a memoria de 8000h e' outra: recusa).
+; (v89) O Z80 a 14 MHz enquanto passa o disco para a FDD (ZXUNO A6h = 4, como o plugin TZX; a leitura do cartao
+; continua a 3,5 MHz: o core abranda sozinho perto do cartao) e a copia de cada sector desenrolada (25 T por byte em
+; vez de 56). Uma barra de progresso nas duas ultimas linhas de pontos do ecra do navegador (hi-res ou normal).
 ; (Kairos, 2026-11-06)
 ; Monta-se com  sjasmplus -I../nav --raw=DSK plugin_dsk.asm
 
@@ -79,6 +82,8 @@ Disco               ld hl,(Nome)
                     ld (FH),a
                     ld a,1
                     ld (Aberto),a
+                    ld a,4              ; (v89) o Z80 a 14 MHz enquanto passa o disco (A6h bit 2)
+                    call SetA6
                     ld hl,DiscoI        ; o cabecalho do disco (256 bytes)
                     ld bc,256
                     call Le
@@ -106,6 +111,8 @@ DNt                 ld a,d              ; HL = pistas x faces
                     dec d
                     jr DNt
 DNtf                ld (NPist),hl
+                    ld (TotP),hl
+                    call BarraIni       ; (v89) a barra de progresso
                     ld hl,DiscoI+34h    ; a tabela das pistas (EXTENDED)
                     ld (TabP),hl
                     xor a
@@ -117,6 +124,7 @@ Pista               ld hl,(NPist)
                     jp z,Fim
                     dec hl
                     ld (NPist),hl
+                    call BarraPasso     ; (v89) mais uma pista
                     ld a,(Ext)          ; o tamanho do bloco da pista no ficheiro
                     or a
                     jr z,PNorm
@@ -239,7 +247,9 @@ SNaoCpm
                     jp Sector
 
 ; ---------------------------------------------------------------- o fim: a maquina com a FDD e o reset
-Fim                 ld a,(FH)
+Fim                 xor a               ; (v89) o Z80 a' velocidade dele
+                    call SetA6
+                    ld a,(FH)
                     rst 08h
                     db F_CLOSE
                     di
@@ -355,6 +365,8 @@ ErroGrande          ld hl,TxtGrande
 ErroGeo             ld hl,TxtGeo
 Erro                ld sp,(SPerro)
                     push hl
+                    xor a               ; (v89) o Z80 a' velocidade dele
+                    call SetA6
                     ld a,(Aberto)
                     or a
                     jr z,ESemF
@@ -418,6 +430,84 @@ VTi                 dec bc
                     ld a,e
                     cp 4                ; CF = menos de 4 mudancas
                     ret
+; (v89) ZXUNO A6h = A (bit 2: o Z80 a 14 MHz)
+SetA6               push bc
+                    push af
+                    ld bc,0FC3Bh
+                    ld a,0A6h
+                    out (c),a
+                    inc b
+                    pop af
+                    out (c),a
+                    pop bc
+                    ret
+; (v89) a barra de progresso: as linhas de pontos 190 e 191 (5600h-57FFh: 56E0h e 57E0h + coluna), que ficam na
+; linha de baixo do navegador. No hi-res (porta FF = xxxxx110) 64 colunas: as pares em 4000h, as impares em 6000h.
+; Anda por Bresenham: em cada pista, Err += Larg; enquanto Err >= TotP: Err -= TotP e acende a coluna seguinte.
+BarraIni            in a,(0FFh)         ; o modo do ecra (no TC2048 / TC2068 a FF le-se)
+                    and 7
+                    cp 6
+                    ld a,32
+                    jr nz,BIn
+                    ld a,64
+BIn                 ld (Larg),a
+                    ld hl,0
+                    ld (Err),hl
+                    xor a
+                    ld (Col),a
+                    ld c,a              ; apaga as duas linhas em todas as colunas
+BIa                 ld a,c
+                    ld b,0
+                    call BarraCol
+                    inc c
+                    ld a,(Larg)
+                    cp c
+                    jr nz,BIa
+                    ret
+BarraPasso          ld a,(Larg)         ; Err += Larg
+                    ld e,a
+                    ld d,0
+                    ld hl,(Err)
+                    add hl,de
+BPl                 ld de,(TotP)
+                    or a
+                    sbc hl,de
+                    jr c,BPf            ; Err < TotP
+                    push hl
+                    ld a,(Col)
+                    ld c,a
+                    ld a,(Larg)
+                    cp c
+                    jr z,BPc            ; (ja' esta' cheia)
+                    ld a,c
+                    ld b,0FFh
+                    call BarraCol
+                    ld hl,Col
+                    inc (hl)
+BPc                 pop hl
+                    jr BPl
+BPf                 add hl,de
+                    ld (Err),hl
+                    ret
+; A = coluna, B = o byte: escreve-o nas linhas 190 e 191
+BarraCol            push hl
+                    ld l,a
+                    ld a,(Larg)
+                    cp 64
+                    ld a,l
+                    ld h,56h
+                    jr nz,BCn
+                    srl a               ; hi-res: coluna/2; as impares em 6000h (+2000h)
+                    jr nc,BCn
+                    ld h,76h
+BCn                 add a,0E0h
+                    ld l,a
+                    ld (hl),b
+                    inc h
+                    ld (hl),b
+                    pop hl
+                    ret
+
 ; ZXUNO A7h = A
 SetA7               push bc
                     push af
@@ -440,18 +530,20 @@ SetA0               push bc             ; (88h) A0h: bit 0 = o Z80 do GS (a FDD)
                     pop bc
                     ret
 ; DE bytes de HL para a memoria do GS / FDD (A1h, o ponteiro avanca sozinho)
+; (v89) DE = 256 (um sector): 16 voltas de 16 bytes, 25 T por byte (antes 56)
 Envia               ld bc,0FC3Bh
                     ld a,0A1h
                     out (c),a
                     inc b
-EVl                 ld a,d
-                    or e
-                    ret z
+                    ld e,16
+EV16                rept 16
                     ld a,(hl)
                     out (c),a
                     inc hl
-                    dec de
-                    jr EVl
+                    endr
+                    dec e
+                    jr nz,EV16
+                    ret
 ; le BC bytes do ficheiro aberto para HL. CF = erro ou acabou antes
 Le                  push bc
                     ld a,(FH)
@@ -521,6 +613,10 @@ FddRst              db 0   ; (88h) 1 = reset da FDD no fim da troca
 Ext                 db 0
 Faces               db 0
 NPist               dw 0
+TotP                dw 0                ; (v89) a barra: as pistas todas, a largura (32 ou 64), o erro, a coluna
+Larg                db 32
+Err                 dw 0
+Col                 db 0
 TabP                dw 0
 PT                  db 0
 PF                  db 0

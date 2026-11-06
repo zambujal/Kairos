@@ -160,6 +160,14 @@ architecture rtl of top is
   signal cad_t : unsigned(22 downto 0) := (others => '0');   -- (esp44b) o reset dura pelo menos ~150 ms
   signal irqn_s : std_logic;
   signal dbg_ss, dbg_hid, dbg_sys : std_logic := '0';   -- diagnostico do teclado USB (LEDs)
+  -- (88j diag, 2026-11-06) de onde vem o 2 (bit 16 da matriz): LED 4 = do teclado USB (BL616), LED 5 = do ESP ou das
+  -- sequencias dos botoes, LED 6 = da matriz (qualquer um). Ficam acesos ate' ao Ctrl+Alt+Del. Um 2 no ecra com os tres apagados
+  -- nao passou pela matriz: veio de dentro do core.
+  signal d2_usb, d2_out, d2_mat : std_logic := '0';
+  -- (89) a luz da drive da FDD3000: acesa enquanto o controlador le' ou escreve e ~0,2 s depois (3 voltas do
+  -- pisca_t(21), ~78 ms cada); no ecra o quadrado do canto (o da fita) a vermelho, e no LED 3
+  signal fdd_luz, luz_p, luz : std_logic := '0';
+  signal luz_c : unsigned(1 downto 0) := "00";
   signal ss_d : std_logic_vector(1 downto 0) := "11";
   signal irq_t : unsigned(24 downto 0) := (others => '0');
   signal mcu_d, mcu_sys_q, mcu_hid_q : std_logic_vector(7 downto 0);
@@ -315,7 +323,7 @@ begin
   end process;
 
   -- (80) a fita do core no canto do ecra (dois registos para o relogio do video)
-  process(pclk) begin if rising_edge(pclk) then fita_s1 <= tp_pau & tp_ativa; fita_v <= fita_s1; blc_s1 <= tp_blc; blc_v <= blc_s1; vel_s1 <= vel_cod; vel_v <= vel_s1; end if; end process;
+  process(pclk) begin if rising_edge(pclk) then fita_s1 <= (tp_pau & tp_ativa) or (luz & "00" & luz); fita_v <= fita_s1; blc_s1 <= tp_blc; blc_v <= blc_s1; vel_s1 <= vel_cod; vel_v <= vel_s1; end if; end process;
   cam_gs <= tp_cam and not c_lig;
   c_cor1_e <= x"FFFFFF" when cam_gs = '1' else c_cor1;     -- branco
   c_cor2_e <= x"FFD800" when cam_gs = '1' else c_cor2;     -- amarelo
@@ -475,7 +483,7 @@ begin
       port map (clk => clk54, clk_div => I_clk, vclk => pclk, ce => ce, ce35 => ce35, reset_n => cpu_rst_n,
                 nmi_n => nmi_core, mat => mat,
                 border => border_c, modo => modo_c, hcor => hcor_c, ecra7 => ecra7_c,
-                vid_a => ecra7_v & va, vid_q => vq, vid_a2 => va2, vid_q2 => vq2, m16c => m16c_c, turbo => turbo_c, sd_esp => sd_dado, sem_fita => fita_on, ear_in => cs_ear, tp_wr => tp_wr, tp_d => tp_d, tp_limpa => tp_limpa, tp_livres => cs_livres, tp_ativa => tp_ativa, tp_cativa => cs_ativa, tp_rapido => tp_rap, tp_para => atalho(14), tp_cam => tp_cam, tp_esp => c_lig, tp_blocos => tp_blc, tp_pausak => atalho(13), k_f1 => atalho(7), tp_pausa => tp_pau, mp_on => '0', mp_rate => mp_rate, mp_idx => mp_idx, mp_l => open, mp_r => open, ce_t => ce_t, dv_lento => dv_lento, dv_mapa => dv_mapa, ay_vis => ay_vis, rato_x => rato_xz, rato_y => rato_yz, rato_b => rato_bz, rato_w => rato_wz, joy => joy_k, pede_rnmi => pede_rnmi, arr_auto => arr_auto, arr_rapido => arr_rap, halt_n => halt_n,
+                vid_a => ecra7_v & va, vid_q => vq, vid_a2 => va2, vid_q2 => vq2, m16c => m16c_c, turbo => turbo_c, sd_esp => sd_dado, sem_fita => fita_on, ear_in => cs_ear, tp_wr => tp_wr, tp_d => tp_d, tp_limpa => tp_limpa, tp_livres => cs_livres, tp_ativa => tp_ativa, tp_cativa => cs_ativa, tp_rapido => tp_rap, tp_para => atalho(14), tp_cam => tp_cam, tp_esp => c_lig, tp_blocos => tp_blc, tp_pausak => atalho(13), k_f1 => atalho(7), tp_pausa => tp_pau, mp_on => '0', mp_rate => mp_rate, mp_idx => mp_idx, mp_l => open, mp_r => open, ce_t => ce_t, dv_lento => dv_lento, dv_mapa => dv_mapa, ay_vis => ay_vis, rato_x => rato_xz, rato_y => rato_yz, rato_b => rato_bz, rato_w => rato_wz, joy => joy_k, pede_rnmi => pede_rnmi, arr_auto => arr_auto, arr_rapido => arr_rap, halt_n => halt_n, fdd_luz => fdd_luz,
                 pronta => sd_pronta, sd_teste => sd_teste, sd_teste2 => sd_teste2,
                 sd_clk => open, sd_cke => O_sdram_cke, sd_cs_n => O_sdram_cs_n,
                 sd_ras_n => O_sdram_ras_n, sd_cas_n => O_sdram_cas_n, sd_we_n => O_sdram_wen_n,
@@ -593,6 +601,10 @@ begin
       if ss_d(1) = '0' then dbg_ss <= '1'; end if;
       if mcu_sys_stb = '1' then dbg_sys <= '1'; end if;
       if mcu_hid_stb = '1' then dbg_hid <= '1'; end if;
+      if mat_usb(16) = '1' then d2_usb <= '1'; end if;
+      if mat_arr(16) = '1' or k_mat(16) = '1' then d2_out <= '1'; end if;
+      if mat(16) = '1' then d2_mat <= '1'; end if;
+      if usb_cad = '1' then d2_usb <= '0'; d2_out <= '0'; d2_mat <= '0'; end if;   -- Ctrl+Alt+Del apaga-os
     end if;
   end process;
 
@@ -620,7 +632,7 @@ begin
   end process;
   -- menu de arranque: LED3 pisca, LED4/LED5 = maquina escolhida. Depois: LED5 = o teclado USB ja' falou
   O_led_ofs <= not std_logic_vector(ofs_r) when CAP_TESTE else
-               not (arr_esc(3 downto 1) or atalho(2 downto 0)) when KAIROS else "11" & not dbg_hid;   -- LEDs 4-6: Win+J, Win+S, Win+C
+               not (arr_esc(3 downto 1) or atalho(2 downto 0) or (d2_mat & d2_out & d2_usb)) when KAIROS else "11" & not dbg_hid;   -- LEDs 4-6: Win+J, Win+S, Win+C; (88j diag) e o 2
 
   turbo_c <= '0' when vel_r = 1 and k_turbo = '0' and arr_rap = '0' and tp_rap = '0' else '1';
   vel_cod <= "0100" when k_turbo = '1' else std_logic_vector(to_unsigned(vel_r, 4));
@@ -716,7 +728,12 @@ begin
   -- LED 1: SDRAM ok; no Kairos pisca com o turbo (devagar = 7 MHz, depressa = 14 MHz)
   process(clk54)
   begin
-    if rising_edge(clk54) then pisca_t <= pisca_t + 1; end if;
+    if rising_edge(clk54) then
+      pisca_t <= pisca_t + 1;
+      luz_p <= pisca_t(21);
+      if fdd_luz = '1' then luz_c <= "11";
+      elsif luz_p = '0' and pisca_t(21) = '1' and luz_c /= 0 then luz_c <= luz_c - 1; end if;
+    end if;
   end process;
   O_led(0) <= not (sd_teste and pisca_t(24)) when KAIROS and vel_r = 2 else
               not (sd_teste and pisca_t(22)) when KAIROS and vel_r = 4 else
@@ -738,7 +755,8 @@ begin
   end process;
   O_reconfig_n <= '0' when mb_rn = '0' else 'Z';   -- dreno aberto (o TP1 tem pull-up de 4,7k)
 
-  O_led3   <= not (arr_esc(0) or alt_k) when KAIROS else not sd_teste2;   -- Kairos: LED 3 tambem = uma tecla Windows carregada  -- Kairos: LEDs dos pinos 17-20 = escolha bits 0-3           -- LED 3 aceso = 4 bytes na mesma palavra (DQM) certos
+  luz <= '1' when luz_c /= 0 else '0';
+  O_led3   <= not (arr_esc(0) or alt_k or luz) when KAIROS else not sd_teste2;   -- Kairos: LED 3 tambem = uma tecla Windows carregada  -- Kairos: LEDs dos pinos 17-20 = escolha bits 0-3           -- LED 3 aceso = 4 bytes na mesma palavra (DQM) certos
   O_led(1) <= O_sd_cs_n;               -- aceso enquanto o cartao SD esta' seleccionado
   -- 2026-10-22: ponte para o ESP32-S3 (por agora so' registos de teste)
   esp: entity work.ponte_esp port map (clk => clk54, esp_clk => I_esp_clk, esp_cs => I_esp_cs, esp_dir => I_esp_dir,

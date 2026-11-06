@@ -70,6 +70,9 @@ O cartao e' FAT32 e leva, por esta ordem:
   CP/M. O plugin troca o disco e faz o reset so' da FDD (num disco de sistema do CP/M e' automatico; noutro disco,
   CAPS SHIFT + ENTER faz o mesmo). O CP/M corre no Z80 da FDD e o Timex fica de terminal (64 colunas). Funciona
   no TC2048 e no TC2068.
+  (plugin DSK v89) Ao meter o disco aparece uma barra nas duas ultimas linhas de pontos do navegador; o Z80 passa
+  o disco para a FDD a 14 MHz (a leitura do cartao continua a 3,5 MHz). (core 89) A luz da drive: enquanto a FDD
+  le' ou escreve o disco, um quadrado vermelho no canto de cima a' esquerda do ecra e o LED 3 da Tang.
 - F9 / F10: velocidade do Z80 (3,5 / 7 / 14 / 27 MHz).
 - Com rato USB: passar por cima escolhe a linha, clique esquerdo corre, clique direito = ESPACO, a roda
   muda de pagina, clique no caminho (linha de cima) sobe uma pasta, clique no nome da maquina abre o

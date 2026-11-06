@@ -40,7 +40,8 @@ entity fdd3000 is
     disco   : in  std_logic := '1';               -- (88) 0 = drive sem disco: as leituras dao RNF (o arranque da FDD fica a' espera)
     ti_out  : out std_logic_vector(7 downto 0);   -- o que o Timex le' no EF
     paged   : out std_logic;                      -- 1 = ROM de arranque em 0000-07FF
-    intrq   : out std_logic
+    intrq   : out std_logic;
+    ativa   : out std_logic                       -- (89) o WD1770 ocupado (a luz da drive)
   );
 end entity;
 
@@ -100,6 +101,7 @@ begin
   ti_out <= ti_o;
   paged  <= pg;
   intrq  <= irq;
+  ativa  <= busy;
 
   process(clk)
     variable fim : std_logic;

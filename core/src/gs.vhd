@@ -63,7 +63,8 @@ entity gs is
     fdd      : in  std_logic := '0';
     disco    : in  std_logic := '1';             -- (88) a FDD3000 tem disco
     ti_in    : in  std_logic_vector(7 downto 0) := (others => '0');
-    ti_out   : out std_logic_vector(7 downto 0)
+    ti_out   : out std_logic_vector(7 downto 0);
+    f_ativa  : out std_logic                      -- (89) a FDD3000 a ler ou escrever (a luz da drive)
   );
 end entity;
 
@@ -104,7 +105,7 @@ begin
     port map (clk => clk, reset_n => f_rst_n, a => a(7 downto 0), d => do_c,
               iorq_n => iorq_n, rd_n => rd_n, wr_n => wr_n, m1_n => m1_n,
               q => f_q, q_mem => f_qmem, m_rd => f_mrd, m_wr => f_mwr, m_ad => f_ad,
-              ti_in => ti_in, disco => disco, ti_out => ti_out, paged => f_pg, intrq => f_irq);
+              ti_in => ti_in, disco => disco, ti_out => ti_out, paged => f_pg, intrq => f_irq, ativa => f_ativa);
   -- memoria da FDD (21 bits): ROM de arranque na pagina 0 (2K), RAM de 64K em 10000h, disco em 100000h
   f_rom <= '1' when f_pg = '1' and a(15 downto 11) = "00000" else '0';
   f_ma  <= '1' & std_logic_vector(f_ad) when (f_mrd or f_mwr) = '1' else   -- (87d) o disco em 100000h (sem somador)

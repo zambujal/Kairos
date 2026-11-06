@@ -30,6 +30,13 @@ def primeiro(prefixo):
 registos('core_kairos', 'R_', '')                                   # o core
 if primeiro('gs_'): registos(primeiro('gs_'), 'G_', 'gsnd__DOT__')     # o General Sound / o Z80 da FDD
 if primeiro('fdd3000_'): registos(primeiro('fdd3000_'), 'F_', 'gsnd__DOT__fd__DOT__')   # os portos da FDD3000
+# (2026-11-06) o barramento do Z80 do Timex (T80se_ct): MREQ, IORQ, RD, WR e o DI_Reg (o byte que o Z80 leu)
+t80ct = primeiro('t80se_ct_')
+if t80ct:
+    c = corpo(t80ct)
+    for porto, nome in (('mreq_n', 'mreq'), ('iorq_n', 'iorq'), ('rd_n', 'rd'), ('wr_n', 'wr'), ('di_reg', 'di_reg')):
+        m = re.search(r'^\s+assign %s = (n\d+_q);' % porto, c, re.M)
+        if m: print('#define P_cpu_%s __PVT__cpu__DOT__%s' % (nome, m.group(1)))
 t80 = primeiro('t80_0_')
 if t80:
     c = corpo(t80)
