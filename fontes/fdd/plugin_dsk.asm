@@ -17,7 +17,7 @@
 ; So' no TIMEX 2048 e no TC2068 (no ZX 128K e no Pentagon a memoria de 8000h e' outra: recusa).
 ; (v89) O Z80 a 14 MHz enquanto passa o disco para a FDD (ZXUNO A6h = 4, como o plugin TZX; a leitura do cartao
 ; continua a 3,5 MHz: o core abranda sozinho perto do cartao) e a copia de cada sector desenrolada (25 T por byte em
-; vez de 56). Uma barra de progresso nas duas ultimas linhas de pontos do ecra do navegador (hi-res ou normal).
+; vez de 56). Uma barra de progresso no meio do ecra (o navegador deixa-o limpo enquanto o plugin corre).
 ; (Kairos, 2026-11-06)
 ; Monta-se com  sjasmplus -I../nav --raw=DSK plugin_dsk.asm
 
@@ -441,9 +441,10 @@ SetA6               push bc
                     out (c),a
                     pop bc
                     ret
-; (v89) a barra de progresso: as linhas de pontos 190 e 191 (5600h-57FFh: 56E0h e 57E0h + coluna), que ficam na
-; linha de baixo do navegador. No hi-res (porta FF = xxxxx110) 64 colunas: as pares em 4000h, as impares em 6000h.
-; Anda por Bresenham: em cada pista, Err += Larg; enquanto Err >= TotP: Err -= TotP e acende a coluna seguinte.
+; (v89) a barra de progresso, no meio do ecra (durante o plugin o navegador deixa o ecra limpo): 8 linhas de pontos
+; na linha de texto 12 (4880h-4F9Fh), com uma linha por cima (95: 4F60h) e outra por baixo (104: 48A0h). No hi-res
+; (porta FF = xxxxx110) 64 colunas: as pares em 4000h, as impares em 6000h. Anda por Bresenham: em cada pista,
+; Err += Larg; enquanto Err >= TotP: Err -= TotP e acende a coluna seguinte.
 BarraIni            in a,(0FFh)         ; o modo do ecra (no TC2048 / TC2068 a FF le-se)
                     and 7
                     cp 6
@@ -455,10 +456,33 @@ BIn                 ld (Larg),a
                     ld (Err),hl
                     xor a
                     ld (Col),a
-                    ld c,a              ; apaga as duas linhas em todas as colunas
+                    ld c,a              ; o fundo da barra limpo e as linhas de cima e de baixo, em todas as colunas
 BIa                 ld a,c
-                    ld b,0
-                    call BarraCol
+                    call BarraEnd
+                    ld a,48h
+                    add a,d
+                    ld h,a
+                    ld a,80h
+                    add a,e
+                    ld l,a
+                    ld b,8
+BIz                 ld (hl),0
+                    inc h
+                    djnz BIz
+                    ld a,4Fh            ; a linha de cima (95)
+                    add a,d
+                    ld h,a
+                    ld a,60h
+                    add a,e
+                    ld l,a
+                    ld (hl),0FFh
+                    ld a,48h            ; a linha de baixo (104)
+                    add a,d
+                    ld h,a
+                    ld a,0A0h
+                    add a,e
+                    ld l,a
+                    ld (hl),0FFh
                     inc c
                     ld a,(Larg)
                     cp c
@@ -480,7 +504,6 @@ BPl                 ld de,(TotP)
                     cp c
                     jr z,BPc            ; (ja' esta' cheia)
                     ld a,c
-                    ld b,0FFh
                     call BarraCol
                     ld hl,Col
                     inc (hl)
@@ -489,23 +512,28 @@ BPc                 pop hl
 BPf                 add hl,de
                     ld (Err),hl
                     ret
-; A = coluna, B = o byte: escreve-o nas linhas 190 e 191
-BarraCol            push hl
+; A = coluna: acende-a (as 8 linhas)
+BarraCol            call BarraEnd
+                    ld a,48h
+                    add a,d
+                    ld h,a
+                    ld a,80h
+                    add a,e
                     ld l,a
+                    ld b,8
+BCl                 ld (hl),0FFh
+                    inc h
+                    djnz BCl
+                    ret
+; A = coluna -> D = 0 ou 20h (no hi-res as impares em 6000h), E = a coluna no banco
+BarraEnd            ld e,a
+                    ld d,0
                     ld a,(Larg)
                     cp 64
-                    ld a,l
-                    ld h,56h
-                    jr nz,BCn
-                    srl a               ; hi-res: coluna/2; as impares em 6000h (+2000h)
-                    jr nc,BCn
-                    ld h,76h
-BCn                 add a,0E0h
-                    ld l,a
-                    ld (hl),b
-                    inc h
-                    ld (hl),b
-                    pop hl
+                    ret nz
+                    srl e
+                    ret nc
+                    ld d,20h
                     ret
 
 ; ZXUNO A7h = A
