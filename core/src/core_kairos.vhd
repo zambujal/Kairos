@@ -374,6 +374,10 @@ architecture rtl of core_kairos is
   -- O TI na SDRAM em 080000h: ROM de 4K (em 0000-1FFF, duas vezes), RAM de 8K (2000-3FFF). Porto xxEF: a ligacao.
   signal fdd_on, ti_ld, ti_pag, ti_sai, ti_l, ti_sel, ti_rd, ti_wr, ti_m1 : std_logic := '0';
   signal ti2fdd, fdd2ti : std_logic_vector(7 downto 0) := (others => '0');
+  -- (88h) a ligacao TC2048 <-> FDD3000: os bits 7 e 4 do porto EF sao o mesmo fio, o bit 4 do porto 2Fh da FDD.
+  -- O TI e o TOS usam o bit 4; o MONITOR (o terminal do CP/M, TMX Portugal) e o CBIOS do CP/M usam o bit 7 do lado
+  -- do Timex (AND 0CFh / OR 80h) e o bit 4 do lado da FDD (AND 50h / CP 10h). Os dados vao sempre com AND 0Fh.
+  signal ti2fdd_f : std_logic_vector(7 downto 0);
   -- (87c) o NMI na FDD3000: do M1 em 0066h ate' ao RETN o navegador / esxDOS tem a maquina normal (o TI escondido,
   -- a DivMMC com o automap todo: o esxDOS chama a ROM e volta pelo RST 8)
   signal nmi_s, fdd_dv, ed_ant, m1_d : std_logic := '0';
@@ -668,6 +672,7 @@ begin
                      (((ti_pag = '1' or ti_m1 = '1') and nmi_s = '0' and dv_mapeado = '0' and not (m1_n = '0' and a = x"0066" and nmi_pend = '1')) or
                       (ti_ld = '1' and wr_n = '0')) else '0';
   ti_rd  <= ti_sel and not rd_n and not ti_ld;
+  ti2fdd_f <= ti2fdd(7 downto 5) & (ti2fdd(4) or ti2fdd(7)) & ti2fdd(3 downto 0);   -- (88h) o fio do bit 4
   ti_wr  <= ti_sel and not wr_n and (a(13) or ti_ld);
 
   ---------------------------------------------------------------------------
@@ -1126,7 +1131,7 @@ begin
           when x"F4" => di <= banksel;
           when x"CF" => di <= sid_q;                   -- SID (ZX-TSid)
           when x"1F" => di <= joy;                     -- Kempston (comando USB / Xbox)
-          when x"EF" => if fdd_on = '1' then di <= fdd2ti; else di <= x"FF"; end if;   -- (87) a FDD3000
+          when x"EF" => if fdd_on = '1' then di <= fdd2ti(4) & fdd2ti(6 downto 0); else di <= x"FF"; end if;   -- (87) a FDD3000; (88h) o bit 7 e' o fio do bit 4
           -- rato Kempston: FBDF = X, FFDF = Y, FADF = botoes (0 = carregado: bit 0 direito, 1 esquerdo, 2 meio)
           when x"DF" =>
             if a(15 downto 8) = x"FB" then di <= rato_x;
@@ -1405,7 +1410,7 @@ begin
               out_l => gs_l, out_r => gs_r,
               fita => gs_fita, c_livres => tp_livres, c_teclas => ld_visto & tp_esp & tp_cativa & tp_para & tp_pausak,
               c_wr => tp_wr, c_d => tp_d, c_est => gs_est4, c_fim => gs_cfim, c_bloco => gs_blk,
-              fdd => fdd_on, disco => f_disco, ti_in => ti2fdd, ti_out => fdd2ti);
+              fdd => fdd_on, disco => f_disco, ti_in => ti2fdd_f, ti_out => fdd2ti);
 
   ---------------------------------------------------------------------------
   -- quadro e INT: 48K 69888 T (INT 32 T); 128K 70908 T (228 x 311, INT 36 T);

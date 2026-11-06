@@ -11,6 +11,9 @@
 ;   Num disco de duas faces em dois .DSK (o _2 e' o "lado B"): ENTER no outro .DSK = virar a disquete e reset.
 ;   4. a maquina com a FDD (A7h = 1: o Z80 do GS passa a ser o da FDD, o GS calado), o Z80 da FDD a correr
 ;      (A0h = 0) e o reset quando o navegador sair (A5h): o TC2048 arranca pelo Timex Interface e o TOS.
+; Troca (88e): com o TOS a correr na FDD, ENTER noutro .DSK so' troca o disco (a FDD em pausa) e volta-se ao jogo.
+; (88h) Com CAPS SHIFT + ENTER, ou num disco de sistema do CP/M (o sector 0 comeca por ED 56), a troca acaba com o
+; reset so' da FDD (o botao do controlador): o CP/M arranca com o Monitor Emulator (TMX Portugal) no TC2048.
 ; Para voltar ao TC2048 normal: o RESET+NMI (Ctrl+Alt+Shift).
 ; Os discos ficam na memoria: o que o TOS grava perde-se ao desligar (por agora nao volta ao cartao).
 ; So' no TIMEX 2048 e no TC2068 (no ZX 128K e no Pentagon a memoria de 8000h e' outra: recusa).
@@ -40,6 +43,11 @@ Inicio              push ix
                     push iy
                     ld (SPerro),sp
                     ld (Nome),hl        ; HL = o nome do ficheiro
+                    ld a,0FEh           ; (88h) CAPS SHIFT + ENTER no navegador: troca o disco e faz o reset da FDD
+                    in a,(0FEh)         ; (o botao do controlador; o CP/M e outros sistemas arrancam assim)
+                    cpl
+                    and 1
+                    ld (FddRst),a
                     in a,(0F4h)         ; so' no TIMEX 2048 (F4 = F0h e' o ZX 128K / Pentagon)
                     cp 0F0h
                     jp z,ErroMaq
@@ -204,6 +212,23 @@ STam                ld a,(ix+3)         ; so' sectores de 256 bytes (N = 1) com 
                     jp nc,ErroGeo
                     push de
                     push hl
+                    ld a,(PT)           ; (88h) o sector 0 da pista 0, face 0: o disco de sistema do CP/M (TMX Portugal)?
+                    ld e,a
+                    ld a,(PF)
+                    or e
+                    or (ix+2)
+                    jr nz,SNaoCpm
+                    ld a,(hl)           ; ED 56 3E 5F = IM 1; LD A,5Fh (o arranque do CP/M): a FDD tem de reiniciar
+                    cp 0EDh
+                    jr nz,SNaoCpm
+                    inc hl
+                    ld a,(hl)
+                    dec hl
+                    cp 56h
+                    jr nz,SNaoCpm
+                    ld a,1
+                    ld (FddRst),a
+SNaoCpm
                     ; o sitio: S = (pista*2 + face)*16 + R; pagina = 4 + S/128 (A8h), resto (A9h)
                     ld a,(PT)
                     ld l,a
@@ -247,7 +272,7 @@ STam                ld a,(ix+3)         ; so' sectores de 256 bytes (N = 1) com 
                     add hl,de           ; o sector seguinte no bloco
                     ld de,8
                     add ix,de
-                    jr Sector
+                    jp Sector
 
 ; ---------------------------------------------------------------- o fim: a maquina com a FDD e o reset
 Fim                 ld a,(FH)
@@ -260,6 +285,16 @@ Fim                 ld a,(FH)
                     ld a,9
                     call SetA7
                     ld bc,TxtTroca
+                    ld a,(FddRst)       ; (88h) o reset da FDD: o Z80 dela volta a' ROM de arranque e le' o sector 0
+                    or a
+                    jp z,FimSai
+                    ld a,1
+                    call SetA0
+                    ld b,0
+FRw                 djnz FRw
+                    xor a
+                    call SetA0
+                    ld bc,TxtTrocaR
                     jp FimSai
 FimArr
                     ld a,9              ; A7h = 9: a FDD (o Z80 do GS e' o da FDD) com o disco (bit 3, core 88)
@@ -429,6 +464,16 @@ SetA7               push bc
                     out (c),a
                     pop bc
                     ret
+SetA0               push bc             ; (88h) A0h: bit 0 = o Z80 do GS (a FDD) parado em reset
+                    push af
+                    ld bc,0FC3Bh
+                    ld a,0A0h
+                    out (c),a
+                    inc b
+                    pop af
+                    out (c),a
+                    pop bc
+                    ret
 ; DE bytes de HL para a memoria do GS / FDD (A1h, o ponteiro avanca sozinho)
 Envia               ld bc,0FC3Bh
                     ld a,0A1h
@@ -484,6 +529,7 @@ TxtTI               db "/SYS/ROMS/FDD3TI.ROM",0
 TxtBoot             db "/SYS/ROMS/FDD3BOOT.ROM",0
 TxtOk               db "FDD3000: o TOS arranca",0
 TxtTroca            db "FDD3000: disco trocado",0
+TxtTrocaR           db "FDD3000: disco trocado, FDD reiniciada",0
 TxtDiag             db "FDD parada 00:"
 TxtD00              db "xx 40:"
 TxtD40              db "xx FF:"
@@ -509,6 +555,7 @@ FH2                 db 0
 Aberto              db 0
 Comecou             db 0
 Troca               db 0
+FddRst              db 0   ; (88h) 1 = reset da FDD no fim da troca
 Ext                 db 0
 Faces               db 0
 NPist               dw 0

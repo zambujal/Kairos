@@ -59,6 +59,10 @@ O cartao e' FAT32 e leva, por esta ordem:
   FDD3TI.ROM e' a roms/fdd3stavi.rom e a FDD3BOOT.ROM vem de dentro do fuse.exe. O /BIN/FDD3000 (o comando que o
   menu corre) e o /BIN/BPLUGINS/DSK vem com o Kairos. O disco fica na memoria: o que se grava perde-se ao
   desligar. Sai-se escolhendo outra maquina no menu, ou com Ctrl+Alt+Shift (volta ao TC2048).
+  CP/M (core 88h): arranca-se o disco Monitor Emulator (TMX Portugal) com ENTER no .DSK, responde-se 1 e, quando
+  pede "Please put the CP/M diskette on drive A: and press the controller reset button": NMI e ENTER no .DSK do
+  CP/M. O plugin troca o disco e faz o reset so' da FDD (num disco de sistema do CP/M e' automatico; noutro disco,
+  CAPS SHIFT + ENTER faz o mesmo). O CP/M corre no Z80 da FDD e o TC2048 fica de terminal (64 colunas).
 - F9 / F10: velocidade do Z80 (3,5 / 7 / 14 / 27 MHz).
 - Com rato USB: passar por cima escolhe a linha, clique esquerdo corre, clique direito = ESPACO, a roda
   muda de pagina, clique no caminho (linha de cima) sobe uma pasta, clique no nome da maquina abre o
