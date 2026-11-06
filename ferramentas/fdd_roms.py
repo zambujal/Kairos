@@ -3,7 +3,9 @@
 # slawkis: https://sourceforge.net/projects/fdd3000e/ , fuse-1.7.0-fdd3000-0.2.1-win32.7z) e grava-as como o
 # plugin DSK do Kairos as quer:
 #   SYS/ROMS/FDD3TI.ROM    a ROM de 4K do Timex Interface: roms/fdd3stavi.rom do pacote
-#                          (a roms/fdd3timex.rom nao arranca o TOS com a ROM do TC2048)
+#                          (a do Stavi, 1991, chama a ROM do 48K: TC2048 e ZX 48/128. A roms/fdd3timex.rom e' a
+#                          original da TMX, "TOS V", para a ROM do TC2068: sai para 2009h da ROM do Timex, que no
+#                          2068 e' o teste do BREAK; na ROM do TC2048 2009h fica a meio do PRINT e o TI perde-se)
 #   SYS/ROMS/FDD3BOOT.ROM  o arranque da propria FDD (2K, 100 bytes de codigo): esta' dentro do fuse.exe
 #                          (a tabela fddROM, que o fdd3000e usa como ROM da FDD)
 # Uso:  python3 fdd_roms.py <pasta do pacote descompactado> <raiz do cartao>

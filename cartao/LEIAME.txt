@@ -49,7 +49,7 @@ O cartao e' FAT32 e leva, por esta ordem:
   "Maquina anterior?": ENTER (ou um clique) = sim; 3 s sem resposta = nao.
 - F1 (no navegador): abre a ajuda, o /HELPME.TXT da raiz do cartao. Precisa do plugin TXT em
   /BIN/BPLUGINS (do navegador do Bob Fossil).
-- Timex FDD3000 (core 88): no menu das maquinas do navegador (a' direita, debaixo do GENERAL SOUND) a maquina
+- Timex FDD3000 (core 88j): no menu das maquinas do navegador (a' direita, debaixo do GENERAL SOUND) a maquina
   TIMEX FDD3000: o TC2048 com a FDD3000 ligada (o Z80 do General Sound faz de FDD; o GS fica calado). Arranca
   logo pelo Timex Interface, sem disco (a FDD espera por um). O disco mete-se com ENTER num .DSK de TOS no
   navegador: carrega-o e arranca o TC2048 com ele (o lado B: quando o jogo o pede,
@@ -59,7 +59,7 @@ O cartao e' FAT32 e leva, por esta ordem:
   FDD3TI.ROM e' a roms/fdd3stavi.rom e a FDD3BOOT.ROM vem de dentro do fuse.exe. O /BIN/FDD3000 (o comando que o
   menu corre) e o /BIN/BPLUGINS/DSK vem com o Kairos. O disco fica na memoria: o que se grava perde-se ao
   desligar. Sai-se escolhendo outra maquina no menu, ou com Ctrl+Alt+Shift (volta ao TC2048).
-  CP/M (core 88h): arranca-se o disco Monitor Emulator (TMX Portugal) com ENTER no .DSK, responde-se 1 e, quando
+  CP/M (core 88j): arranca-se o disco Monitor Emulator (TMX Portugal) com ENTER no .DSK, responde-se 1 e, quando
   pede "Please put the CP/M diskette on drive A: and press the controller reset button": NMI e ENTER no .DSK do
   CP/M. O plugin troca o disco e faz o reset so' da FDD (num disco de sistema do CP/M e' automatico; noutro disco,
   CAPS SHIFT + ENTER faz o mesmo). O CP/M corre no Z80 da FDD e o TC2048 fica de terminal (64 colunas).
@@ -86,6 +86,9 @@ Sem --fazer so' mostra o que faria. Repete-se sempre que se juntam ou tiram fich
 os indices que mudaram).
 
 Os indices so' valem no cartao onde foram feitos: copiados para outro cartao, os nomes 8.3 podem mudar.
+Depois de mudar o nome ou apagar ficheiros sem o cartao.py (pelo FTP do ESP, por exemplo), o indice dessa pasta
+fica com os nomes antigos: corre-se o cartao.py outra vez, ou apaga-se a pasta _NAV dessa pasta (o navegador passa
+a mostrar os nomes curtos).
 Para os tirar todos (no cartao ou numa pasta do disco do PC):
 
     python3 cartao.py . --limpar --fazer
