@@ -24,7 +24,9 @@ PLUGIN_RESTORE_BUFFERS equ 4
 PLUGIN_MSG          equ 16
 PLUGIN_ERROR        equ 128
 
-BUF                 equ 0A000h          ; uma pista inteira do .DSK (ate' 20K)
+BUF                 equ 0A3E0h          ; uma pista inteira do .DSK (ate' 20K). (88f) nao em A000h-A3DFh: e' o trampolim do
+                                        ; navegador (o plugin so' pode usar 8000h-9FFFh e A3E0h-FFFFh); com o BUF em A000h a
+                                        ; troca do disco (e os erros) voltavam ao navegador por cima de dados e encravava
 BUFTAM              equ 5000h
 
                     org 8000h
