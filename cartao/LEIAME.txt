@@ -49,20 +49,27 @@ O cartao e' FAT32 e leva, por esta ordem:
   "Maquina anterior?": ENTER (ou um clique) = sim; 3 s sem resposta = nao.
 - F1 (no navegador): abre a ajuda, o /HELPME.TXT da raiz do cartao. Precisa do plugin TXT em
   /BIN/BPLUGINS (do navegador do Bob Fossil).
-- Timex FDD3000 (core 88j): no menu das maquinas do navegador (a' direita, debaixo do GENERAL SOUND) a maquina
-  TIMEX FDD3000: o TC2048 com a FDD3000 ligada (o Z80 do General Sound faz de FDD; o GS fica calado). Arranca
-  logo pelo Timex Interface, sem disco (a FDD espera por um). O disco mete-se com ENTER num .DSK de TOS no
-  navegador: carrega-o e arranca o TC2048 com ele (o lado B: quando o jogo o pede,
-  NMI e ENTER no outro .DSK: troca o disco sem reset e volta-se ao jogo). Precisa no cartao de /SYS/ROMS/FDD3TI.ROM (a ROM de 4K do Timex Interface) e /SYS/ROMS/FDD3BOOT.ROM
-  (o arranque da FDD), que nao vem com o Kairos: tiram-se do Fuse com a FDD3000 (fdd3000e, de slawkis,
-  sourceforge.net/projects/fdd3000e, fuse-1.7.0-fdd3000-0.2.1-win32.7z) com o ferramentas/fdd_roms.py: a
-  FDD3TI.ROM e' a roms/fdd3stavi.rom e a FDD3BOOT.ROM vem de dentro do fuse.exe. O /BIN/FDD3000 (o comando que o
-  menu corre) e o /BIN/BPLUGINS/DSK vem com o Kairos. O disco fica na memoria: o que se grava perde-se ao
-  desligar. Sai-se escolhendo outra maquina no menu, ou com Ctrl+Alt+Shift (volta ao TC2048).
+- Timex FDD3000 (core 88j, navegador v87): duas placas no menu das maquinas do navegador (a' direita, debaixo do
+  GENERAL SOUND), para acrescentar a' maquina que esta' a correr, como o Timex Interface verdadeiro:
+    FDD SPECTRUM   a placa do Spectrum e do TC2048: no TIMEX 2048 e no ZX 48K (a ROM do TI da Stavi)
+    FDD TC2068     a placa do TC2068: so' no TC2068 (a ROM do TI da TMX Portugal)
+  Na maquina errada da' erro. A maquina reinicia com a FDD ligada (o Z80 do General Sound faz de FDD; o GS fica
+  calado), pelo Timex Interface, sem disco: no TC2048 fica o (c) 1982 parado (a espera da FDD), no TC2068 arranca
+  o BASIC. O disco mete-se com ENTER num .DSK de TOS no navegador (sem a placa ligada o plugin da' erro): carrega-o
+  e a maquina arranca com ele (o lado B: quando o jogo o pede, NMI e ENTER no outro .DSK: troca o disco sem reset e
+  volta-se ao jogo). Para escolher a maquina TC2068: no menu, TC2068, e so' depois a placa FDD TC2068.
+  Precisa no cartao de /SYS/ROMS/FDD3TI.ROM (a ROM do TI da placa do Spectrum), /SYS/ROMS/FDD3TI68.ROM (a da placa
+  do TC2068) e /SYS/ROMS/FDD3BOOT.ROM (o arranque da FDD), que nao vem com o Kairos: tiram-se do Fuse com a FDD3000
+  (fdd3000e, de slawkis, sourceforge.net/projects/fdd3000e, fuse-1.7.0-fdd3000-0.2.1-win32.7z) com o
+  ferramentas/fdd_roms.py (FDD3TI.ROM = roms/fdd3stavi.rom, FDD3TI68.ROM = roms/fdd3timex.rom, a FDD3BOOT.ROM vem
+  de dentro do fuse.exe). O /BIN/FDD3000 (o comando que o menu corre: .fdd3000 ou .fdd3000 2068) e o
+  /BIN/BPLUGINS/DSK vem com o Kairos. O disco fica na memoria: o que se grava perde-se ao desligar. Tira-se a
+  placa escolhendo outra maquina no menu, ou com Ctrl+Alt+Shift.
   CP/M (core 88j): arranca-se o disco Monitor Emulator (TMX Portugal) com ENTER no .DSK, responde-se 1 e, quando
   pede "Please put the CP/M diskette on drive A: and press the controller reset button": NMI e ENTER no .DSK do
   CP/M. O plugin troca o disco e faz o reset so' da FDD (num disco de sistema do CP/M e' automatico; noutro disco,
-  CAPS SHIFT + ENTER faz o mesmo). O CP/M corre no Z80 da FDD e o TC2048 fica de terminal (64 colunas).
+  CAPS SHIFT + ENTER faz o mesmo). O CP/M corre no Z80 da FDD e o Timex fica de terminal (64 colunas). Funciona
+  no TC2048 e no TC2068.
 - F9 / F10: velocidade do Z80 (3,5 / 7 / 14 / 27 MHz).
 - Com rato USB: passar por cima escolhe a linha, clique esquerdo corre, clique direito = ESPACO, a roda
   muda de pagina, clique no caminho (linha de cima) sobe uma pasta, clique no nome da maquina abre o

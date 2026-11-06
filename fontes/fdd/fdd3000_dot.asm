@@ -1,24 +1,74 @@
-; FDD3000: comando do esxDOS (/BIN/FDD3000) que arranca a maquina "TIMEX FDD3000" (core 88+): o TC2048
-; com a Timex FDD3000 ligada, como se a disquete estivesse desligada. O menu das maquinas do navegador
-; corre-o (".fdd3000"). Sem disco: a FDD fica a' espera de um (o arranque dela le' o sector 0 ate' haver);
-; o disco mete-se depois com ENTER num .DSK no navegador (o plugin DSK).
-;   1. /SYS/ROMS/FDD3TI.ROM (4K, a ROM do Timex Interface) para a memoria do TI no core (ZXUNO A7h = 2);
+; FDD3000: comando do esxDOS (/BIN/FDD3000) que liga a Timex FDD3000 a' maquina que esta' a correr (core 88+), como
+; quem encaixa a placa do Timex Interface no computador. Ha' duas placas, cada uma com a sua ROM (v87):
+;   .fdd3000        FDD SPECTRUM: a interface do Spectrum e do TC2048 (a toda preta). /SYS/ROMS/FDD3TI.ROM, a ROM
+;                   da Stavi (fdd3stavi.rom, chama a ROM do 48K). So' no TIMEX 2048 e no ZX 48K.
+;   .fdd3000 2068   FDD TC2068: a interface do TC2068 (a preta com o botao de reset prateado). /SYS/ROMS/FDD3TI68.ROM,
+;                   a ROM da TMX Portugal (fdd3timex.rom, chama a ROM do TC2068). So' no TC2068.
+; O menu das maquinas do navegador corre-o (a' direita: FDD SPECTRUM, FDD TC2068) e so' na maquina certa.
+; Sem disco: a FDD fica a' espera de um (o arranque dela le' o sector 0 ate' haver); o disco mete-se depois com ENTER
+; num .DSK no navegador (o plugin DSK).
+;   1. a ROM do TI (4K) para a memoria do TI no core (ZXUNO A7h = 2);
 ;   2. /SYS/ROMS/FDD3BOOT.ROM (2K, o arranque da FDD) para a memoria do Z80 da FDD (A0h = 1, A1h);
-;   3. F3 = 0 (TIMEX 2048), A7h = 1 (a FDD, sem disco), A0h = 0 (o Z80 da FDD arranca) e A7h = 5:
-;      o reset ja' (bit 2, core 88): o TC2048 arranca pelo Timex Interface.
-; Com erro (falta uma ROM): a mensagem, uma tecla e o reset para o TC2048 normal (A7h = 4: sem a FDD).
+;   3. A7h = 1 (a FDD, sem disco), A0h = 0 (o Z80 da FDD arranca) e A7h = 5: o reset ja' (bit 2, core 88). A maquina
+;      e' a mesma (o F3 nao muda, o modo TC2068 fica) e arranca pelo Timex Interface.
+; Com erro (a maquina errada, falta uma ROM): a mensagem, uma tecla e o reset sem a FDD (A7h = 4).
 ; Monta-se com  sjasmplus -I../nav --raw=FDD3000 fdd3000_dot.asm
                     include "esxdos.inc"
 BUF_TI              equ 0C000h          ; 4K
 BUF_BOOT            equ 0D000h          ; 2K
 
                     org 2000h
-Inicio              di
+Inicio              ld a,h              ; HL = os argumentos (0 = nenhum): "2068" = a placa do TC2068
+                    or l
+                    jr z,ArgFim
+ArgEsp              ld a,(hl)
+                    cp ' '
+                    jr nz,ArgVe
+                    inc hl
+                    jr ArgEsp
+ArgVe               ld de,Txt2068
+                    ld b,4
+ArgC                ld a,(de)
+                    cp (hl)
+                    jr nz,ArgFim
+                    inc de
+                    inc hl
+                    djnz ArgC
+                    ld a,1
+                    ld (Placa68),a
+ArgFim
+                    ; ------------------------------------------------ a placa tem de ser da maquina
+                    in a,(0F4h)         ; ZX 128K / Pentagon (o F4 da' F0h): nenhuma das placas
+                    cp 0F0h
+                    jr nz,Nao128
+                    ld a,(Placa68)
+                    or a
+                    ld hl,TxtMaqZX
+                    jp z,Erro
+                    ld hl,TxtMaq68
+                    jp Erro
+Nao128              ld hl,(5C4Fh)       ; o CHANS: 6840h com a ROM do TC2068 (5CB6h na do 48K)
+                    ld de,6840h
+                    or a
+                    sbc hl,de
+                    ld a,(Placa68)
+                    jr z,Eh2068
+                    or a                ; a ROM do 48K: so' a placa do Spectrum
+                    ld hl,TxtMaq68
+                    jp nz,Erro
+                    ld hl,TxtTI
+                    jr Carrega
+Eh2068              or a                ; a ROM do TC2068: so' a placa do TC2068
+                    ld hl,TxtMaqZX
+                    jp z,Erro
+                    ld hl,TxtTI68
+Carrega             ld (NomeTI),hl
+                    di
                     xor a               ; a FDD desligada e o Z80 dela parado enquanto se carrega
                     call SetA7
                     ld a,1
                     call SetA0
-                    ld hl,TxtTI
+                    ld hl,(NomeTI)
                     ld de,BUF_TI
                     ld bc,4096
                     call LeFich
@@ -52,9 +102,7 @@ Envia               ld a,(hl)
                     ld a,d
                     or e
                     jr nz,Envia
-                    ld bc,00F3h         ; F3 = 0: o TIMEX 2048 (a ROM do TI so' da' com a do TC2048)
-                    xor a
-                    out (c),a
+                    xor a               ; (v87) o F3 fica: a maquina e' a mesma (TIMEX 2048, ZX 48K ou TC2068)
                     out (0FFh),a        ; o ecra normal
                     ld a,1              ; A7h = 1: a FDD, sem disco
                     call SetA7
@@ -64,14 +112,17 @@ Envia               ld a,(hl)
                     call SetA7
                     jr $
 
-ErroRom             ld iy,5C3Ah
-                    ld hl,TxtErro
-EscL                ld a,(hl)
-                    or a
-                    jr z,EscF
-                    rst 10h
-                    inc hl
-                    jr EscL
+ErroRom             ld hl,TxtErro
+                    ld de,(NomeTI)      ; o nome da ROM do TI que se pediu
+                    jr ErroEsc
+Erro                ld de,TxtVazio
+ErroEsc             push de
+                    ld iy,5C3Ah
+                    call Esc
+                    pop hl
+                    call Esc
+                    ld hl,TxtTecla
+                    call Esc
 EscF                xor a               ; espera que larguem as teclas e depois por uma
                     in a,(0FEh)
                     cpl
@@ -82,9 +133,16 @@ EscT                xor a
                     cpl
                     and 1Fh
                     jr z,EscT
-                    ld a,4              ; A7h = 4: o reset, sem a FDD (o TC2048 normal)
+                    di
+                    ld a,4              ; A7h = 4: o reset, sem a FDD (a mesma maquina, sem a placa)
                     call SetA7
                     jr $
+Esc                 ld a,(hl)
+                    or a
+                    ret z
+                    rst 10h
+                    inc hl
+                    jr Esc
 
 ; DE = destino, BC = tamanho, HL = nome: le' o ficheiro todo. CF = erro (falta ou e' mais curto)
 LeFich              push de
@@ -136,6 +194,14 @@ SetA0               push af
                     ret
 
 FH                  db 0
+Placa68             db 0                ; 1 = a placa do TC2068
+NomeTI              dw TxtTI
+Txt2068             db "2068"
 TxtTI               db "/SYS/ROMS/FDD3TI.ROM",0
+TxtTI68             db "/SYS/ROMS/FDD3TI68.ROM",0
 TxtBoot             db "/SYS/ROMS/FDD3BOOT.ROM",0
-TxtErro             db 13,"FDD3000: falta /SYS/ROMS/",13,"FDD3TI.ROM ou FDD3BOOT.ROM",13,"Uma tecla: TC2048",0
+TxtErro             db 13,"FDD3000: falta /SYS/ROMS/FDD3BOOT.ROM",13,"ou ",0
+TxtMaqZX            db 13,"FDD3000: esta placa e' a do",13,"Spectrum (TIMEX 2048, ZX 48K)",0
+TxtMaq68            db 13,"FDD3000: esta placa e' a do",13,"TC2068 (.fdd3000 2068)",0
+TxtTecla            db 13,"Uma tecla: sem a FDD",0
+TxtVazio            db 0

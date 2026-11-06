@@ -1,23 +1,21 @@
-; DSK (/BIN/BPLUGINS/DSK): plugin do navegador (formato dos plugins do Bob Fossil) que arranca a Timex FDD3000 com um disco TOS (.DSK de CPC normal
-; ou EXTENDED, 16 sectores de 256 numerados 0-15; os .dsk do +3 / CPC sao recusados) (core 87+). So' le' o cartao.
-; Os discos TOS ficam com a extensao .DSK (como vem; um .DSK do +3 e' recusado com uma mensagem).
-;   1. a ROM do Timex Interface (/SYS/ROMS/FDD3TI.ROM, 4K: a fdd3stavi.rom do Fuse com a FDD3000, a que da' com
-;      o TC2048; a fdd3timex.rom nao arranca o TOS com a ROM do TC2048) para a ROM do
-;      TI no core (ZXUNO A7h = 2: as escritas em 0000h-1FFFh vao para ela);
-;   2. o arranque da FDD (/SYS/ROMS/FDD3BOOT.ROM, ate' 2K) para a pagina 0 da memoria do Z80 do GS (A0h = 1, A1h);
-;   3. o disco: os sectores do .DSK (o normal "MV - CPC" e o "EXTENDED") para a memoria da FDD a partir de 100000h,
-;      no sitio ((pista*2 + face)*16 + sector)*256 (o fdd3000.vhd le-os dai'): 256 bytes por sector, sectores 0-15,
-;      ate' 84 pistas e 2 faces (o TOS: 140K de 3" e 620K de 3,5");
-;   Num disco de duas faces em dois .DSK (o _2 e' o "lado B"): ENTER no outro .DSK = virar a disquete e reset.
-;   4. a maquina com a FDD (A7h = 1: o Z80 do GS passa a ser o da FDD, o GS calado), o Z80 da FDD a correr
-;      (A0h = 0) e o reset quando o navegador sair (A5h): o TC2048 arranca pelo Timex Interface e o TOS.
-; Troca (88e): com o TOS a correr na FDD, ENTER noutro .DSK so' troca o disco (a FDD em pausa) e volta-se ao jogo.
-; (88h) Com CAPS SHIFT + ENTER, ou num disco de sistema do CP/M (o sector 0 comeca por ED 56), a troca acaba com o
-; reset so' da FDD (o botao do controlador): o CP/M arranca com o Monitor Emulator (TMX Portugal) no TC2048.
-; Para voltar ao TC2048 normal: o RESET+NMI (Ctrl+Alt+Shift).
+; DSK (/BIN/BPLUGINS/DSK): plugin do navegador (formato dos plugins do Bob Fossil) que mete um disco TOS (.DSK de CPC
+; normal ou EXTENDED, 16 sectores de 256 numerados 0-15; os .dsk do +3 / CPC sao recusados) na Timex FDD3000 (core 87+).
+; So' le' o cartao.
+; (v87) A FDD liga-se antes, no menu das maquinas do navegador, com a placa da maquina: FDD SPECTRUM (TIMEX 2048,
+; ZX 48K: a ROM do TI da Stavi) ou FDD TC2068 (a ROM do TI da TMX); o /BIN/FDD3000 carrega a ROM do TI e o arranque da
+; FDD. Sem a FDD ligada o plugin da' erro e nao faz nada.
+;   - a FDD sem o TOS (acabada de ligar, a' espera de um disco): o disco para a memoria da FDD (a partir de 100000h,
+;     no sitio ((pista*2 + face)*16 + sector)*256: 256 bytes por sector, sectores 0-15, ate' 84 pistas e 2 faces; o
+;     fdd3000.vhd le-os dai'), o reset do Z80 da FDD (le' o disco novo), a espera do TOS e o reset do Timex: a
+;     maquina arranca pelo Timex Interface e o TOS.
+;   - (88e) com o TOS a correr na FDD, ENTER noutro .DSK so' troca o disco (a FDD em pausa) e volta-se ao jogo.
+;     Num disco de duas faces em dois .DSK (o _2 e' o "lado B"): ENTER no outro .DSK.
+;   - (88h) Com CAPS SHIFT + ENTER, ou num disco de sistema do CP/M (o sector 0 comeca por ED 56), a troca acaba com o
+;     reset so' da FDD (o botao do controlador): o CP/M arranca com o Monitor Emulator (TMX Portugal).
+; Para tirar a FDD: o RESET+NMI (Ctrl+Alt+Shift) ou outra maquina no menu.
 ; Os discos ficam na memoria: o que o TOS grava perde-se ao desligar (por agora nao volta ao cartao).
 ; So' no TIMEX 2048 e no TC2068 (no ZX 128K e no Pentagon a memoria de 8000h e' outra: recusa).
-; (Kairos, 2026-11-05)
+; (Kairos, 2026-11-06)
 ; Monta-se com  sjasmplus -I../nav --raw=DSK plugin_dsk.asm
 
                     include "esxdos.inc"
@@ -56,56 +54,22 @@ Inicio              push ix
                     jr c,Arranque
                     ld a,1
                     ld (Troca),a
+                    ld (Pausou),a
                     di
                     ld a,19h            ; A7h = 19h: a FDD com disco, em pausa (o Z80 dela parado sem reset)
                     call SetA7
                     jp Disco
-                    ; o arranque: o Z80 da FDD parado e a FDD desligada antes de usar o esxDOS (com a FDD o 0008h
-                    ; e' do Timex Interface, sem o automap da DivMMC)
-Arranque            di
-                    ld bc,0FC3Bh
-                    ld a,0A0h
-                    out (c),a
-                    inc b
-                    ld a,1
-                    out (c),a
-                    xor a
-                    call SetA7
-                    ; ------------------------------------------------ 1. a ROM do Timex Interface
-                    ld hl,TxtTI
-                    ld de,BUF
-                    ld bc,4096
-                    call LeFich
-                    jp c,ErroTI
+                    ; o arranque: a FDD ligada (a placa do menu das maquinas) mas sem o TOS. Com a FDD em pausa
+                    ; (A7h bit 0 = 1, a sessao do NMI) o 0008h e' do esxDOS (o TI nao entra)
+Arranque            in a,(0EFh)         ; (v87) sem a FDD o porto EF da' FFh: a placa liga-se no menu das maquinas
+                    inc a
+                    jp z,ErroDesl
                     di
-                    ld a,2              ; A7h = 2: carga da ROM do TI
+                    ld a,19h            ; A7h = 19h: a FDD com disco, em pausa (o Z80 dela parado) enquanto se carrega
                     call SetA7
-                    ld hl,BUF
-                    ld de,0
-                    ld bc,4096
-                    ldir
-                    xor a
-                    call SetA7
-                    ; ------------------------------------------------ 2. o arranque da FDD
-                    ld hl,TxtBoot
-                    ld de,BUF
-                    ld bc,2048
-                    call LeFich
-                    jp c,ErroBoot
-                    ld (BootN),bc
-                    di
-                    ld bc,0FC3Bh        ; A0h = 1: o Z80 do GS parado, o ponteiro da carga a 0
-                    ld a,0A0h
-                    out (c),a
-                    inc b
                     ld a,1
-                    out (c),a
-                    ld a,1
-                    ld (Comecou),a
-                    ld hl,BUF
-                    ld de,(BootN)
-                    call Envia
-                    ; ------------------------------------------------ 3. o disco
+                    ld (Pausou),a
+                    ; ------------------------------------------------ o disco
 Disco               ld hl,(Nome)
                     ld a,'*'
                     ld b,FA_READ
@@ -299,12 +263,12 @@ FRw                 djnz FRw
 FimArr
                     ld a,9              ; A7h = 9: a FDD (o Z80 do GS e' o da FDD) com o disco (bit 3, core 88)
                     call SetA7
-                    ld bc,0FC3Bh        ; A0h = 0: o Z80 da FDD arranca
-                    ld a,0A0h
-                    out (c),a
-                    inc b
-                    xor a
-                    out (c),a
+                    ld a,1              ; (v87) o reset do Z80 da FDD: volta a' ROM de arranque e le' o disco novo
+                    call SetA0
+                    ld b,0
+FAw                 djnz FAw
+                    xor a               ; A0h = 0: o Z80 da FDD arranca
+                    call SetA0
                     ; (87f) espera que a FDD tenha o TOS pronto: com ele a espera do Timex o porto EF alterna 00 e 40h
                     ; (o navegador corre mais depressa que 3,5 MHz: uma espera contada em voltas nao serve). se nunca aparecer o 40h: o diagnostico (o que se leu) e sem reset
                     ld hl,0
@@ -378,9 +342,7 @@ FimSai
 ; ---------------------------------------------------------------- os erros
 ErroMaq             ld hl,TxtMaq
                     jr Erro
-ErroTI              ld hl,TxtSemTI
-                    jr Erro
-ErroBoot            ld hl,TxtSemBoot
+ErroDesl            ld hl,TxtDesl
                     jr Erro
 ErroAbre            ld hl,TxtAbre
                     jr Erro
@@ -399,13 +361,16 @@ Erro                ld sp,(SPerro)
                     ld a,(FH)
                     rst 08h
                     db F_CLOSE
-ESemF               ld a,(Troca)        ; (88e) na troca: a FDD continua (sai da pausa)
+ESemF               ld a,(Pausou)       ; (v87) a FDD so' se mexe se o plugin a pos em pausa
+                    or a
+                    jr z,ESnada
+                    ld a,(Troca)        ; (88e) na troca: a FDD continua (sai da pausa) com o disco
                     or a
                     ld a,9
                     jr nz,ESa7
-                    xor a               ; o GS fica parado (a ROM dele foi-se: o NAV volta a carrega-la quando for preciso)
+                    ld a,1              ; (v87) no arranque: a FDD continua ligada, sem disco
 ESa7                call SetA7
-                    xor a
+ESnada              xor a
                     out (0E3h),a
                     pop bc
                     pop iy
@@ -525,8 +490,6 @@ LeFich              push de
                     pop af
                     ret
 
-TxtTI               db "/SYS/ROMS/FDD3TI.ROM",0
-TxtBoot             db "/SYS/ROMS/FDD3BOOT.ROM",0
 TxtOk               db "FDD3000: o TOS arranca",0
 TxtTroca            db "FDD3000: disco trocado",0
 TxtTrocaR           db "FDD3000: disco trocado, FDD reiniciada",0
@@ -541,8 +504,7 @@ CFF                 db 0
 COut                db 0
 DUlt                db 0
 TxtMaq              db "DSK: so' no TIMEX 2048 / 2068",0
-TxtSemTI            db "Falta /SYS/ROMS/FDD3TI.ROM",0
-TxtSemBoot          db "Falta /SYS/ROMS/FDD3BOOT.ROM",0
+TxtDesl             db "FDD desligada: liga a placa no menu das maquinas",0
 TxtAbre             db "DSK: nao abre",0
 TxtNaoDSK           db "Nao e' um .DSK",0
 TxtCorte            db "DSK: o ficheiro acaba a meio",0
@@ -553,7 +515,7 @@ Nome                dw 0
 FH                  db 0
 FH2                 db 0
 Aberto              db 0
-Comecou             db 0
+Pausou              db 0   ; (v87) 1 = a FDD foi posta em pausa pelo plugin
 Troca               db 0
 FddRst              db 0   ; (88h) 1 = reset da FDD no fim da troca
 Ext                 db 0
@@ -564,5 +526,4 @@ PT                  db 0
 PF                  db 0
 PN                  db 0
 NSec                db 0
-BootN               dw 0
 DiscoI              ds 256

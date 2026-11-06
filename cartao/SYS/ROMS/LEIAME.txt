@@ -2,3 +2,9 @@ Metes aqui:
   TC2048.ROM   16384 bytes   a ROM do Timex TC2048 (ou a do ZX Spectrum 48K)
   ESXMMC.BIN    8192 bytes   o esxDOS para DivMMC, tal como vem no pacote de www.esxdos.org
 O programa de arranque do core le-os ao ligar.
+Para a Timex FDD3000 (as placas FDD SPECTRUM e FDD TC2068 do navegador), o ferramentas/fdd_roms.py tira do Fuse
+com a FDD3000:
+  FDD3TI.ROM    4096 bytes   a ROM do Timex Interface do Spectrum (fdd3stavi.rom)
+  FDD3TI68.ROM  4096 bytes   a ROM do Timex Interface do TC2068 (fdd3timex.rom)
+  FDD3BOOT.ROM  2048 bytes   o arranque da FDD
+Le-os o /BIN/FDD3000 quando se escolhe a placa.

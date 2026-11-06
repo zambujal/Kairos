@@ -939,6 +939,7 @@ TxtGo1024           db "go1024",0
 TxtGo256            db "go256",0
 TxtGo2068           db "go2068",0
 TxtGoFdd            db "fdd3000",0
+TxtGoFdd68          db "fdd3000 2068",0   ; (v87) a placa do TC2068
 TxtGoReset          db "go128 -reset",0
 ; v24d: como o .gs: /BIN/GS105B.ROM (32K) para o GS pelos registos ZXUNO A0h (1 = parado e
 ; ponteiro a 0, 0 = arranca) e A1h (byte seguinte). No clone nao ha' GS (os registos nao existem).
@@ -2618,7 +2619,7 @@ DFHn                ld a,(F3extra)      ; Pentagon (F3 bit 7)
                     cp 0Ch
                     jr nz,DFHp
                     ld hl,TxtP1024Nome
-DFHp                call DFfdd          ; (v86) DE = 0; com a FDD3000 ligada: "TIMEX FDD3000"
+DFHp                call DFfdd          ; (v86) DE = 0; (v87) com a FDD3000 ligada: o nome da placa
                     ld b,16
                     call Escreve
                     ld d,0
@@ -2687,7 +2688,7 @@ DFattr              ld d,1
 
 ; ---------------------------------------------------------------------------
 ; Menu das maquinas (ENTER na barra de cima). 7/6 ou joystick, ENTER escolhe, ESPACO volta.
-NMENU               equ 10                  ; (v86) + TIMEX FDD3000 (a' direita, debaixo do GS). v41: sem o ZX 128K MENU (o ZX 128K ja' arranca o menu). v27: 8 maquinas a' esquerda (PENTAGON 128 e, so' na Tang, 256 e
+NMENU               equ 11                  ; (v87) as duas placas da FDD3000 (a' direita, debaixo do GS): FDD SPECTRUM e FDD TC2068. (v86) + TIMEX FDD3000 (a' direita, debaixo do GS). v41: sem o ZX 128K MENU (o ZX 128K ja' arranca o menu). v27: 8 maquinas a' esquerda (PENTAGON 128 e, so' na Tang, 256 e
 MNESQ               equ 8                   ; 1024) e o GS a' direita (so' na Tang); o clone mostra 6
 Menu                call VeTang         ; v24g: Tang (registo ZXUNO A3h = 54h) ou clone
                     call MenuIni        ; (v86) a maquina actual (o TIMEX FDD3000 tambem)
@@ -2718,8 +2719,7 @@ MNlinha             push bc
                     inc e
                     ld b,14
                     ENDIF
-                    call Escreve        ; nome
-                    call SaltaTxt       ; (a descricao ja' nao aparece)
+                    call Escreve        ; nome (o HL fica no nome seguinte). (v87) sem a descricao vazia (o 0 a mais e o SaltaTxt)
                     pop de
                     pop bc
                     push hl
@@ -2848,11 +2848,6 @@ MNpd                sub MNESQ
                     ld d,a
                     ld e,16
                     ret
-SaltaTxt            ld a,(hl)
-                    inc hl
-                    or a
-                    jr nz,SaltaTxt
-                    ret
 MNesc
 MNmaq               xor a
                     ld (Foco),a
@@ -2869,8 +2864,10 @@ MNmaq               xor a
                     jr c,MNtroca
                     cp MNESQ+1          ; v24d: General Sound (nao e' maquina: carrega a ROM do GS)
                     jp z,CarregaGS
-                    cp MNESQ+2          ; (v86) TIMEX FDD3000: o .fdd3000 carrega as ROMs e arranca-a
-                    jp z,MNfdd
+                    cp MNESQ+2          ; (v87) FDD SPECTRUM: o .fdd3000 (a ROM do TI da Stavi) na maquina que esta'
+                    jp z,MNfddZX
+                    cp MNESQ+3          ; (v87) FDD TC2068: o .fdd3000 2068 (a ROM do TI da TMX), so' no TC2068
+                    jp z,MNfdd68
                     push af
                     call MusCala        ; v23: tambem calada ao mudar para o Pentagon
                     pop af
@@ -5636,22 +5633,42 @@ VeFdd               call VeTang         ; (le' o A3h: o EhTang ainda pode estar 
                     in a,(0EFh)
                     inc a
                     ret
-MenuIni             ld a,(Filtro)       ; a linha do menu: a maquina actual, ou o TIMEX FDD3000
+MenuIni             ld a,(Filtro)       ; a linha do menu: a maquina actual, ou a placa da FDD3000 ligada
                     dec a
                     ld (MenuSel),a
                     call VeFdd
                     ret z
+                    ld a,(Filtro)       ; (v87) no TC2068 so' pode ser a placa dele
+                    cp 5
                     ld a,MNESQ+1
-                    ld (MenuSel),a
+                    jr nz,MIzx
+                    inc a
+MIzx                ld (MenuSel),a
                     ret
-MNfdd               call VeFdd          ; ja' e' a FDD3000: nada (como a mesma maquina)
-                    jp nz,DesenhaFiltro
+; (v87) as placas da FDD3000: cada uma so' na sua maquina (a ROM do TI chama a ROM do computador por endereco)
+MNfddZX             ld a,(Filtro)       ; FDD SPECTRUM: TIMEX 2048 (1) e ZX 48K (2)
+                    cp 3
+                    ccf                 ; CF = a maquina errada
+                    ld hl,TxtFddZXerr
                     ld ix,TxtGoFdd
+                    jr MNfddV
+MNfdd68             ld a,(Filtro)       ; FDD TC2068: so' no TC2068 (5)
+                    sub 5
+                    add a,0FFh          ; CF = a maquina errada (nao e' o 5)
+                    ld hl,TxtFdd68err
+                    ld ix,TxtGoFdd68
+MNfddV              jp c,Mensagem
+                    call VeFdd          ; ja' ligada: nada (como a mesma maquina)
+                    jp nz,DesenhaFiltro
                     jp ExecGo
                     IF HIRES
-DFfdd               call VeFdd
+DFfdd               call VeFdd          ; com a FDD3000 ligada: o nome da placa
                     jr z,DFf0
-                    ld hl,TxtFddNome
+                    ld hl,TxtFddZXb
+                    ld a,(Filtro)
+                    cp 5
+                    jr nz,DFf0
+                    ld hl,TxtFdd68b
 DFf0                ld de,0
                     ret
                     ENDIF
@@ -6130,7 +6147,8 @@ GOff                db 0                ; linha nova na janela = 3 + GOff
 GRows               db 16
 GTop8               db 0
 GBuf                ds 24*64
-GMarca                ds 8*64             ; a linha nova, marcada
+GMarca              equ 0F800h          ; a linha nova, marcada (8*64). (v87) fora do codigo, em F800h-F9FFh (entre o TMP
+                                        ; e a tabela do IM 2): o codigo da 2.a parte nao cabia com as placas da FDD3000
                     ENDIF
 ; ---------------------------------------------------------------------------
 ; Dados
@@ -6226,16 +6244,21 @@ PB0                 equ 17
 LTXTANT             equ $-TxtAnterior
 TxtMenuTit          db "  ESCOLHER A MAQUINA",0
 TxtMenuAj           db "ENTER muda  SPC volta",0  ; v37: sem a maquina de arranque (D)
-TabMenu             db "TIMEX 2048",0,0
-                    db "ZX 48K",0,0
-                    db "ZX 128K",0,0
-                    db "TIMEX 128K",0,0
-                    db "TC2068",0,0
-TabPenta            db "PENTAGON 128 ",0,0
-                    db "PENTAGON 256 ",0,0     ; v27 (so' na Tang)
-                    db "PENTAGON 1024",0,0     ; v26 (so' na Tang)
-                    db "GENERAL SOUND",0,0
-TxtFddNome          db "TIMEX FDD3000",0,0     ; (v86) o .fdd3000 (core 88)
+TabMenu             db "TIMEX 2048",0
+                    db "ZX 48K",0
+                    db "ZX 128K",0
+                    db "TIMEX 128K",0
+                    db "TC2068",0
+TabPenta            db "PENTAGON 128 ",0
+                    db "PENTAGON 256 ",0     ; v27 (so' na Tang)
+                    db "PENTAGON 1024",0     ; v26 (so' na Tang)
+                    db "GENERAL SOUND",0
+TxtFddZX            db "FDD SPECTRUM",0      ; (v87) a FDD3000 com a placa do Spectrum (TIMEX 2048, ZX 48K)
+TxtFdd68            db "FDD TC2068",0        ; (v87) a FDD3000 com a placa do TC2068
+TxtFddZXerr         db "FDD SPECTRUM: so' no TIMEX 2048 e no ZX 48K",0
+TxtFdd68err         db "FDD TC2068: so' no TC2068",0
+TxtFddZXb           db " FDD SPECTRUM",0
+TxtFdd68b           db " FDD TC2068",0
 TxtAMudar           db "A reiniciar",0
 TxtSemRom           db "Falta a ROM",0
 TxtRom              db "/BIN/128.rom",0

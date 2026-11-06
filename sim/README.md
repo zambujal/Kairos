@@ -61,3 +61,9 @@ SDIMG=cartao.img EVENTOS=ev.txt LOAD=arranque.st TRACO=4000,9000 .../sim/obra/ob
 
 `TRACO=ini,fim` escreve em `traco.txt` os saltos do Z80 do Timex (com o TI, a porta FF e a HSR do 2068);
 `TRACOFDD` o mesmo para o Z80 da FDD.
+
+### Mudar ficheiros no cartão a meio
+
+Um estado guardado traz o esxDOS a meio, com pedaços da FAT na memória: copiar um ficheiro novo para a imagem com
+o mtools (que lhe dá outros clusters) estraga-o. `poe_fich.py cartao.img /BIN/NAVHR.BIN NAVHR.BIN` escreve o
+ficheiro novo nos clusters do antigo e muda só o tamanho (tem de caber neles).
