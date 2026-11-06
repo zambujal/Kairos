@@ -384,6 +384,7 @@ architecture rtl of core_kairos is
   signal f_disco, f_pausa, g_carga : std_logic := '0';   -- (88) a FDD3000 tem disco (A7h bit 3); (88e) a FDD em pausa (bit 4)
   signal m1_ant, nmi_ret : std_logic_vector(15 downto 0) := (others => '0');   -- (88b) o fim do NMI
   signal m1mr, m1mr_d, n66, n66_fdd, nmi_pend, nmi_g_d : std_logic := '0';   -- (88f) nmi_pend: um NMI verdadeiro
+  signal ff_nmi : std_logic_vector(7 downto 0) := (others => '0');   -- (88j) a FF do programa no NMI
   signal ld_pend, io_wr_d : std_logic := '0';
   signal ld_d : std_logic_vector(7 downto 0) := (others => '0');
   signal gs_ce : std_logic := '0';
@@ -608,8 +609,11 @@ begin
       m1mr_d <= m1mr;
       if m1mr = '1' and m1mr_d = '0' then              -- uma vez por M1 (com o MREQ: o endereco ja' esta' certo)
         m1_ant <= a;
-        if a = x"0066" and dv_mapeado = '0' and nmi_pend = '1' then nmi_ret <= m1_ant; end if;
-        if nmi_s = '1' and m1_ant(15 downto 3) = "0001111111111" and a = nmi_ret then nmi_s <= '0'; end if;
+        if a = x"0066" and dv_mapeado = '0' and nmi_pend = '1' then nmi_ret <= m1_ant; ff_nmi <= regff; end if;
+        -- (88j) e a FF que o programa tinha volta no fim da sessao: o esxDOS poe a FF a 0 ao entrar no NMI (ESXDOS.SYS
+        -- 217Fh) e o navegador ja' a le' a 0: sem isto o programa em hi-res (o Monitor Emulator do CP/M) voltava no
+        -- ecra normal (so' as colunas pares: uma letra em cada duas)
+        if nmi_s = '1' and m1_ant(15 downto 3) = "0001111111111" and a = nmi_ret then nmi_s <= '0'; regff <= ff_nmi; end if;
       end if;
       -- (87e) a FDD ligada de dentro do navegador (o plugin): a maquina fica normal ate' ao reset que ele pede
       if io_wr = '1' and a = x"FD3B" and zx_reg = x"A7" then nmi_s <= do_cpu(0); end if;
