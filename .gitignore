@@ -7,3 +7,4 @@ cartao/BIN/PLUG2068/TAP
 *.fs
 *.bin.tmp
 __pycache__/
+sim/obra/
