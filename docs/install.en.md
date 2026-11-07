@@ -322,7 +322,7 @@ Own code (GPL v3): the core `core_kairos.vhd` and `top.vhd`, the video (`video_t
 (`src/hdmi/hdmi_hdlutil.sv`, `hdmi_tx.vhd`), the tape, the sound, the card bridge, the boot program and its font, the browser (`fontes/nav`,
 with its own font) and the other card programs, `cartao.py`.
 
-AI (Claude) was used in the process.
+AI (Claude) used.
 
 Code by others, each under its own licence (see `LICENCAS.md`):
 SCLD (Load ZX Museum, Álvaro Lopes, Paulo Cortesão, CC BY-SA 4.0), T80 (Daniel Wallner, Sorgelig),
