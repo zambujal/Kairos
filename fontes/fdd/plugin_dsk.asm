@@ -18,6 +18,10 @@
 ; (v89) Uma barra de progresso no meio do ecra (o navegador deixa-o limpo enquanto o plugin corre).
 ; (v89b) Sem a aceleracao do v89 (o Z80 a 14 MHz pelo A6h e a copia de cada sector desenrolada): a passagem do disco
 ; para a FDD volta a ser a do 88 (com o core 89 e o plugin v89 os jogos arrancavam e reiniciavam mais a' frente).
+; (v89c) A barra com as pontas fechadas (um traco vertical em cada ponta).
+; (v89e) Com um jogo a correr, o ENTER noutro .DSK troca o disco e pede o reset do Timex para quando o navegador sair
+; (ZXUNO A5h, como o Ctrl+Alt+AltGr; a FDD nao, o TOS arranca o disco novo): muda-se de jogo. SYMBOL SHIFT + ENTER
+; (Ctrl ou Alt + ENTER) so' troca, para o lado B. O CP/M (e o CAPS SHIFT + ENTER) continua com o reset so' da FDD.
 ; (Kairos, 2026-11-07)
 ; Monta-se com  sjasmplus -I../nav --raw=DSK plugin_dsk.asm
 
@@ -49,6 +53,11 @@ Inicio              push ix
                     cpl
                     and 1
                     ld (FddRst),a
+                    ld a,7Fh            ; (v89e) SYMBOL SHIFT + ENTER (Ctrl ou Alt + ENTER no teclado USB): so' troca o
+                    in a,(0FEh)         ; disco (o lado B de um jogo); o ENTER sozinho troca e reinicia o Timex (outro
+                    cpl                 ; jogo)
+                    and 2
+                    ld (LadoB),a
                     in a,(0F4h)         ; so' no TIMEX 2048 (F4 = F0h e' o ZX 128K / Pentagon)
                     cp 0F0h
                     jp z,ErroMaq
@@ -257,8 +266,18 @@ Fim                 ld a,(FH)
                     ld bc,TxtTroca
                     ld a,(FddRst)       ; (88h) o reset da FDD: o Z80 dela volta a' ROM de arranque e le' o sector 0
                     or a
-                    jp z,FimSai
-                    ld a,1
+                    jr nz,FimFRst
+                    ld a,(LadoB)        ; (v89e) SYMBOL SHIFT + ENTER: so' a troca (o lado B) e volta-se ao jogo
+                    or a
+                    jp nz,FimSai
+                    ld bc,0FC3Bh        ; (v89e) o ENTER sozinho: outro jogo. A5h: o reset do Timex quando o navegador
+                    ld a,0A5h           ; sair, como o Ctrl+Alt+AltGr (a FDD nao: o TOS continua, ja' com o disco novo,
+                    out (c),a           ; e arranca-o pelo Timex Interface)
+                    inc b
+                    out (c),a
+                    ld bc,TxtMuda
+                    jp FimSai
+FimFRst             ld a,1
                     call SetA0
                     ld b,0
 FRw                 djnz FRw
@@ -470,6 +489,28 @@ BIz                 ld (hl),0
                     ld a,(Larg)
                     cp c
                     jr nz,BIa
+                    xor a               ; (v89c) as pontas fechadas: um traco vertical no pixel da esquerda da
+                    call BarraEnd       ; coluna 0 e no da direita da ultima (a barra a encher tapa-os)
+                    ld b,80h
+                    call BarraPonta
+                    ld a,(Larg)
+                    dec a
+                    call BarraEnd
+                    ld b,01h
+; D / E da coluna (do BarraEnd), B = o pixel: o traco nas 8 linhas da barra
+BarraPonta          ld a,48h
+                    add a,d
+                    ld h,a
+                    ld a,80h
+                    add a,e
+                    ld l,a
+                    ld c,8
+BPo                 ld a,(hl)
+                    or b
+                    ld (hl),a
+                    inc h
+                    dec c
+                    jr nz,BPo
                     ret
 BarraPasso          ld a,(Larg)         ; Err += Larg
                     ld e,a
@@ -595,6 +636,7 @@ LeFich              push de
 TxtOk               db "FDD3000: o TOS arranca",0
 TxtTroca            db "FDD3000: disco trocado",0
 TxtTrocaR           db "FDD3000: disco trocado, FDD reiniciada",0
+TxtMuda             db "FDD3000: disco novo, o Timex reinicia",0
 TxtDiag             db "FDD parada 00:"
 TxtD00              db "xx 40:"
 TxtD40              db "xx FF:"
@@ -620,6 +662,7 @@ Aberto              db 0
 Pausou              db 0   ; (v87) 1 = a FDD foi posta em pausa pelo plugin
 Troca               db 0
 FddRst              db 0   ; (88h) 1 = reset da FDD no fim da troca
+LadoB               db 0   ; (v89e) SYMBOL SHIFT + ENTER: so' a troca, sem o reset do Timex
 Ext                 db 0
 Faces               db 0
 NPist               dw 0

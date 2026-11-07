@@ -56,8 +56,10 @@ O cartao e' FAT32 e leva, por esta ordem:
   Na maquina errada da' erro. A maquina reinicia com a FDD ligada (o Z80 do General Sound faz de FDD; o GS fica
   calado), pelo Timex Interface, sem disco: no TC2048 fica o (c) 1982 parado (a espera da FDD), no TC2068 arranca
   o BASIC. O disco mete-se com ENTER num .DSK de TOS no navegador (sem a placa ligada o plugin da' erro): carrega-o
-  e a maquina arranca com ele (o lado B: quando o jogo o pede, NMI e ENTER no outro .DSK: troca o disco sem reset e
-  volta-se ao jogo). Para escolher a maquina TC2068: no menu, TC2068, e so' depois a placa FDD TC2068.
+  e a maquina arranca com ele. Para mudar de jogo: NMI e ENTER no .DSK do outro jogo (troca o disco e o Timex
+  reinicia com ele ao sair do navegador). O lado B, quando o jogo o pede: NMI e Ctrl + ENTER (ou Alt + ENTER, e' o
+  SYMBOL SHIFT + ENTER; segura ate' o ecra limpar) no outro .DSK: so' troca o disco e volta-se ao jogo.
+  Para escolher a maquina TC2068: no menu, TC2068, e so' depois a placa FDD TC2068.
   Precisa no cartao de /SYS/ROMS/FDD3TI.ROM (a ROM do TI da placa do Spectrum), /SYS/ROMS/FDD3TI68.ROM (a da placa
   do TC2068) e /SYS/ROMS/FDD3BOOT.ROM (o arranque da FDD), que nao vem com o Kairos: tiram-se do Fuse com a FDD3000
   (fdd3000e, de slawkis, sourceforge.net/projects/fdd3000e, fuse-1.7.0-fdd3000-0.2.1-win32.7z) com o
@@ -70,7 +72,7 @@ O cartao e' FAT32 e leva, por esta ordem:
   CP/M. O plugin troca o disco e faz o reset so' da FDD (num disco de sistema do CP/M e' automatico; noutro disco,
   CAPS SHIFT + ENTER faz o mesmo). O CP/M corre no Z80 da FDD e o Timex fica de terminal (64 colunas). Funciona
   no TC2048 e no TC2068.
-  (plugin DSK v89b) Ao meter o disco aparece uma barra de progresso no meio do ecra. (core 89b) A luz da drive:
+  (plugin DSK v89e) Ao meter o disco aparece uma barra de progresso no meio do ecra. (core 89b) A luz da drive:
   enquanto a FDD le' ou escreve o disco, um quadrado vermelho no canto de cima a' esquerda do ecra e o LED 3 da Tang.
 - F9 / F10: velocidade do Z80 (3,5 / 7 / 14 / 27 MHz).
 - Com rato USB: passar por cima escolhe a linha, clique esquerdo corre, clique direito = ESPACO, a roda
