@@ -15,10 +15,10 @@
 ; Para tirar a FDD: o RESET+NMI (Ctrl+Alt+Shift) ou outra maquina no menu.
 ; Os discos ficam na memoria: o que o TOS grava perde-se ao desligar (por agora nao volta ao cartao).
 ; So' no TIMEX 2048 e no TC2068 (no ZX 128K e no Pentagon a memoria de 8000h e' outra: recusa).
-; (v89) O Z80 a 14 MHz enquanto passa o disco para a FDD (ZXUNO A6h = 4, como o plugin TZX; a leitura do cartao
-; continua a 3,5 MHz: o core abranda sozinho perto do cartao) e a copia de cada sector desenrolada (25 T por byte em
-; vez de 56). Uma barra de progresso no meio do ecra (o navegador deixa-o limpo enquanto o plugin corre).
-; (Kairos, 2026-11-06)
+; (v89) Uma barra de progresso no meio do ecra (o navegador deixa-o limpo enquanto o plugin corre).
+; (v89b) Sem a aceleracao do v89 (o Z80 a 14 MHz pelo A6h e a copia de cada sector desenrolada): a passagem do disco
+; para a FDD volta a ser a do 88 (com o core 89 e o plugin v89 os jogos arrancavam e reiniciavam mais a' frente).
+; (Kairos, 2026-11-07)
 ; Monta-se com  sjasmplus -I../nav --raw=DSK plugin_dsk.asm
 
                     include "esxdos.inc"
@@ -82,8 +82,6 @@ Disco               ld hl,(Nome)
                     ld (FH),a
                     ld a,1
                     ld (Aberto),a
-                    ld a,4              ; (v89) o Z80 a 14 MHz enquanto passa o disco (A6h bit 2)
-                    call SetA6
                     ld hl,DiscoI        ; o cabecalho do disco (256 bytes)
                     ld bc,256
                     call Le
@@ -247,9 +245,7 @@ SNaoCpm
                     jp Sector
 
 ; ---------------------------------------------------------------- o fim: a maquina com a FDD e o reset
-Fim                 xor a               ; (v89) o Z80 a' velocidade dele
-                    call SetA6
-                    ld a,(FH)
+Fim                 ld a,(FH)
                     rst 08h
                     db F_CLOSE
                     di
@@ -365,8 +361,6 @@ ErroGrande          ld hl,TxtGrande
 ErroGeo             ld hl,TxtGeo
 Erro                ld sp,(SPerro)
                     push hl
-                    xor a               ; (v89) o Z80 a' velocidade dele
-                    call SetA6
                     ld a,(Aberto)
                     or a
                     jr z,ESemF
@@ -429,17 +423,6 @@ VTi                 dec bc
                     jr nz,VTl
                     ld a,e
                     cp 4                ; CF = menos de 4 mudancas
-                    ret
-; (v89) ZXUNO A6h = A (bit 2: o Z80 a 14 MHz)
-SetA6               push bc
-                    push af
-                    ld bc,0FC3Bh
-                    ld a,0A6h
-                    out (c),a
-                    inc b
-                    pop af
-                    out (c),a
-                    pop bc
                     ret
 ; (v89) a barra de progresso, no meio do ecra (durante o plugin o navegador deixa o ecra limpo): 8 linhas de pontos
 ; na linha de texto 12 (4880h-4F9Fh), com uma linha por cima (95: 4F60h) e outra por baixo (104: 48A0h). No hi-res
@@ -558,20 +541,19 @@ SetA0               push bc             ; (88h) A0h: bit 0 = o Z80 do GS (a FDD)
                     pop bc
                     ret
 ; DE bytes de HL para a memoria do GS / FDD (A1h, o ponteiro avanca sozinho)
-; (v89) DE = 256 (um sector): 16 voltas de 16 bytes, 25 T por byte (antes 56)
+; (v89b) outra vez o ciclo do 88 (56 T por byte)
 Envia               ld bc,0FC3Bh
                     ld a,0A1h
                     out (c),a
                     inc b
-                    ld e,16
-EV16                rept 16
+EVl                 ld a,d
+                    or e
+                    ret z
                     ld a,(hl)
                     out (c),a
                     inc hl
-                    endr
-                    dec e
-                    jr nz,EV16
-                    ret
+                    dec de
+                    jr EVl
 ; le BC bytes do ficheiro aberto para HL. CF = erro ou acabou antes
 Le                  push bc
                     ld a,(FH)

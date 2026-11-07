@@ -30,12 +30,3 @@ set_false_path -from [get_regs {cpu_rst_n_s0}]
 # ou no inicio de um MREQ; o acesso seguinte a' memoria chega pelo menos uma T-state depois (3-4 ciclos)
 set_multicycle_path -from [get_regs {kairos_g.core/dv/el_3e/* kairos_g.core/dv/el_zxuno_esta_por_aqui/* kairos_g.core/dv/bancos_128k/* kairos_g.core/dv/el_divmmc/*}] -setup -end 2
 set_multicycle_path -from [get_regs {kairos_g.core/dv/el_3e/* kairos_g.core/dv/el_zxuno_esta_por_aqui/* kairos_g.core/dv/bancos_128k/* kairos_g.core/dv/el_divmmc/*}] -hold -end 1
-# 2026-11-06 (core 88j): o endereco do Z80 do Timex (cpu/u0/a_*) muda no inicio do T1 e o MREQ / IORQ so' descem no
-# fim do T1 (o ce seguinte: pelo menos 2 ciclos de 54 MHz, mesmo a 27 MHz); quem usa o endereco (a SDRAM, a cache, as
-# BSRAM, os registos _l, a DivTIESUS) so' o apanha depois disso. No relatorio do 88j os piores caminhos clk54 -> clk54
-# eram estes (cpu/u0/a_15 -> sdr/p_a, -8,2 ns) e escondiam os de um ciclo a serio.
-set_multicycle_path -from [get_regs {kairos_g.core/cpu/u0/a_*}] -setup -end 2
-set_multicycle_path -from [get_regs {kairos_g.core/cpu/u0/a_*}] -hold -end 1
-# o mesmo no Z80 do GS / da FDD3000: o gs_ma (o endereco registado) muda 2 ciclos antes do gs_rd / gs_wr
-set_multicycle_path -from [get_regs {kairos_g.core/gs_ma_*}] -setup -end 2
-set_multicycle_path -from [get_regs {kairos_g.core/gs_ma_*}] -hold -end 1
