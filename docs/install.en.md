@@ -15,10 +15,10 @@
 - **HDMI cable** to a TV or monitor that accepts 720p at 50 Hz.
 - On the PC: **Gowin EDA** (free, *Education* edition, Windows or Linux), only for the **Programmer**, or
   **openFPGALoader** on Linux.
+- The Timex ROMs already come in the `cartao/` folder (the TC2048 one, which the core boots with, and the 2068
+  one for the TC2068 mode; why: "The Timex ROMs on the card" in the README).
 - Things that belong to others and are not here:
-  - the **TC2048 ROM** (16384 bytes) — or the ZX Spectrum 48K one, which also works — which the core boots with;
-  - for the **TC2068** mode, the **TC2068 ROM** (16K home + 8K EXROM, `BIN/2068.rom`; and for 128K / Pentagon
-    the Spectrum 128 ROM, `BIN/128.rom`) — see step 6 of the card;
+  - for 128K / Pentagon, the Spectrum 128 ROM (`BIN/128.rom`) — see step 6 of the card;
   - **esxDOS** (www.esxdos.org): the package brings the `BIN` folder, the `SYS` folder and the file `ESXMMC.BIN`;
   - **Bob Fossil's browser** (http://www.thefossilrecord.co.uk, `BROWSE_latest.zip`): it brings the
     `SYS/NMI.SYS` that loads an external browser, and the **plugins** `BIN/BPLUGINS` (TAP, Z80, SNA, TRD,
@@ -35,13 +35,12 @@
    loads it, and that is how ours gets in).
 4. Copy the **`cartao/`** folder of this repository on top of those (its `BIN` and `SYS` merge with the esxDOS
    ones: browser, GO128/GO256/GO1024/GO2068, PENTA, MOD plugin, boot sound).
-5. Create the **`SYS/ROMS`** folder and put there:
-   - `TC2048.ROM` — the ROM (16384 bytes);
+5. Put in the **`SYS/ROMS`** folder (`TC2048.ROM` is already there, from `cartao/`):
    - `ESXMMC.BIN` — esxDOS, as it comes in the package (8192 bytes).
-6. Optional, only for the other machines and boards (also copyrighted, not here):
+6. Optional, only for the other machines and boards (copyrighted, not here):
    - `BIN/128.rom` — the ZX Spectrum 128 ROM (32768 bytes: ROM 0 + ROM 1), for the 128K mode and the Pentagon;
-   - `BIN/2068.rom` — the Timex TC2068 one for the TC2068 mode: 16K home ROM + 8K EXROM (24576 bytes), or with
-     the 8K of the 2068 esxDOS appended (32768 bytes), which gives esxDOS in that mode;
+   - a 32K `BIN/2068.rom` — the 2068 one (the 24K one already comes) with the 8K of the 2068 esxDOS appended,
+     which gives esxDOS in the TC2068 mode;
    - `BIN/GS105B.ROM` — the General Sound firmware, version 1.05b (32768 bytes), for the GS; sources at
      github.com/psbhlw/gs-firmware;
    - `BIN/PLUG2068/TAP` — TAP plugin for the TC2068 (**without it TAPs do not load from the browser in TC2068
