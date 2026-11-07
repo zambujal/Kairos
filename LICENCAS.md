@@ -25,5 +25,9 @@ ficheiro de outros autores mantém o seu cabeçalho e a sua licença:
 
 Código escrito com ajuda de IA.
 
-Não incluído, por ter direitos: as ROMs do Timex / Sinclair, o esxDOS e os seus plugins (Bob Fossil),
-o firmware FPGA-Companion / Partner do BL616.
+Incluídas, em `cartao/`: a ROM do Timex TC2048 (`SYS/ROMS/TC2048.ROM`) e a do TS2068 (`BIN/2068.rom`): a ROM do
+Spectrum da Sinclair, hoje da Amstrad, que deixa os emuladores incluí-la, com as mudanças da Timex (ver "As ROMs do
+Timex no cartão" no README).
+
+Não incluído, por ter direitos: as outras ROMs (128K, General Sound, FDD3000), o esxDOS e os seus plugins
+(Bob Fossil), o firmware FPGA-Companion / Partner do BL616.

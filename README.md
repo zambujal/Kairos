@@ -12,7 +12,8 @@ do cartão e do teclado.
 - **Z80:** T80 corrigido (registo Q), de 3,5 a 27 MHz com F9/F10.
 - **Cartão:** navegador próprio (menu das máquinas, rato; nomes compridos se o `cartao.py` correr no cartão), plugins TAP, TZX, Z80, SNA, TRD,
   PT3, AY, MOD. O TZX toca na própria FPGA, com o `LOAD ""` escrito sozinho e pausa/paragem em F3/F4.
-- **Sem ROMs dentro:** ao ligar lê do cartão a ROM do TC2048 e o esxDOS.
+- **ROMs no cartão:** ao ligar lê do cartão a ROM do TC2048 e o esxDOS. A pasta `cartao/` já traz as ROMs do
+  TC2048 e do 2068 ([porquê](#as-roms-do-timex-no-cartão)); o esxDOS mete-o cada um.
 
 A placa com ESP32-S3 (capas, rede, NAS, MP3) é outro projecto; nada aqui depende dela. Até 1 de Novembro
 de 2026 chamou-se Timorphius; antes, Timextenso e Timmy.
@@ -37,10 +38,10 @@ Os pormenores estão em [docs/instalacao.md](docs/instalacao.md); as teclas em [
    firmware diferente). Com ele a placa é teclado quando está sem PC e programador quando está numa porta
    directa do PC.
 3. **Cartão** (FAT32): `BIN`, `SYS` e `TMP` do esxDOS; o zip do Bob Fossil por cima (traz o `NMI.SYS` e os
-   plugins, que o esxDOS não traz); a pasta `cartao/` deste repositório por cima; `SYS/ROMS/TC2048.ROM` e
-   `SYS/ROMS/ESXMMC.BIN`. Opcionais, para as outras máquinas: `BIN/128.rom`, `BIN/2068.rom`, `BIN/GS105B.ROM`
-   e o `BIN/PLUG2068/TAP` feito com `fontes/plug2068/faz_plug2068.py`. Em Linux, `ferramentas/faz_cartao.sh`
-   faz tudo menos as ROMs.
+   plugins, que o esxDOS não traz); a pasta `cartao/` deste repositório por cima (traz a `SYS/ROMS/TC2048.ROM` e
+   a `BIN/2068.rom`); o `SYS/ROMS/ESXMMC.BIN` do esxDOS. Opcionais, para as outras máquinas: `BIN/128.rom`,
+   `BIN/GS105B.ROM` e o `BIN/PLUG2068/TAP` feito com `fontes/plug2068/faz_plug2068.py`. Em Linux,
+   `ferramentas/faz_cartao.sh` faz tudo menos o `ESXMMC.BIN` e as ROMs opcionais.
 4. **Índices.** Sem eles o navegador mostra nomes 8.3 (`JETSETW~1.TAP`) e o menu das máquinas só abre com as
    teclas 1 a 4. `python3 ferramentas/cartao.py /caminho/do/cartao --fazer`, com o cartão no PC, escreve em cada
    pasta um `_NAV/*.IDX` com os nomes compridos. Repetir quando se juntam jogos.
@@ -74,7 +75,32 @@ Se o navegador aparecer a preto e branco, falta o `NMI.SYS` do Bob Fossil ou a p
   cartão, o `cartao.py`. Escrito com ajuda de IA.
 - **De outros** (`LICENCAS.md`): YM2149 (MikeJ), General Sound, SID, sysctrl, mcu_spi (MiSTer / MiSTeryNano),
   DivTIESUS e ULAplus (ZX-UNO), leitor PT3 (S. V. Bulba), HDMI (hdl-util / NanoMig).
-- **Não está aqui:** ROMs (Timex, Sinclair, Amstrad), esxDOS, plugins do Bob Fossil, firmware do BL616.
+- **Não está aqui:** o esxDOS, os plugins do Bob Fossil, o firmware do BL616 e as outras ROMs (128K, General
+  Sound, FDD3000). As do TC2048 e do 2068 estão, em `cartao/` (em baixo).
+
+## As ROMs do Timex no cartão
+
+A pasta `cartao/` traz a `SYS/ROMS/TC2048.ROM` (a do Timex TC2048, 16384 bytes, md5
+`9dd7ecf784a6c04265c073c236f5fadb`) e a `BIN/2068.rom` (a do TS2068, HOME + EXROM, 24576 bytes, md5
+`9194283503a105f3f3dfba13e61e993f`), para o Kairos arrancar e passar a TC2068 sem ninguém ter de ir à procura de
+ROMs. São os mesmos ficheiros que o emulador [ZEsarUX](https://github.com/chernandezba/zesarux) traz no seu
+repositório (`src/tc2048.rom` e `src/ts2068.rom`); a do TC2048 vem também no pacote `spectrum-roms` do Debian e a
+do TS2068 no [Spectrum Computing](https://spectrumcomputing.co.uk/entry/1000506/Hardware/TimexSinclair_TS2068).
+
+São a ROM do Spectrum da Sinclair, hoje da Amstrad, com as mudanças da Timex:
+
+- a Amstrad deixa os emuladores incluírem as suas ROMs ("Amstrad are happy for emulator writers to include
+  images of our copyrighted code", Cliff Lawson, Amstrad; ver o
+  [copyright do pacote spectrum-roms do Debian](https://tracker.debian.org/media/packages/s/spectrum-roms/copyright-20081224-5),
+  que traz a do TC2048);
+- a nota das ROMs do emulador zxsp diz da do TC2048 que é da Amstrad, que deixa distribuí-la, e das do TC2068
+  que são feitas do código da Amstrad e que as mudanças da Timex estão no domínio público
+  ([README.copyright](https://k1.spdns.de/Develop/Projects/zxsp/Media/Roms/README.copyright)); a do TS2068 tem a
+  mesma origem.
+
+A `2068.rom` é a de 24K, sem o esxDOS: o modo TC2068 arranca, mas sem esxDOS. O esxDOS do 2068 (o ESX2068, a
+`2068.rom` de 32K) é feito do esxDOS e não se pode pôr aqui. O esxDOS também não: é de
+[esxdos.org](https://www.esxdos.org), e cada um mete o seu `SYS/ROMS/ESXMMC.BIN`.
 
 Ligações: [Tang Nano 20K](https://wiki.sipeed.com/hardware/en/tang/tang-nano-20k/nano-20k.html) ·
 [Gowin EDA](https://www.gowinsemi.com/en/support/download_eda/) ·
