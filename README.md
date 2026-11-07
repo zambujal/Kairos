@@ -72,7 +72,7 @@ Se o navegador aparecer a preto e branco, falta o `NMI.SYS` do Bob Fossil ou a p
   mim para o [CPLD de substituição](https://github.com/zambujal/CPLD-XC95288XL-replacement-for-scld-timex).
 - **Z80:** T80 (Daniel Wallner, Sorgelig), [corrigido por mim em 2026](https://github.com/zambujal/T80-Q-fix).
 - **Meu** (GPL v3): o core, o vídeo, o HDMI, o som, a ponte do cartão, o arranque, o navegador e os programas do
-  cartão, o `cartao.py`. Escrito com ajuda de IA.
+  cartão, o `cartao.py`. Foi usada IA (Claude) no processo.
 - **De outros** (`LICENCAS.md`): YM2149 (MikeJ), General Sound, SID, sysctrl, mcu_spi (MiSTer / MiSTeryNano),
   DivTIESUS e ULAplus (ZX-UNO), leitor PT3 (S. V. Bulba), HDMI (hdl-util / NanoMig).
 - **Não está aqui:** o esxDOS, os plugins do Bob Fossil, o firmware do BL616 e as outras ROMs (128K, General

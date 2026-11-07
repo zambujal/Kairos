@@ -70,7 +70,7 @@ A black-and-white browser means Bob Fossil's `NMI.SYS` or the `cartao/` folder i
   me for the [replacement CPLD](https://github.com/zambujal/CPLD-XC95288XL-replacement-for-scld-timex).
 - **Z80:** T80 (Daniel Wallner, Sorgelig), [fixed by me in 2026](https://github.com/zambujal/T80-Q-fix).
 - **Mine** (GPL v3): the core, video, HDMI, sound, card bridge, boot program, browser and card programs,
-  `cartao.py`. Written with AI assistance.
+  `cartao.py`. AI (Claude) was used in the process.
 - **Others** (`LICENCAS.md`): YM2149 (MikeJ), General Sound, SID, sysctrl, mcu_spi (MiSTer / MiSTeryNano),
   DivTIESUS and ULAplus (ZX-UNO), PT3 player (S. V. Bulba), HDMI (hdl-util / NanoMig).
 - **Not included:** esxDOS, Bob Fossil's plugins, the BL616 firmware and the other ROMs (128K, General Sound,
