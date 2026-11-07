@@ -23,7 +23,7 @@ ficheiro de outros autores mantém o seu cabeçalho e a sua licença:
 | o resto (core_kairos, top, vídeo/HDMI, cassete, som, ponte, arranque e letras, NAV, GO2068, PENTA, SOMNAV, MOD, stub68, cartao.py) | António Vitor | GPL v3 |
 | `core/src/hdmi/hdl-util/*.sv`, `core/src/hdmi/hdmi_hdlutil.sv` / `.v` (o HDMI com som) | hdl-util/hdmi, Sameer Puri (versão do NanoMig do djnice), adaptado para o Kairos | MIT (ou Apache-2.0) |
 
-Código escrito com ajuda de IA.
+Foi usada IA (Claude) no processo.
 
 Incluídas, em `cartao/`: a ROM do Timex TC2048 (`SYS/ROMS/TC2048.ROM`) e a do TS2068 (`BIN/2068.rom`): a ROM do
 Spectrum da Sinclair, hoje da Amstrad, que deixa os emuladores incluí-la, com as mudanças da Timex (ver "As ROMs do

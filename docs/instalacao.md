@@ -325,7 +325,7 @@ Código próprio (GPL v3): o core `core_kairos.vhd` e o `top.vhd`, o vídeo (`vi
 HDMI (`src/hdmi/hdmi_hdlutil.sv`, `hdmi_tx.vhd`), a cassete, o som, a ponte do cartão, o programa de arranque e a sua letra, o
 navegador (`fontes/nav`, com letra própria) e os restantes programas do cartão, o `cartao.py`.
 
-Código escrito com ajuda de IA.
+Foi usada IA (Claude) no processo.
 
 Código de outros, cada um com a sua licença (ver `LICENCAS.md`):
 SCLD (Load ZX Museum, Álvaro Lopes, Paulo Cortesão, CC BY-SA 4.0), T80 (Daniel Wallner, Sorgelig),
