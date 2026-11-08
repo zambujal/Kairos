@@ -27,6 +27,9 @@
 ; so' o reset da FDD e a espera do TOS; na troca so' a troca. Volta-se ao navegador e o disco arranca-se com o
 ; Ctrl+Alt+AltGr (na placa a 3,5 MHz o arranque pelo TI logo a seguir ao reset do plugin ficava parado no logo).
 ; (2026-11-08)
+; (v89g) Com o TOS a correr, o ENTER noutro .DSK (outro jogo) troca o disco, faz o reset da FDD e espera pelo TOS
+; novo, como no arranque (so' com a troca o TOS do disco antigo continuava e o disco novo nao arrancava). O SYMBOL
+; SHIFT + ENTER continua a so' trocar (o lado B do mesmo jogo). Depois, o Ctrl+Alt+AltGr. (2026-11-09)
 ; Monta-se com  sjasmplus -I../nav --raw=DSK plugin_dsk.asm
 
                     include "esxdos.inc"
@@ -271,9 +274,12 @@ Fim                 ld a,(FH)
                     ld a,(FddRst)       ; (88h) o reset da FDD: o Z80 dela volta a' ROM de arranque e le' o sector 0
                     or a
                     jr nz,FimFRst
-                    ; (v89f) o ENTER sozinho ja' nao pede o reset do Timex (o A5h do v89e): so' troca, como o
-                    ; SYMBOL SHIFT + ENTER. Para arrancar o disco novo: o Ctrl+Alt+AltGr
-                    jp FimSai
+                    ld a,(LadoB)        ; (v89e) SYMBOL SHIFT + ENTER: so' a troca (o lado B) e volta-se ao jogo
+                    or a
+                    jp nz,FimSai
+                    ; (v89g) o ENTER sozinho (outro jogo): o reset da FDD e a espera do TOS, como no arranque (o TOS
+                    ; do disco antigo nao via o disco novo); sem o reset do Timex. Depois o Ctrl+Alt+AltGr arranca-o
+                    jp FimArr
 FimFRst             ld a,1
                     call SetA0
                     ld b,0
