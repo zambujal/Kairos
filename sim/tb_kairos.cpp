@@ -294,6 +294,7 @@ int main(int argc, char** argv) {
     printf("%10.3f ms estado retomado de %s\n", e.cyc / (double)CICLOS_MS, getenv("LOAD"));
   }
   const long long N = (long long)(T_FIM * CICLOS_MS);
+  const bool TIRAP = getenv("TIRAPIDO") != nullptr;
   bool sdram_pronta = retomado;
   long long prox_est = (e.cyc / EST_C + 1) * EST_C;
   uint16_t pc_ant = 0, pcf_ant = 0, pc_m1 = 0, pcf_m1 = 0; uint8_t m1_ant = 1, m1f_ant = 1;
@@ -321,7 +322,11 @@ int main(int argc, char** argv) {
       bool c1 = e.acc35 < 27000 && a35 >= 27000;
       bool c4 = (e.acc35 < 6750 && a35 >= 6750) || (e.acc35 < 20250 && a35 >= 20250) ||
                 (e.acc35 < 33750 && a35 >= 33750) || (e.acc35 < 47250 && a35 >= 47250);
-      e.ce_r = t->dv_lento ? c1 : t->arr_rapido ? c4 : c1;
+      // (89c) TIRAPIDO: o core 89c sem o refazer: o Z80 a 14 MHz com o TI paginado na FDD3000 (fora da sessao do
+      // NMI) e, como o turbo_c do top, o turbo do core ligado a 14 MHz (o Z80 espera pela SDRAM)
+      bool rap = t->arr_rapido || (TIRAP && c->R_fdd_on && c->R_ti_pag && !c->R_nmi_s);
+      e.ce_r = t->dv_lento ? c1 : rap ? c4 : c1;
+      if (TIRAP) t->turbo = rap ? 1 : 0;
       if (a35 >= 54000) { e.acc35 = a35 - 54000; e.ce35_r = 1; } else { e.acc35 = a35; e.ce35_r = 0; }
     }
     // ---- flanco de descida

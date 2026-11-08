@@ -775,7 +775,11 @@ begin
   fl_byte <= fl_at when cap_zx_l = '1' and cap_on = '1' and lt < 128 and (lt mod 8) >= 4 else x"FF";
   pede_rnmi <= rnmi_p;
   arr_auto <= '0';   -- (69e) sem a maquina de arranque: nunca ha' NMI automatico (era a 14 MHz, a escrever no cartao)
-  arr_rapido <= carga or rap_on;
+  -- (89c) e com a FDD3000 enquanto o TI esta' paginado (o arranque pelo TI e as cargas que o jogo lhe pede): a
+  -- 3,5 MHz o Z80 da FDD (o do GS) so' tem a SDRAM no principio de cada T do Timex e na placa o TI desistia (ficava
+  -- no logo ate' se carregar no turbo). Quando o TI sai (M1 em 0604h) volta a' velocidade de antes. Fora da sessao
+  -- do NMI (o navegador tem a velocidade dele).
+  arr_rapido <= carga or rap_on or (fdd_on and ti_pag and not nmi_s);
   cap: ram_dp generic map (AW => 14)
     port map (clk => clk, a => cw_a, we => cw_we, d => cw_d, q => open,
               clkb => vclk, b => vid_a(13 downto 0), bq => vid_q);
