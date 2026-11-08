@@ -9,8 +9,9 @@
 ; num .DSK no navegador (o plugin DSK).
 ;   1. a ROM do TI (4K) para a memoria do TI no core (ZXUNO A7h = 2);
 ;   2. /SYS/ROMS/FDD3BOOT.ROM (2K, o arranque da FDD) para a memoria do Z80 da FDD (A0h = 1, A1h);
-;   3. A7h = 1 (a FDD, sem disco), A0h = 0 (o Z80 da FDD arranca) e A7h = 5: o reset ja' (bit 2, core 88). A maquina
-;      e' a mesma (o F3 nao muda, o modo TC2068 fica) e arranca pelo Timex Interface.
+;   3. A7h = 1 (a FDD, sem disco), A0h = 0 (o Z80 da FDD arranca) e A5h: o reset quando o esxDOS acabar o comando
+;      (v89d; era o A7h = 5, o reset ja', com o esxDOS a meio). A maquina e' a mesma (o F3 nao muda, o modo TC2068
+;      fica) e arranca pelo Timex Interface.
 ; Com erro (a maquina errada, falta uma ROM): a mensagem, uma tecla e o reset sem a FDD (A7h = 4).
 ; Monta-se com  sjasmplus -I../nav --raw=FDD3000 fdd3000_dot.asm
                     include "esxdos.inc"
@@ -108,9 +109,16 @@ Envia               ld a,(hl)
                     call SetA7
                     xor a               ; A0h = 0: o Z80 da FDD arranca
                     call SetA0
-                    ld a,5              ; A7h = 5: e o reset ja'
-                    call SetA7
-                    jr $
+                    ; (v89d) o reset quando o esxDOS acabar o comando (A5h), como um Ctrl+Alt+AltGr. O reset ja'
+                    ; (A7h = 5) vinha com o esxDOS a meio e o NMI so' funcionava depois de um Ctrl+Alt+AltGr
+                    ld bc,0FC3Bh
+                    ld a,0A5h
+                    out (c),a
+                    inc b
+                    out (c),a
+                    ei
+                    xor a               ; sem erro: volta ao BASIC e o reset vem logo a seguir
+                    ret
 
 ErroRom             ld hl,TxtErro
                     ld de,(NomeTI)      ; o nome da ROM do TI que se pediu

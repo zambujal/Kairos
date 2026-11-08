@@ -389,6 +389,11 @@ architecture rtl of core_kairos is
   signal ld_pend, io_wr_d : std_logic := '0';
   signal ld_d : std_logic_vector(7 downto 0) := (others => '0');
   signal gs_ce : std_logic := '0';
+  -- (89d) a FDD3000 ao passo do Timex, como no Fuse (la' a FDD da' um passo a seguir a cada instrucao do Timex e mais
+  -- um a cada 5): cada T do Timex da' 8 de credito e cada T do Z80 da FDD gasta 7 (8/7 = 4 MHz com o Timex a 3,5 MHz,
+  -- como a FDD real; em turbo sobe com ele). Atrasada pela SDRAM, recupera a 27 MHz ate' gastar o credito.
+  signal f_cred : unsigned(9 downto 0) := (others => '0');
+  signal f_vai  : std_logic;
   signal fdd_ativa : std_logic;                 -- (89) a luz da drive
   signal gs_cnt : unsigned(1 downto 0) := (others => '0');
   signal gs_cs_rd, gs_cs_wr, gs_rd, gs_wr, gs_wait, gs_acc : std_logic;
@@ -775,11 +780,8 @@ begin
   fl_byte <= fl_at when cap_zx_l = '1' and cap_on = '1' and lt < 128 and (lt mod 8) >= 4 else x"FF";
   pede_rnmi <= rnmi_p;
   arr_auto <= '0';   -- (69e) sem a maquina de arranque: nunca ha' NMI automatico (era a 14 MHz, a escrever no cartao)
-  -- (89c) e com a FDD3000 enquanto o TI esta' paginado (o arranque pelo TI e as cargas que o jogo lhe pede): a
-  -- 3,5 MHz o Z80 da FDD (o do GS) so' tem a SDRAM no principio de cada T do Timex e na placa o TI desistia (ficava
-  -- no logo ate' se carregar no turbo). Quando o TI sai (M1 em 0604h) volta a' velocidade de antes. Fora da sessao
-  -- do NMI (o navegador tem a velocidade dele).
-  arr_rapido <= carga or rap_on or (fdd_on and ti_pag and not nmi_s);
+  -- ((89c) tinha tambem o TI paginado na FDD3000 a 14 MHz; o 89d tira-o: a FDD passa a andar ao passo do Timex)
+  arr_rapido <= carga or rap_on;
   cap: ram_dp generic map (AW => 14)
     port map (clk => clk, a => cw_a, we => cw_we, d => cw_d, q => open,
               clkb => vclk, b => vid_a(13 downto 0), bq => vid_q);
@@ -1351,6 +1353,16 @@ begin
       gs_ma <= gs_ma_c; gs_md <= gs_md_c; gs_rd <= gs_rd_c; gs_wr <= gs_wr_c;
       gs_cnt <= gs_cnt + 1;
       gs_ce <= not gs_cnt(0);
+      -- (89d) o credito da FDD (so' com a FDD3000; o GS fica a 27 MHz): + 8 por T do Timex (o ce, ate' 511),
+      -- - 7 por cada T que o Z80 da FDD anda (o mesmo CLKEN que o T80 dela ve')
+      if fdd_on = '0' then
+        f_cred <= (others => '0');
+      elsif ce = '1' and f_cred < 504 then
+        if gs_ce = '1' and f_vai = '1' and f_pausa = '0' and gs_wait = '0' then f_cred <= f_cred + 1;
+        else f_cred <= f_cred + 8; end if;
+      elsif gs_ce = '1' and f_vai = '1' and f_pausa = '0' and gs_wait = '0' then
+        f_cred <= f_cred - 7;
+      end if;
       -- (87f) a FDD3000 com o relogio do GS (27 MHz, com as esperas da SDRAM): a ~4 MHz, sem a cache, ficava mais lenta
       -- que a FDD real e o Timex Interface desistia a meio (a ligacao tem handshake: mais rapida nao faz mal)
                                                                        -- (o GS: 27 MHz, como o MiSTer (28): as esperas
@@ -1389,6 +1401,7 @@ begin
     c_dat(c_idx)(23 downto 16) when "10",
     c_dat(c_idx)(31 downto 24) when others;
   gs_wait <= gs_acc and not g_feito and not c_ler;
+  f_vai   <= '1' when fdd_on = '0' or f_cred >= 7 else '0';   -- (89d) a FDD so' anda com credito
   g_carga <= gs_rst or f_pausa;                         -- (88e) a carga pelo A1h: o GS parado ou a FDD em pausa
   g_req   <= ld_pend when g_carga = '1' else (gs_acc and not g_feito and not g_emcurso and not c_ler);
   process(clk)
@@ -1417,7 +1430,7 @@ begin
   gs_cs_rd <= '1' when io_rd = '1' and (a(7 downto 0) = x"BB" or a(7 downto 0) = x"B3") else '0';
   gs_cs_wr <= '1' when io_wr = '1' and (a(7 downto 0) = x"BB" or a(7 downto 0) = x"B3") else '0';
   gsnd: entity work.gs
-    port map (clk => clk, reset_n => (rst_n_i or fdd_on) and not gs_rst, ce => gs_ce and not f_pausa,   -- (88e) a pausa   -- (87c) a FDD nao faz reset com o Timex (e' outra caixa)
+    port map (clk => clk, reset_n => (rst_n_i or fdd_on) and not gs_rst, ce => gs_ce and not f_pausa and f_vai,   -- (88e) a pausa; (89d) o credito   -- (87c) a FDD nao faz reset com o Timex (e' outra caixa)
               cs_rd => gs_cs_rd, cs_wr => gs_cs_wr, a3 => a(3), din => do_cpu, dout => gs_q,
               m_a => gs_ma_c, m_rd => gs_rd_c, m_wr => gs_wr_c, m_d => gs_md_c, m_q => gs_mq, m_wait => gs_wait,
               out_l => gs_l, out_r => gs_r,
