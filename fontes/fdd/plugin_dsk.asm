@@ -23,6 +23,10 @@
 ; (ZXUNO A5h, como o Ctrl+Alt+AltGr; a FDD nao, o TOS arranca o disco novo): muda-se de jogo. SYMBOL SHIFT + ENTER
 ; (Ctrl ou Alt + ENTER) so' troca, para o lado B. O CP/M (e o CAPS SHIFT + ENTER) continua com o reset so' da FDD.
 ; (Kairos, 2026-11-07)
+; (v89f) Sem o reset do Timex depois de carregar o disco (o v89e no ENTER da troca, o 87/88 no arranque): no arranque
+; so' o reset da FDD e a espera do TOS; na troca so' a troca. Volta-se ao navegador e o disco arranca-se com o
+; Ctrl+Alt+AltGr (na placa a 3,5 MHz o arranque pelo TI logo a seguir ao reset do plugin ficava parado no logo).
+; (2026-11-08)
 ; Monta-se com  sjasmplus -I../nav --raw=DSK plugin_dsk.asm
 
                     include "esxdos.inc"
@@ -267,15 +271,8 @@ Fim                 ld a,(FH)
                     ld a,(FddRst)       ; (88h) o reset da FDD: o Z80 dela volta a' ROM de arranque e le' o sector 0
                     or a
                     jr nz,FimFRst
-                    ld a,(LadoB)        ; (v89e) SYMBOL SHIFT + ENTER: so' a troca (o lado B) e volta-se ao jogo
-                    or a
-                    jp nz,FimSai
-                    ld bc,0FC3Bh        ; (v89e) o ENTER sozinho: outro jogo. A5h: o reset do Timex quando o navegador
-                    ld a,0A5h           ; sair, como o Ctrl+Alt+AltGr (a FDD nao: o TOS continua, ja' com o disco novo,
-                    out (c),a           ; e arranca-o pelo Timex Interface)
-                    inc b
-                    out (c),a
-                    ld bc,TxtMuda
+                    ; (v89f) o ENTER sozinho ja' nao pede o reset do Timex (o A5h do v89e): so' troca, como o
+                    ; SYMBOL SHIFT + ENTER. Para arrancar o disco novo: o Ctrl+Alt+AltGr
                     jp FimSai
 FimFRst             ld a,1
                     call SetA0
@@ -344,13 +341,8 @@ ENs                 pop hl
                     jr FimSai
 FddPronta           ld a,4              ; o border verde: a FDD pronta
                     out (0FEh),a
-                    ld bc,0FC3Bh
-                    ld a,0A5h           ; A5h: o reset quando o navegador sair (o TC2048 arranca pelo TI; core 87)
-                    out (c),a
-                    inc b
-                    out (c),a
-                    ld a,0Dh            ; (88) A7h = 0Dh: FDD, disco e o reset ja' (bit 2): a maquina FDD3000
-                    call SetA7          ; arranca logo pelo Timex Interface, sem voltar ao navegador
+                    ; (v89f) sem o reset do Timex (era o A5h e o A7h = 0Dh do 87/88): o TOS fica a correr na FDD e
+                    ; volta-se ao navegador (A7h = 9 do FimArr); o Ctrl+Alt+AltGr arranca o disco pelo Timex Interface
                     ld bc,TxtOk
                     ld a,31h
 FimSai
@@ -633,10 +625,9 @@ LeFich              push de
                     pop af
                     ret
 
-TxtOk               db "FDD3000: o TOS arranca",0
+TxtOk               db "FDD3000 pronta: Ctrl+Alt+AltGr arranca",0
 TxtTroca            db "FDD3000: disco trocado",0
 TxtTrocaR           db "FDD3000: disco trocado, FDD reiniciada",0
-TxtMuda             db "FDD3000: disco novo, o Timex reinicia",0
 TxtDiag             db "FDD parada 00:"
 TxtD00              db "xx 40:"
 TxtD40              db "xx FF:"
