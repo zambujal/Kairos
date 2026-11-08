@@ -36,7 +36,8 @@ O cartao e' FAT32 e leva, por esta ordem:
      SYS/NAV.SOM                 a musica de arranque
      HELPME.TXT (na raiz)       a ajuda das teclas (F1)
      SYS/ROMS/TC2048.ROM (16384 bytes, ja' vem) e ESXMMC.BIN (8192 bytes, do esxDOS): o core le-os ao ligar
-     BIN/2068.rom (24576 bytes, ja' vem): o modo TC2068 (sem esxDOS; com o de 32K, com o ESX2068, tem)
+     BIN/2068.rom (24576 bytes, ja' vem): o modo TC2068. Com o esxDOS 0.8.9 o .go2068 faz na RAM o esxDOS
+                                 do 2068 (na 1.a vez cria o SYS/ESXD68.SYS a partir do ESXDOS.SYS)
   Opcionais em BIN/: 128.rom (modo 128K e Pentagon), GS105B.ROM (General Sound), PLUG2068/TAP (TAP no
   TC2068). As ROMs do Timex estao aqui com a autorizacao da Amstrad (ver o README do repositorio).
 

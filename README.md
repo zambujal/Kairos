@@ -98,9 +98,12 @@ São a ROM do Spectrum da Sinclair, hoje da Amstrad, com as mudanças da Timex:
   ([README.copyright](https://k1.spdns.de/Develop/Projects/zxsp/Media/Roms/README.copyright)); a do TS2068 tem a
   mesma origem.
 
-A `2068.rom` é a de 24K, sem o esxDOS: o modo TC2068 arranca, mas sem esxDOS. O esxDOS do 2068 (o ESX2068, a
-`2068.rom` de 32K) é feito do esxDOS e não se pode pôr aqui. O esxDOS também não: é de
-[esxdos.org](https://www.esxdos.org), e cada um mete o seu `SYS/ROMS/ESXMMC.BIN`.
+A `2068.rom` é a de 24K, a do TS2068 sem mudanças. O esxDOS não vem (é de [esxdos.org](https://www.esxdos.org)):
+cada um mete o seu, com o `SYS/ROMS/ESXMMC.BIN`. Com o esxDOS 0.8.9, o `.go2068` (que é o que o menu das máquinas
+corre) monta na RAM o esxDOS do 2068 a partir dos ficheiros do cartão. No `ESXMMC.BIN` muda 30 bytes: as chamadas à
+ROM, que no 2068 estão noutros sítios. Cria uma vez o `SYS/ESXD68.SYS` a partir do `SYS/ESXDOS.SYS` (15 bytes) e
+muda 7 bytes da EXROM, para o `LOAD ""` com o `.tapein`. Só mexe se os bytes forem os do 0.8.9: com outra versão,
+o TC2068 arranca sem esxDOS.
 
 Ligações: [Tang Nano 20K](https://wiki.sipeed.com/hardware/en/tang/tang-nano-20k/nano-20k.html) ·
 [Gowin EDA](https://www.gowinsemi.com/en/support/download_eda/) ·

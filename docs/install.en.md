@@ -39,8 +39,6 @@
    - `ESXMMC.BIN` — esxDOS, as it comes in the package (8192 bytes).
 6. Optional, only for the other machines and boards (copyrighted, not here):
    - `BIN/128.rom` — the ZX Spectrum 128 ROM (32768 bytes: ROM 0 + ROM 1), for the 128K mode and the Pentagon;
-   - a 32K `BIN/2068.rom` — the 2068 one (the 24K one already comes) with the 8K of the 2068 esxDOS appended,
-     which gives esxDOS in the TC2068 mode;
    - `BIN/GS105B.ROM` — the General Sound firmware, version 1.05b (32768 bytes), for the GS; sources at
      github.com/psbhlw/gs-firmware;
    - `BIN/PLUG2068/TAP` — TAP plugin for the TC2068 (**without it TAPs do not load from the browser in TC2068

@@ -39,8 +39,6 @@
 6. Opcional, só para as outras máquinas e placas (têm direitos, não estão aqui):
    - `BIN/128.rom` — a ROM do ZX Spectrum 128 (32768 bytes: ROM 0 + ROM 1), para o modo 128K e o
      Pentagon;
-   - `BIN/2068.rom` de 32K — a do 2068 (já vem a de 24K) com mais os 8K do esxDOS do 2068 a seguir, que dá
-     esxDOS no modo TC2068;
    - `BIN/GS105B.ROM` — o firmware do General Sound, versão 1.05b (32768 bytes), para o GS; as fontes
      estão em github.com/psbhlw/gs-firmware;
    - `BIN/PLUG2068/TAP` — plugin TAP para o TC2068 (**sem ele os TAP não carregam no navegador no modo
