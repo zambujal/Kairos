@@ -271,6 +271,11 @@ int main(int argc, char** argv) {
   if (getenv("TRACOFDD")) sscanf(getenv("TRACOFDD"), "%lf,%lf", &trf_i, &trf_f);
   FILE* tr = tr_i >= 0 ? fopen("traco.txt", "w") : nullptr;
   FILE* trf = trf_i >= 0 ? fopen("traco_fdd.txt", "w") : nullptr;
+  // (2026-11-08) FDCLOG=ini,fim (ms): cada comando do WD1770 da FDD3000 em fdc.txt (inicio e fim do busy)
+  double fc_i = -1, fc_f = -1;
+  if (getenv("FDCLOG")) sscanf(getenv("FDCLOG"), "%lf,%lf", &fc_i, &fc_f);
+  FILE* fcl = fc_i >= 0 ? fopen("fdc.txt", "w") : nullptr;
+  int busy_ant = 0, face_ant = -1, drv_ant = -1;
 
   auto* t = new Vcore_kairos; G = t;
   auto* c = t->rootp->core_kairos;
@@ -410,6 +415,21 @@ int main(int argc, char** argv) {
           }
         }
       }
+    }
+    // ---- (2026-11-08) o registo dos comandos do WD1770
+    if (fcl && ms >= fc_i && ms <= fc_f) {
+      int busy = c->F_busy & 1, face = c->F_face & 1, drv = c->F_drv0 & 1;
+      if (face != face_ant || drv != drv_ant)
+        fprintf(fcl, "%10.3f E0: face %d drive0 %d (FDD PC %04X)\n", ms, face, drv, (unsigned)c->P_gs_a);
+      face_ant = face; drv_ant = drv;
+      if (busy && !busy_ant)
+        fprintf(fcl, "%10.3f inicio: tipo1 %d modo %d multi %d | pista(fis) %d reg.pista %d sector %d face %d (FDD PC %04X)\n",
+                ms, c->F_tipo1 & 1, (int)c->F_modo, c->F_multi & 1, (int)c->F_fis, (int)c->F_r_trk, (int)c->F_r_sec, face,
+                (unsigned)c->P_gs_a);
+      if (!busy && busy_ant)
+        fprintf(fcl, "%10.3f fim: rnf %d | fis %d reg.pista %d sector %d\n", ms, c->F_rnf & 1, (int)c->F_fis,
+                (int)c->F_r_trk, (int)c->F_r_sec);
+      busy_ant = busy;
     }
     // ---- (89) a luz da drive da FDD3000 (o core diz quando o controlador le' ou escreve)
     if (t->fdd_luz && !luz_ant) n_luz++;
