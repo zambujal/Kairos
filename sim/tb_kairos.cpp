@@ -19,6 +19,7 @@
 //   SAVE fich      guarda o estado (continua-se com LOAD=fich)
 //   FIM            acaba
 //   TIROM fich     a ROM do Timex Interface (4K) para a memoria do TI
+//   FDDP fich      (2026-11-08) o mesmo sem o reset do Timex: como o plugin, que espera pelo TOS e so' depois o faz (RST)
 //   FDD fich       a memoria da FDD (2 MB do dsk_fdd.py), a FDD ligada com disco, o Z80 dela do inicio e o reset do
 //                  Timex: como o plugin DSK (A0h = 1, A1h, A7h = 1, A0h = 0, A7h = 5)
 //   DISCO fich     so' o disco (a parte de 100000h de um fdd.bin), sem reset: a troca de disco
@@ -84,6 +85,7 @@ struct Poe { CData* r; CData* d; uint8_t v; int n; };
 static std::vector<Poe> poes;
 #define POE(sinal, valor) poes.push_back({&c->R_##sinal, &c->DR_##sinal, (uint8_t)(valor), 4})
 static std::vector<Ev> evs;
+static bool fdd_sem_rst = false;                    // (2026-11-08) FDDP: a FDD arranca sem o reset do Timex (o RST depois)
 
 // ---------------------------------------------------------------- SDRAM
 static void sdram_byte(uint32_t a, uint8_t v) {
@@ -334,7 +336,8 @@ int main(int argc, char** argv) {
     if (e.t_nmi_fim && cyc == e.t_nmi_fim) { t->nmi_n = 1; e.t_nmi_fim = 0; }
     if (e.t_gsrst_fim && cyc == e.t_gsrst_fim) {                           // fim do carregamento da FDD (A0h = 0, A7h = 5)
       POE(gs_rst, 0); e.t_gsrst_fim = 0;
-      t->reset_n = 0; e.t_rst_fim = cyc + 65536;
+      if (fdd_sem_rst) { fdd_sem_rst = false; printf("%10.3f ms a FDD arranca (o Timex sem reset: FDDP)\n", ms); }
+      else { t->reset_n = 0; e.t_rst_fim = cyc + 65536; }
       printf("%10.3f ms o Z80 da FDD arranca; reset do Timex\n", ms);
     }
     if (e.t_fddrst_fim && cyc == e.t_fddrst_fim) { POE(gs_rst, 0); e.t_fddrst_fim = 0; printf("%10.3f ms a FDD arranca outra vez\n", ms); }
@@ -366,7 +369,9 @@ int main(int argc, char** argv) {
         printf("%10.3f ms estado guardado em %s\n", ms, a);
       } else if (v.cmd == "FIM") { cyc = N; }
       else if (v.cmd == "TIROM") { size_t n = carrega(a, 0x080000, 4096); printf("%10.3f ms ROM do TI: %s (%zu bytes)\n", ms, a, n); }
-      else if (v.cmd == "FDD") {
+      else if (v.cmd == "FDD" || v.cmd == "FDDP") {
+        fdd_sem_rst = v.cmd == "FDDP";                                   // (2026-11-08) FDDP: como o plugin, o Timex so' no RST
+
         POE(gs_rst, 1); POE(fdd_on, 1); POE(f_disco, 1); POE(f_pausa, 0); POE(ti_ld, 0);
         size_t n = carrega(a, 0x400000, 0x200000);
         e.t_gsrst_fim = cyc + 1000;
