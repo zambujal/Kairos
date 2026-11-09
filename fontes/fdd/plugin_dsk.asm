@@ -32,6 +32,9 @@
 ; SHIFT + ENTER continua a so' trocar (o lado B do mesmo jogo). Depois, o Ctrl+Alt+AltGr. (2026-11-09)
 ; (v89h) No primeiro disco e no ENTER noutro jogo, o reset do Timex volta, mas so' quando o navegador sair (A5h,
 ; como o plugin dos TAP): e' o Ctrl+Alt+AltGr a' saida. O lado B (SYMBOL SHIFT + ENTER) continua sem reset.
+; (v89i) O Z80 a 14 MHz enquanto passa o disco para a FDD (ZXUNO A6h = 4, como no v89 e no plugin TZX), a 0 no fim e
+; nos erros, e a copia de cada sector desenrolada (25 T por byte, a do v89). A leitura do cartao fica a 3,5 MHz (o
+; core abranda perto dos acessos ao cartao).
 ; Monta-se com  sjasmplus -I../nav --raw=DSK plugin_dsk.asm
 
                     include "esxdos.inc"
@@ -100,6 +103,8 @@ Disco               ld hl,(Nome)
                     ld (FH),a
                     ld a,1
                     ld (Aberto),a
+                    ld a,4              ; (v89i) o Z80 a 14 MHz enquanto passa o disco (A6h bit 2, como no v89 e no
+                    call SetA6          ; plugin TZX; a leitura do cartao fica a 3,5 MHz pelo core)
                     ld hl,DiscoI        ; o cabecalho do disco (256 bytes)
                     ld bc,256
                     call Le
@@ -263,7 +268,9 @@ SNaoCpm
                     jp Sector
 
 ; ---------------------------------------------------------------- o fim: a maquina com a FDD e o reset
-Fim                 ld a,(FH)
+Fim                 xor a               ; (v89i) o Z80 a' velocidade dele
+                    call SetA6
+                    ld a,(FH)
                     rst 08h
                     db F_CLOSE
                     di
@@ -385,6 +392,8 @@ ErroGrande          ld hl,TxtGrande
 ErroGeo             ld hl,TxtGeo
 Erro                ld sp,(SPerro)
                     push hl
+                    xor a               ; (v89i) o Z80 a' velocidade dele
+                    call SetA6
                     ld a,(Aberto)
                     or a
                     jr z,ESemF
@@ -566,6 +575,17 @@ BarraEnd            ld e,a
                     ret
 
 ; ZXUNO A7h = A
+; (v89i) ZXUNO A6h = A (bit 2: o Z80 a 14 MHz)
+SetA6               push bc
+                    push af
+                    ld bc,0FC3Bh
+                    ld a,0A6h
+                    out (c),a
+                    inc b
+                    pop af
+                    out (c),a
+                    pop bc
+                    ret
 SetA7               push bc
                     push af
                     ld bc,0FC3Bh
@@ -587,19 +607,21 @@ SetA0               push bc             ; (88h) A0h: bit 0 = o Z80 do GS (a FDD)
                     pop bc
                     ret
 ; DE bytes de HL para a memoria do GS / FDD (A1h, o ponteiro avanca sozinho)
-; (v89b) outra vez o ciclo do 88 (56 T por byte)
+; (v89i) DE = 256 (um sector; e' o unico uso): 16 voltas de 16 bytes, 25 T por byte (o do v89; o v89b tinha voltado
+; ao ciclo do 88, 56 T por byte)
 Envia               ld bc,0FC3Bh
                     ld a,0A1h
                     out (c),a
                     inc b
-EVl                 ld a,d
-                    or e
-                    ret z
+                    ld e,16
+EV16                rept 16
                     ld a,(hl)
                     out (c),a
                     inc hl
-                    dec de
-                    jr EVl
+                    endr
+                    dec e
+                    jr nz,EV16
+                    ret
 ; le BC bytes do ficheiro aberto para HL. CF = erro ou acabou antes
 Le                  push bc
                     ld a,(FH)
