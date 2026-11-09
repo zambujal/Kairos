@@ -1,9 +1,7 @@
 ; FDD3000: comando do esxDOS (/BIN/FDD3000) que liga a Timex FDD3000 a' maquina que esta' a correr (core 88+), como
 ; quem encaixa a placa do Timex Interface no computador. Ha' duas placas, cada uma com a sua ROM (v87):
 ;   .fdd3000        FDD SPECTRUM: a interface do Spectrum e do TC2048 (a toda preta). /SYS/ROMS/FDD3TI.ROM, a ROM
-;                   da Stavi (fdd3stavi.rom, chama a ROM do 48K). No TIMEX 2048 e no ZX 48K; (89l) tambem no ZX
-;                   128K, no Timex 128K e no Pentagon: e' a "STAVI 128K TOS", que no reset faz OUT (7FFDh),10h (a ROM
-;                   1, o 48 BASIC) e arranca o TI (com o 0 carregado no reset vai ao menu do 128).
+;                   da Stavi (fdd3stavi.rom, chama a ROM do 48K). So' no TIMEX 2048 e no ZX 48K.
 ;   .fdd3000 2068   FDD TC2068: a interface do TC2068 (a preta com o botao de reset prateado). /SYS/ROMS/FDD3TI68.ROM,
 ;                   a ROM da TMX Portugal (fdd3timex.rom, chama a ROM do TC2068). So' no TC2068.
 ; O menu das maquinas do navegador corre-o (a' direita: FDD SPECTRUM, FDD TC2068) e so' na maquina certa.
@@ -41,17 +39,15 @@ ArgC                ld a,(de)
                     ld (Placa68),a
 ArgFim
                     ; ------------------------------------------------ a placa tem de ser da maquina
-                    in a,(0F4h)         ; ZX 128K / Timex 128K / Pentagon (o F4 da' F0h): (89l) so' a placa do Spectrum
+                    in a,(0F4h)         ; ZX 128K / Pentagon (o F4 da' F0h): nenhuma das placas
                     cp 0F0h
                     jr nz,Nao128
                     ld a,(Placa68)
                     or a
+                    ld hl,TxtMaqZX
+                    jp z,Erro
                     ld hl,TxtMaq68
-                    jp nz,Erro
-                    ld a,1
-                    ld (Tira128),a
-                    ld hl,TxtTI
-                    jr Carrega
+                    jp Erro
 Nao128              ld hl,(5C4Fh)       ; o CHANS: 6840h com a ROM do TC2068 (5CB6h na do 48K)
                     ld de,6840h
                     or a
@@ -83,27 +79,7 @@ Carrega             ld (NomeTI),hl
                     ld bc,2048
                     call LeFich
                     jr c,ErroRom
-                    ; (89l) no modo 128K tira-se o OUT (F4h),A do arranque do TI (0FF7h): com o FF a 0 (o Timex 128K; no
-                    ; ZX 128K o barramento flutuante) fazia OUT (F4h),0 e o Kairos saia do modo 128K (F4 = F0h). So' se
-                    ; os bytes forem os da ROM da Stavi (JR NZ,+2 / OUT (F4h),A)
-                    ld a,(Tira128)
-                    or a
-                    jr z,SemRem
-                    ld hl,BUF_TI+0FF5h
-                    ld de,RemOrig
-                    ld b,4
-RemC                ld a,(de)
-                    cp (hl)
-                    jr nz,SemRem
-                    inc de
-                    inc hl
-                    djnz RemC
-                    xor a               ; OUT (F4h),A -> NOP, NOP
-                    dec hl
-                    ld (hl),a
-                    dec hl
-                    ld (hl),a
-SemRem              di
+                    di
                     ld a,2              ; A7h = 2: as escritas em 0000h-1FFFh vao para a ROM do TI
                     call SetA7
                     ld hl,BUF_TI
@@ -227,15 +203,13 @@ SetA0               push af
 
 FH                  db 0
 Placa68             db 0                ; 1 = a placa do TC2068
-Tira128             db 0                ; (89l) 1 = o modo 128K: sem o OUT (F4h) do arranque do TI
-RemOrig             db 20h,02h,0D3h,0F4h
 NomeTI              dw TxtTI
 Txt2068             db "2068"
 TxtTI               db "/SYS/ROMS/FDD3TI.ROM",0
 TxtTI68             db "/SYS/ROMS/FDD3TI68.ROM",0
 TxtBoot             db "/SYS/ROMS/FDD3BOOT.ROM",0
 TxtErro             db 13,"FDD3000: falta /SYS/ROMS/FDD3BOOT.ROM",13,"ou ",0
-TxtMaqZX            db 13,"FDD3000: esta placa e' a do",13,"Spectrum (TIMEX 2048, 48K, 128K)",0
+TxtMaqZX            db 13,"FDD3000: esta placa e' a do",13,"Spectrum (TIMEX 2048, ZX 48K)",0
 TxtMaq68            db 13,"FDD3000: esta placa e' a do",13,"TC2068 (.fdd3000 2068)",0
 TxtTecla            db 13,"Uma tecla: sem a FDD",0
 TxtVazio            db 0

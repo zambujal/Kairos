@@ -47,6 +47,9 @@
 ; disco 2 / o lado B) e volta-se ao jogo. A letra vem de um ficheiro do cartao, /SYS/LETRA8.BIN (a 8x8 do navegador,
 ; 32..127, 768 bytes; lida para o BUF so' nessa altura); sem ele nao se pergunta: so' a troca. Sai o SYMBOL SHIFT.
 ; A barra (e a pergunta) so' no hi-res com 16 leituras da FF todas a 6 (no ZX 128K a FF e' o barramento flutuante).
+; (v89m) O modo 128K da FDD (o .fdd3000 89l e o navegador) ficou de fora outra vez: na placa, no ZX 128K, pendurou e
+; o NMI nao abria. A placa FDD SPECTRUM volta a ser so' do TIMEX 2048 e do ZX 48K (sem ela ligada o plugin da' o erro
+; "FDD desligada").
 ; Monta-se com  sjasmplus -I../nav --raw=DSK plugin_dsk.asm
 
                     include "esxdos.inc"
