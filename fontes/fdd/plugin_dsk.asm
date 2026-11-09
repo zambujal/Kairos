@@ -30,6 +30,8 @@
 ; (v89g) Com o TOS a correr, o ENTER noutro .DSK (outro jogo) troca o disco, faz o reset da FDD e espera pelo TOS
 ; novo, como no arranque (so' com a troca o TOS do disco antigo continuava e o disco novo nao arrancava). O SYMBOL
 ; SHIFT + ENTER continua a so' trocar (o lado B do mesmo jogo). Depois, o Ctrl+Alt+AltGr. (2026-11-09)
+; (v89h) No primeiro disco e no ENTER noutro jogo, o reset do Timex volta, mas so' quando o navegador sair (A5h,
+; como o plugin dos TAP): e' o Ctrl+Alt+AltGr a' saida. O lado B (SYMBOL SHIFT + ENTER) continua sem reset.
 ; Monta-se com  sjasmplus -I../nav --raw=DSK plugin_dsk.asm
 
                     include "esxdos.inc"
@@ -347,8 +349,13 @@ ENs                 pop hl
                     jr FimSai
 FddPronta           ld a,4              ; o border verde: a FDD pronta
                     out (0FEh),a
-                    ; (v89f) sem o reset do Timex (era o A5h e o A7h = 0Dh do 87/88): o TOS fica a correr na FDD e
-                    ; volta-se ao navegador (A7h = 9 do FimArr); o Ctrl+Alt+AltGr arranca o disco pelo Timex Interface
+                    ; (v89h) o reset do Timex quando o navegador sair (A5h), como um Ctrl+Alt+AltGr a' saida: o TI
+                    ; arranca o disco. Nao o reset ja' (A7h = 0Dh do 88), com o esxDOS a meio do NMI
+                    ld bc,0FC3Bh
+                    ld a,0A5h
+                    out (c),a
+                    inc b
+                    out (c),a
                     ld bc,TxtOk
                     ld a,31h
 FimSai
@@ -631,7 +638,7 @@ LeFich              push de
                     pop af
                     ret
 
-TxtOk               db "FDD3000 pronta: Ctrl+Alt+AltGr arranca",0
+TxtOk               db "FDD3000 pronta: o Timex reinicia",0
 TxtTroca            db "FDD3000: disco trocado",0
 TxtTrocaR           db "FDD3000: disco trocado, FDD reiniciada",0
 TxtDiag             db "FDD parada 00:"
