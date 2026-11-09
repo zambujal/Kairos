@@ -5690,13 +5690,21 @@ ExecFdd             push ix
                     IF HIRES
 DFfdd               call VeFdd          ; com a FDD3000 ligada: o nome da placa
                     jr z,DFf0
-                    ld hl,TxtFddZXb
                     ld a,(Filtro)
+                    ld hl,TxtFddZX128   ; (89p) no ZX 128K e no TIMEX 128K: a maquina + FDD (pedido dele: "128k+fdd")
+                    cp 3
+                    jr z,DFf0
+                    ld hl,TxtFddTX128
+                    cp 4
+                    jr z,DFf0
+                    ld hl,TxtFddZXb
                     cp 5
                     jr nz,DFf0
                     ld hl,TxtFdd68b
 DFf0                ld de,0
                     ret
+TxtFddZX128         db " ZX 128K+FDD",0
+TxtFddTX128         db " TIMEX 128K+FDD",0
                     ENDIF
 MusOk               db 0
 MLpag               db 80h+PMUS         ; v52
