@@ -741,12 +741,23 @@ OpDivM              ld bc,0FC3Bh        ; (85) so' no Kairos da Tang (registo ZX
                     ld e,4
 ODMl                in a,(c)
                     cp 54h
-                    jp nz,SaltaLetras
+                    jr nz,ODMdf         ; (89m) o core da Tang de agora nao tem o A3h: ve-se o DFh, como o VeTang do NAV
                     dec e
                     jr nz,ODMl
-                    ld a,8
+ODMsim              ld a,8
                     ld (MenuDiv),a
                     jp SaltaLetras
+ODMdf               dec b               ; (89m) sem isto o -divmenu era sempre ignorado na Tang (desde o 6d75bbe, 05/11):
+                    ld a,0DFh           ; o ZX 128K arrancava no BASIC 48 do 128, sem o menu. O DFh tem os bits 5-0
+                    out (c),a           ; sempre a 0 na Tang (modo.v); no clone vem o barramento (3Fh). 16 leituras
+                    inc b
+                    ld e,16
+ODMd                in a,(c)
+                    and 3Fh
+                    jp nz,SaltaLetras
+                    dec e
+                    jr nz,ODMd
+                    jr ODMsim
 TabOpcoes           db "50",0,"49",0,"float",0,"cc",0,"ct",0,"sc",0,"menu",0,"n",0
                     db "reset",0,"ts",0,"timex",0,"bus",0,"penta",0,"io",0,"ayext",0,"divmenu",0,0
 ErroOp              db 0
