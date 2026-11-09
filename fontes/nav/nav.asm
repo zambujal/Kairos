@@ -5660,7 +5660,33 @@ MNfdd68             ld a,(Filtro)       ; FDD TC2068: so' no TC2068 (5)
 MNfddV              jp c,Mensagem
                     call VeFdd          ; ja' ligada: nada (como a mesma maquina)
                     jp nz,DesenhaFiltro
-                    jp ExecGo
+                    jp ExecFdd          ; (89n) era o ExecGo
+; (89n) o .fdd3000 pelo menu, como o ExecGo, mas quando o comando volta (volta sempre: pediu o reset com o A5h) sai-se
+; do navegador pelo caminho normal (Sai): o esxDOS desmapeia ao voltar ao programa e o A5h faz o reset. Pelo ExecGo
+; caia no RIantigo, que recarregava o 128.rom e reiniciava pelo Codigo128: depois de uma ida ao ZX 128K a maquina
+; ficava pendurada, com o ecra preto e sem NMI. O A7h = 0 do ExecGo nao e' preciso (o .fdd3000 fa-lo logo).
+ExecFdd             push ix
+                    IF HIRES
+                    call SaiRato
+                    ENDIF
+                    call MusCala
+                    call SaiNav
+                    di
+                    im 1
+                    ld a,(Iguardado)
+                    ld i,a
+                    IF HIRES
+                    call EcraPlugin
+                    ELSE
+                    call LimpaEcra
+                    ENDIF
+                    pop ix
+                    ld iy,5C3Ah         ; o .fdd3000 escreve com a ROM (RST 10h) se der erro
+                    push ix             ; o comando em HL e em IX, como no ExecGo
+                    pop hl
+                    rst 08h
+                    db 8Fh              ; M_EXECCMD
+                    jp Sai
                     IF HIRES
 DFfdd               call VeFdd          ; com a FDD3000 ligada: o nome da placa
                     jr z,DFf0
