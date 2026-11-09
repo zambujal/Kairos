@@ -53,14 +53,17 @@ O cartao e' FAT32 e leva, por esta ordem:
   /BIN/BPLUGINS (do navegador do Bob Fossil).
 - Timex FDD3000 (core 88j, navegador v87): duas placas no menu das maquinas do navegador (a' direita, debaixo do
   GENERAL SOUND), para acrescentar a' maquina que esta' a correr, como o Timex Interface verdadeiro:
-    FDD SPECTRUM   a placa do Spectrum e do TC2048: no TIMEX 2048 e no ZX 48K (a ROM do TI da Stavi)
+    FDD SPECTRUM   a placa do Spectrum e do TC2048: no TIMEX 2048 e no ZX 48K (a ROM do TI da Stavi); (89l, por
+                   testar) tambem no ZX 128K, no Timex 128K e no Pentagon: a ROM da Stavi e' a "128K TOS", arranca
+                   no 48 BASIC com a paginacao do 128K livre (com o 0 carregado no reset vai ao menu do 128)
     FDD TC2068     a placa do TC2068: so' no TC2068 (a ROM do TI da TMX Portugal)
   Na maquina errada da' erro. A maquina reinicia com a FDD ligada (o Z80 do General Sound faz de FDD; o GS fica
   calado), pelo Timex Interface, sem disco: no TC2048 fica o (c) 1982 parado (a espera da FDD), no TC2068 arranca
   o BASIC. O disco mete-se com ENTER num .DSK de TOS no navegador (sem a placa ligada o plugin da' erro): carrega-o
-  e a maquina arranca com ele. Para mudar de jogo: NMI e ENTER no .DSK do outro jogo (troca o disco e o Timex
-  reinicia com ele ao sair do navegador). O lado B, quando o jogo o pede: NMI e Ctrl + ENTER (ou Alt + ENTER, e' o
-  SYMBOL SHIFT + ENTER; segura ate' o ecra limpar) no outro .DSK: so' troca o disco e volta-se ao jogo.
+  e a maquina arranca com ele. Com um jogo a correr, NMI e ENTER noutro .DSK so' troca o disco e volta-se ao jogo
+  (o disco 2 ou o lado B, quando o jogo o pede). Para mudar de jogo: NMI e Ctrl + ENTER (ou Alt + ENTER, e' o
+  SYMBOL SHIFT + ENTER; segura ate' o ecra limpar) no .DSK do outro jogo: troca o disco, reinicia a FDD e o Timex
+  reinicia com ele ao sair do navegador.
   Para escolher a maquina TC2068: no menu, TC2068, e so' depois a placa FDD TC2068.
   Precisa no cartao de /SYS/ROMS/FDD3TI.ROM (a ROM do TI da placa do Spectrum), /SYS/ROMS/FDD3TI68.ROM (a da placa
   do TC2068) e /SYS/ROMS/FDD3BOOT.ROM (o arranque da FDD), que nao vem com o Kairos: tiram-se do Fuse com a FDD3000
@@ -74,7 +77,7 @@ O cartao e' FAT32 e leva, por esta ordem:
   CP/M. O plugin troca o disco e faz o reset so' da FDD (num disco de sistema do CP/M e' automatico; noutro disco,
   CAPS SHIFT + ENTER faz o mesmo). O CP/M corre no Z80 da FDD e o Timex fica de terminal (64 colunas). Funciona
   no TC2048 e no TC2068.
-  (plugin DSK v89k) Ao meter o disco aparece uma barra de progresso no meio do ecra (a carga vai a 14 MHz); depois
+  (plugin DSK v89l) Ao meter o disco aparece uma barra de progresso no meio do ecra (a carga vai a 14 MHz); depois
   o border fica azul (a espera da FDD) e verde (pronta) e ~1 s depois o Timex reinicia com o disco ao sair do
   navegador. (core 89c) Com a FDD, enquanto a ROM do TI trabalha (o arranque e as cargas do disco) o Z80 vai a
   14 MHz e volta sozinho a' velocidade escolhida no F9/F10: a 3,5 MHz ja' nao e' preciso acelerar.

@@ -2,7 +2,7 @@
 ; normal ou EXTENDED, 16 sectores de 256 numerados 0-15; os .dsk do +3 / CPC sao recusados) na Timex FDD3000 (core 87+).
 ; So' le' o cartao.
 ; (v87) A FDD liga-se antes, no menu das maquinas do navegador, com a placa da maquina: FDD SPECTRUM (TIMEX 2048,
-; ZX 48K: a ROM do TI da Stavi) ou FDD TC2068 (a ROM do TI da TMX); o /BIN/FDD3000 carrega a ROM do TI e o arranque da
+; ZX 48K e (v89l) ZX 128K, Timex 128K, Pentagon: a ROM do TI da Stavi) ou FDD TC2068 (a ROM do TI da TMX); o /BIN/FDD3000 carrega a ROM do TI e o arranque da
 ; FDD. Sem a FDD ligada o plugin da' erro e nao faz nada.
 ;   - a FDD sem o TOS (acabada de ligar, a' espera de um disco): o disco para a memoria da FDD (a partir de 100000h,
 ;     no sitio ((pista*2 + face)*16 + sector)*256: 256 bytes por sector, sectores 0-15, ate' 84 pistas e 2 faces; o
@@ -38,6 +38,10 @@
 ; (v89j) Sem o reset do Timex outra vez (o do v89h nao fazia o mesmo que o Ctrl+Alt+AltGr a' mao).
 ; (v89k) O reset volta, mas ~1 s depois de o TOS estar pronto (a 3,5 MHz) e so' a' saida do navegador (A5h): o momento
 ; em que ele carrega no Ctrl+Alt+AltGr a' mao. Fica a carga do v89i.
+; (v89l) Ja' nao recusa o modo 128K (F4 = F0h): a placa FDD SPECTRUM tambem anda no ZX 128K, no Timex 128K e no Pentagon
+; (o .fdd3000 do 89l). Sem a placa ligada continua o erro "FDD desligada".
+; (v89l) Com o TOS a correr (um jogo), o ENTER volta a so' trocar o disco (o disco 2 de um jogo, como no 88e: o reset
+; partia os jogos de 2 discos) e o SYMBOL SHIFT + ENTER passa a ser o outro jogo (o reset da FDD, o TOS e o do Timex).
 ; Monta-se com  sjasmplus -I../nav --raw=DSK plugin_dsk.asm
 
                     include "esxdos.inc"
@@ -68,14 +72,11 @@ Inicio              push ix
                     cpl
                     and 1
                     ld (FddRst),a
-                    ld a,7Fh            ; (v89e) SYMBOL SHIFT + ENTER (Ctrl ou Alt + ENTER no teclado USB): so' troca o
-                    in a,(0FEh)         ; disco (o lado B de um jogo); o ENTER sozinho troca e reinicia o Timex (outro
-                    cpl                 ; jogo)
+                    ld a,7Fh            ; (v89l) SYMBOL SHIFT + ENTER (Ctrl ou Alt + ENTER no teclado USB) com um jogo a
+                    in a,(0FEh)         ; correr: outro jogo (o reset da FDD e do Timex); o ENTER sozinho so' troca o
+                    cpl                 ; disco (o disco 2 ou o lado B que o jogo pede)
                     and 2
-                    ld (LadoB),a
-                    in a,(0F4h)         ; so' no TIMEX 2048 (F4 = F0h e' o ZX 128K / Pentagon)
-                    cp 0F0h
-                    jp z,ErroMaq
+                    ld (OutroJ),a
                     ; (88e) o TOS ja' a correr na FDD (o jogo pediu outra disquete): so' se troca o disco, sem reset
                     call VeTOS
                     jr c,Arranque
@@ -286,11 +287,11 @@ Fim                 xor a               ; (v89i) o Z80 a' velocidade dele
                     ld a,(FddRst)       ; (88h) o reset da FDD: o Z80 dela volta a' ROM de arranque e le' o sector 0
                     or a
                     jr nz,FimFRst
-                    ld a,(LadoB)        ; (v89e) SYMBOL SHIFT + ENTER: so' a troca (o lado B) e volta-se ao jogo
-                    or a
-                    jp nz,FimSai
-                    ; (v89g) o ENTER sozinho (outro jogo): o reset da FDD e a espera do TOS, como no arranque (o TOS
-                    ; do disco antigo nao via o disco novo); sem o reset do Timex. Depois o Ctrl+Alt+AltGr arranca-o
+                    ld a,(OutroJ)       ; (v89l) o ENTER sozinho: so' a troca (o disco 2 / o lado B que o jogo pediu) e
+                    or a                ; volta-se ao jogo, sem reset (no v89g-v89k reiniciava tudo e partia os jogos
+                    jp z,FimSai         ; de 2 discos)
+                    ; SYMBOL SHIFT + ENTER (outro jogo): o reset da FDD, a espera do TOS e o reset do Timex, como no
+                    ; arranque (o TOS do disco antigo nao via o disco novo)
                     jp FimArr
 FimFRst             ld a,1
                     call SetA0
@@ -388,8 +389,6 @@ FimSai
                     ret
 
 ; ---------------------------------------------------------------- os erros
-ErroMaq             ld hl,TxtMaq
-                    jr Erro
 ErroDesl            ld hl,TxtDesl
                     jr Erro
 ErroAbre            ld hl,TxtAbre
@@ -684,7 +683,6 @@ C40                 db 0
 CFF                 db 0
 COut                db 0
 DUlt                db 0
-TxtMaq              db "DSK: so' no TIMEX 2048 / 2068",0
 TxtDesl             db "FDD desligada: liga a placa no menu das maquinas",0
 TxtAbre             db "DSK: nao abre",0
 TxtNaoDSK           db "Nao e' um .DSK",0
@@ -699,7 +697,7 @@ Aberto              db 0
 Pausou              db 0   ; (v87) 1 = a FDD foi posta em pausa pelo plugin
 Troca               db 0
 FddRst              db 0   ; (88h) 1 = reset da FDD no fim da troca
-LadoB               db 0   ; (v89e) SYMBOL SHIFT + ENTER: so' a troca, sem o reset do Timex
+OutroJ              db 0   ; (v89l) SYMBOL SHIFT + ENTER com o TOS a correr: outro jogo (no v89e-v89k era o LadoB: so' a troca)
 Ext                 db 0
 Faces               db 0
 NPist               dw 0
