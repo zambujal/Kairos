@@ -73,9 +73,9 @@ JOGOS/ ...  o que quiseres
 
 ## 3. Gravar o core no Tang Nano 20K
 
-Há duas maneiras de ter o core: **usar o já compilado** (`kairos.fs`, na secção **Releases** deste
-repositório) ou **compilá-lo** com o Gowin EDA (secção 3.4). Nas duas o ficheiro `.fs` grava-se na
-flash da placa e fica lá até se gravar outro.
+Há duas maneiras de ter o core: **usar o já compilado** (o `releases/kairos_89c.fs` deste repositório) ou
+**compilá-lo** com o Gowin EDA (secção 3.4; sai o `core/impl/pnr/kairos.fs`). Nas duas o ficheiro `.fs`
+grava-se na flash da placa e fica lá até se gravar outro.
 
 A placa liga-se ao PC pelo USB-C. Com o firmware de fábrica do BL616 aparece como um programador
 FTDI ("20K's FRIEND"); com o firmware do teclado + Partner (secção 5) aparece como programador se
@@ -90,7 +90,7 @@ estiver ligada **directamente a uma porta do PC, sem hub**.
 3. Carregar duas vezes na linha do dispositivo (coluna "Operation") para abrir a configuração:
    - **Access Mode:** `External Flash Mode`
    - **Operation:** `exFlash Erase, Program`
-   - **FS File:** o `kairos.fs`
+   - **FS File:** o `kairos_89c.fs`
    - **External Flash:** `Generic Flash`, endereço `0x000000`
 4. **Program** (o botão de gravar). Demora uns segundos. Desligar e voltar a ligar o Tang: o Kairos
    arranca.
@@ -103,14 +103,14 @@ estiver ligada **directamente a uma porta do PC, sem hub**.
    (zadig.akeo.ie), em *Options → List All Devices*, escolher a **interface 0** do programador do Tang
    (FT2232-compatível) e instalar o WinUSB. (Isto tira a interface ao driver FTDI; o Gowin Programmer
    deixa de a ver até se repor o driver FTDI, também com o Zadig.)
-3. No mesmo terminal: `openFPGALoader -b tangnano20k -f kairos.fs`
+3. No mesmo terminal: `openFPGALoader -b tangnano20k -f kairos_89c.fs`
 
 ### 3.3 Linux, com o openFPGALoader
 
 ```
 sudo apt install openfpgaloader                      # Debian / Ubuntu
 sudo dnf copr enable mobicarte/openFPGALoader && sudo dnf install openFPGALoader   # Fedora
-openFPGALoader -b tangnano20k -f kairos.fs
+openFPGALoader -b tangnano20k -f kairos_89c.fs
 ```
 
 Se der "unable to open ftdi device" é permissão de USB: correr com `sudo` ou instalar as regras udev

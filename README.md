@@ -34,8 +34,8 @@ programas do cartão servem nas duas.
 
 Os pormenores estão em [docs/instalacao.md](docs/instalacao.md); as teclas em [docs/teclas.md](docs/teclas.md).
 
-1. **Core.** O `kairos.fs` dos *Releases* grava-se na flash com o Gowin Programmer (External Flash Mode,
-   `0x000000`) ou com `openFPGALoader -b tangnano20k -f kairos.fs`. Para compilar: Gowin EDA 1.9.11+,
+1. **Core.** O `releases/kairos_89c.fs` grava-se na flash com o Gowin Programmer (External Flash Mode,
+   `0x000000`) ou com `openFPGALoader -b tangnano20k -f kairos_89c.fs`. Para compilar: Gowin EDA 1.9.11+,
    `gw_sh kairos.tcl` em `core/` (`faz_576p.sh` dá a versão 576p).
 2. **Teclado.** O BL616 do Tang leva o **FPGA Companion + Partner** de Till Harbaum (placa 3921 ou 3923:
    firmware diferente). Com ele a placa é teclado quando está sem PC e programador quando está numa porta

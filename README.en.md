@@ -33,8 +33,8 @@ and DivTIESUS are at https://github.com/zambujal/divtiesus-scld-timex . The brow
 
 Details in [docs/install.en.md](docs/install.en.md); keys in [docs/teclas.md](docs/teclas.md).
 
-1. **Core.** Flash the `kairos.fs` from *Releases* with the Gowin Programmer (External Flash Mode, `0x000000`)
-   or `openFPGALoader -b tangnano20k -f kairos.fs`. To build: Gowin EDA 1.9.11+, `gw_sh kairos.tcl` in `core/`
+1. **Core.** Flash `releases/kairos_89c.fs` with the Gowin Programmer (External Flash Mode, `0x000000`)
+   or `openFPGALoader -b tangnano20k -f kairos_89c.fs`. To build: Gowin EDA 1.9.11+, `gw_sh kairos.tcl` in `core/`
    (`faz_576p.sh` gives the 576p version).
 2. **Keyboard.** The Tang's BL616 gets Till Harbaum's **FPGA Companion + Partner** (board 3921 or 3923: different
    firmware). With it the board is a keyboard when there is no PC and a programmer when on a direct PC port.

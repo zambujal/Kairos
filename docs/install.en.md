@@ -73,9 +73,9 @@ GAMES/ ...  whatever you like
 
 ## 3. Flashing the core into the Tang Nano 20K
 
-There are two ways to get the core: **use the prebuilt one** (`kairos.fs`, in the **Releases** section of
-this repository) or **build it** with Gowin EDA (section 3.4). Either way the `.fs` file is written to the
-board's flash and stays there until another one is written.
+There are two ways to get the core: **use the prebuilt one** (`releases/kairos_89c.fs` in this repository) or
+**build it** with Gowin EDA (section 3.4; the result is `core/impl/pnr/kairos.fs`). Either way the `.fs` file is
+written to the board's flash and stays there until another one is written.
 
 The board connects to the PC over USB-C. With the factory BL616 firmware it shows up as an FTDI programmer
 ("20K's FRIEND"); with the keyboard + Partner firmware (section 5) it shows up as a programmer when plugged
@@ -90,7 +90,7 @@ The board connects to the PC over USB-C. With the factory BL616 firmware it show
 3. Double-click the device row ("Operation" column) to open the configuration:
    - **Access Mode:** `External Flash Mode`
    - **Operation:** `exFlash Erase, Program`
-   - **FS File:** `kairos.fs`
+   - **FS File:** `kairos_89c.fs`
    - **External Flash:** `Generic Flash`, address `0x000000`
 4. **Program** (the flash button). It takes a few seconds. Power the Tang off and on: Kairos boots.
 
@@ -102,14 +102,14 @@ The board connects to the PC over USB-C. With the factory BL616 firmware it show
    *Options → List All Devices*, pick **interface 0** of the Tang's programmer (FT2232-compatible) and install
    WinUSB. (This takes the interface away from the FTDI driver; the Gowin Programmer stops seeing it until the
    FTDI driver is restored, also with Zadig.)
-3. In the same terminal: `openFPGALoader -b tangnano20k -f kairos.fs`
+3. In the same terminal: `openFPGALoader -b tangnano20k -f kairos_89c.fs`
 
 ### 3.3 Linux, with openFPGALoader
 
 ```
 sudo apt install openfpgaloader                      # Debian / Ubuntu
 sudo dnf copr enable mobicarte/openFPGALoader && sudo dnf install openFPGALoader   # Fedora
-openFPGALoader -b tangnano20k -f kairos.fs
+openFPGALoader -b tangnano20k -f kairos_89c.fs
 ```
 
 "unable to open ftdi device" is a USB permission problem: run with `sudo` or install the udev rules that

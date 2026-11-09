@@ -3,12 +3,12 @@ https://github.com/zambujal/Kairos
 
 1. GRAVAR O CORE NO TANG
 ------------------------
-O core e' um ficheiro .fs (o kairos.fs que o Gowin faz do core/ do repositorio: ver o README). Grava-se uma
-vez, no PC, com o Tang ligado directamente a uma porta USB do PC (sem hub). Depois de gravar, desligar e voltar
-a ligar.
+O core e' o releases/kairos_89c.fs do repositorio (ou o kairos.fs que o Gowin faz do core/: ver o README).
+Grava-se uma vez, no PC, com o Tang ligado directamente a uma porta USB do PC (sem hub). Depois de gravar,
+desligar e voltar a ligar.
 
 Linux (openFPGALoader):
-    openFPGALoader -b tangnano20k -f kairos.fs
+    openFPGALoader -b tangnano20k -f kairos_89c.fs
     (Fedora: sudo dnf copr enable mobicarte/openFPGALoader && sudo dnf install openFPGALoader
      Debian/Ubuntu: sudo apt install openfpgaloader
      "unable to open ftdi device" = permissao de USB: com sudo, ou as regras udev do openFPGALoader)
@@ -17,7 +17,7 @@ Windows (Gowin Programmer, do Gowin EDA Education, www.gowinsemi.com):
     scan_device -> GW2AR-18C; duas vezes na linha do dispositivo:
       Access Mode: External Flash Mode
       Operation:   exFlash Erase, Program
-      FS File:     kairos.fs
+      FS File:     kairos_89c.fs
       External Flash: Generic Flash, endereco 0x000000
     Program.
 
