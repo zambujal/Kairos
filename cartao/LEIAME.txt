@@ -53,7 +53,9 @@ O cartao e' FAT32 e leva, por esta ordem:
   /BIN/BPLUGINS (do navegador do Bob Fossil).
 - Timex FDD3000 (core 88j, navegador v87): duas placas no menu das maquinas do navegador (a' direita, debaixo do
   GENERAL SOUND), para acrescentar a' maquina que esta' a correr, como o Timex Interface verdadeiro:
-    FDD SPECTRUM   a placa do Spectrum e do TC2048: no TIMEX 2048 e no ZX 48K (a ROM do TI da Stavi)
+    FDD SPECTRUM   a placa do Spectrum e do TC2048: no TIMEX 2048, no ZX 48K e (89o) no ZX 128K e TIMEX 128K
+                   (a ROM do TI da Stavi, a "128K TOS": no 128K arranca no 48 BASIC com a paginacao do 128K livre;
+                   com o 0 carregado durante o reset vai ao menu do 128)
     FDD TC2068     a placa do TC2068: so' no TC2068 (a ROM do TI da TMX Portugal)
   Na maquina errada da' erro. A maquina reinicia com a FDD ligada (o Z80 do General Sound faz de FDD; o GS fica
   calado), pelo Timex Interface, sem disco: no TC2048 fica o (c) 1982 parado (a espera da FDD), no TC2068 arranca
