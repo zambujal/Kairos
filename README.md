@@ -12,6 +12,9 @@ do cartão e do teclado.
 - **Z80:** T80 corrigido (registo Q), de 3,5 a 27 MHz com F9/F10.
 - **Cartão:** navegador próprio (menu das máquinas, rato; nomes compridos se o `cartao.py` correr no cartão), plugins TAP, TZX, Z80, SNA, TRD,
   PT3, AY, MOD. O TZX toca na própria FPGA, com o `LOAD ""` escrito sozinho e pausa/paragem em F3/F4.
+- **Timex FDD3000:** no menu das máquinas, a placa FDD SPECTRUM (TIMEX 2048, ZX 48K, ZX 128K e TIMEX 128K) e a
+  FDD TC2068; os discos TOS (`.DSK`) e o CP/M correm no Z80 do General Sound, com o disco na SDRAM. As ROMs da
+  FDD3000 não vêm ([docs/fdd3000.md](docs/fdd3000.md)).
 - **ROMs no cartão:** ao ligar lê do cartão a ROM do TC2048 e o esxDOS. A pasta `cartao/` já traz as ROMs do
   TC2048 e do 2068 ([porquê](#as-roms-do-timex-no-cartão)); o esxDOS mete-o cada um.
 

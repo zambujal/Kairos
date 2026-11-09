@@ -34,7 +34,7 @@
    the esxDOS NMI.SYS has a black-and-white browser built in and never loads `/BIN/BROWSE.BIN`; Bob Fossil's
    loads it, and that is how ours gets in).
 4. Copy the **`cartao/`** folder of this repository on top of those (its `BIN` and `SYS` merge with the esxDOS
-   ones: browser, GO128/GO256/GO1024/GO2068, PENTA, MOD plugin, boot sound).
+   ones: browser, GO128/GO256/GO1024/GO2068, PENTA, FDD3000, MOD and DSK plugins, boot sound).
 5. Put in the **`SYS/ROMS`** folder (`TC2048.ROM` is already there, from `cartao/`):
    - `ESXMMC.BIN` — esxDOS, as it comes in the package (8192 bytes).
 6. Optional, only for the other machines and boards (copyrighted, not here):
@@ -44,6 +44,9 @@
    - `BIN/PLUG2068/TAP` — TAP plugin for the TC2068 (**without it TAPs do not load from the browser in TC2068
      mode**). It is not in the repository because it is made from Bob Fossil's TAP plugin; make it with
      `python3 fontes/plug2068/faz_plug2068.py BIN/BPLUGINS/TAP BIN/PLUG2068/TAP` (`faz_cartao.sh` already does it; what it is and why: `fontes/plug2068/LEIAME.md`).
+   - `SYS/ROMS/FDD3TI.ROM`, `FDD3TI68.ROM` and `FDD3BOOT.ROM` — for the Timex FDD3000 (the FDD SPECTRUM and
+     FDD TC2068 boards in the machine menu); they are taken from Fuse with the FDD3000 with
+     `ferramentas/fdd_roms.py` (see `docs/fdd3000.md`).
    Without them Kairos is a TC2048 with esxDOS; the browser tells you when one is missing.
 7. Games go in folders at the root (for example `GAMES/`, or one per letter).
 8. **Finally, with the card in the PC, run `ferramentas/cartao.py`** (section 6): it builds the indexes that

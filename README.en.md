@@ -12,6 +12,9 @@ All it needs is the Tang, the card and the keyboard.
 - **Z80:** a fixed T80 (Q register), 3.5 to 27 MHz with F9/F10.
 - **Card:** own browser (machine menu, mouse; long names if `cartao.py` is run on the card), plugins for TAP, TZX, Z80, SNA, TRD, PT3, AY, MOD.
   TZX plays inside the FPGA, types `LOAD ""` by itself, F3 pauses and F4 stops.
+- **Timex FDD3000:** in the machine menu, the FDD SPECTRUM board (TIMEX 2048, ZX 48K, ZX 128K and TIMEX 128K)
+  and the FDD TC2068 board; TOS disks (`.DSK`) and CP/M run on the General Sound Z80, with the disk in SDRAM. The
+  FDD3000 ROMs are not included ([docs/fdd3000.md](docs/fdd3000.md), in Portuguese).
 - **ROMs on the card:** at power-up it reads the TC2048 ROM and esxDOS from the card. The `cartao/` folder
   already brings the TC2048 and 2068 ROMs ([why](#the-timex-roms-on-the-card)); everyone adds their own esxDOS.
 
