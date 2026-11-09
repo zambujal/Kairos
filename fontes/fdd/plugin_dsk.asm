@@ -42,6 +42,11 @@
 ; (o .fdd3000 do 89l). Sem a placa ligada continua o erro "FDD desligada".
 ; (v89l) Com o TOS a correr (um jogo), o ENTER volta a so' trocar o disco (o disco 2 de um jogo, como no 88e: o reset
 ; partia os jogos de 2 discos) e o SYMBOL SHIFT + ENTER passa a ser o outro jogo (o reset da FDD, o TOS e o do Timex).
+; (v89m) Pedido dele: em vez do reset automatico, pergunta. Com o TOS a correr, depois de carregar o disco aparece por
+; baixo da barra "R: reset   C: continue": R = outro jogo (o reset da FDD, o TOS e o do Timex), C = so' a troca (o
+; disco 2 / o lado B) e volta-se ao jogo. A letra vem de um ficheiro do cartao, /SYS/LETRA8.BIN (a 8x8 do navegador,
+; 32..127, 768 bytes; lida para o BUF so' nessa altura); sem ele nao se pergunta: so' a troca. Sai o SYMBOL SHIFT.
+; A barra (e a pergunta) so' no hi-res com 16 leituras da FF todas a 6 (no ZX 128K a FF e' o barramento flutuante).
 ; Monta-se com  sjasmplus -I../nav --raw=DSK plugin_dsk.asm
 
                     include "esxdos.inc"
@@ -72,11 +77,6 @@ Inicio              push ix
                     cpl
                     and 1
                     ld (FddRst),a
-                    ld a,7Fh            ; (v89l) SYMBOL SHIFT + ENTER (Ctrl ou Alt + ENTER no teclado USB) com um jogo a
-                    in a,(0FEh)         ; correr: outro jogo (o reset da FDD e do Timex); o ENTER sozinho so' troca o
-                    cpl                 ; disco (o disco 2 ou o lado B que o jogo pede)
-                    and 2
-                    ld (OutroJ),a
                     ; (88e) o TOS ja' a correr na FDD (o jogo pediu outra disquete): so' se troca o disco, sem reset
                     call VeTOS
                     jr c,Arranque
@@ -287,12 +287,11 @@ Fim                 xor a               ; (v89i) o Z80 a' velocidade dele
                     ld a,(FddRst)       ; (88h) o reset da FDD: o Z80 dela volta a' ROM de arranque e le' o sector 0
                     or a
                     jr nz,FimFRst
-                    ld a,(OutroJ)       ; (v89l) o ENTER sozinho: so' a troca (o disco 2 / o lado B que o jogo pediu) e
-                    or a                ; volta-se ao jogo, sem reset (no v89g-v89k reiniciava tudo e partia os jogos
-                    jp z,FimSai         ; de 2 discos)
-                    ; SYMBOL SHIFT + ENTER (outro jogo): o reset da FDD, a espera do TOS e o reset do Timex, como no
-                    ; arranque (o TOS do disco antigo nao via o disco novo)
-                    jp FimArr
+                    ; (v89m) pergunta: R = reset (outro jogo: o reset da FDD, a espera do TOS e o reset do Timex, como no
+                    ; arranque; o TOS do disco antigo nao via o disco novo), C = continue (so' a troca e volta-se ao jogo)
+                    call Pergunta       ; CF = 1: R; senao BC = a mensagem
+                    jp c,FimArr
+                    jp FimSai
 FimFRst             ld a,1
                     call SetA0
                     ld b,0
@@ -471,11 +470,13 @@ VTi                 dec bc
 ; na linha de texto 12 (4880h-4F9Fh), com uma linha por cima (95: 4F60h) e outra por baixo (104: 48A0h). No hi-res
 ; (porta FF = xxxxx110) 64 colunas: as pares em 4000h, as impares em 6000h. Anda por Bresenham: em cada pista,
 ; Err += Larg; enquanto Err >= TotP: Err -= TotP e acende a coluna seguinte.
-BarraIni            in a,(0FFh)         ; o modo do ecra (no TC2048 / TC2068 a FF le-se)
-                    and 7
+BarraIni            ld b,16             ; o modo do ecra (no TC2048 / TC2068 a FF le-se). (v89m) 16 leituras, todas no
+BIm                 in a,(0FFh)         ; hi-res: no ZX 128K e no Pentagon a FF e' o barramento flutuante (muda, e o FFh
+                    and 7               ; da' 7): fica o ecra normal
                     cp 6
                     ld a,32
                     jr nz,BIn
+                    djnz BIm
                     ld a,64
 BIn                 ld (Larg),a
                     ld hl,0
@@ -584,6 +585,90 @@ BarraEnd            ld e,a
                     ld d,20h
                     ret
 
+; (v89m) a pergunta, por baixo da barra: "R: reset   C: continue". A letra de /SYS/LETRA8.BIN para o BUF (a carga do
+; disco ja' acabou). CF = 1: R (reset). CF = 0: C (continue) ou sem a letra; BC = a mensagem para o navegador
+Pergunta            ld hl,TxtLetra
+                    ld de,BUF
+                    ld bc,768
+                    call LeFich
+                    di                  ; (o esxDOS podia ter ligado as interrupcoes)
+                    jr c,PgSem
+                    ld a,b              ; leu os 768?
+                    cp 3
+                    jr nz,PgSem
+                    ld a,c
+                    or a
+                    jr nz,PgSem
+                    ld hl,TxtPerg
+                    call Escreve
+PgSolta             xor a               ; espera que larguem as teclas (o ENTER do navegador)
+                    in a,(0FEh)
+                    cpl
+                    and 1Fh
+                    jr nz,PgSolta
+PgTecla             ld a,0FBh           ; R (Q W E R T: bit 3)
+                    in a,(0FEh)
+                    bit 3,a
+                    scf
+                    ret z               ; R: CF = 1
+                    ld a,0FEh           ; C (CAPS SHIFT Z X C V: bit 3)
+                    in a,(0FEh)
+                    bit 3,a
+                    jr nz,PgTecla
+                    ld bc,TxtTroca      ; C: CF = 0
+                    or a
+                    ret
+PgSem               ld bc,TxtSemL       ; sem a letra: so' a troca
+                    or a
+                    ret
+; HL = o texto (0 no fim) na linha de texto 14 (48C0h), ao centro; a letra no BUF (32..127). No hi-res as colunas pares
+; em 4000h e as impares em 6000h (o BarraEnd)
+Escreve             push hl
+                    ld b,0
+EsC                 ld a,(hl)
+                    or a
+                    jr z,EsL
+                    inc hl
+                    inc b
+                    jr EsC
+EsL                 pop hl
+                    ld a,(Larg)
+                    sub b
+                    srl a
+                    ld c,a              ; C = a coluna
+EsCar               ld a,(hl)
+                    or a
+                    ret z
+                    push hl
+                    sub 32
+                    ld l,a
+                    ld h,0
+                    add hl,hl
+                    add hl,hl
+                    add hl,hl
+                    ld de,BUF
+                    add hl,de           ; HL = o desenho da letra
+                    push hl
+                    ld a,c
+                    call BarraEnd       ; D = 0 / 20h, E = a coluna no banco
+                    ld a,48h
+                    add a,d
+                    ld d,a
+                    ld a,0C0h
+                    add a,e
+                    ld e,a              ; DE = o ecra
+                    pop hl
+                    ld b,8
+EsLin               ld a,(hl)
+                    ld (de),a
+                    inc hl
+                    inc d
+                    djnz EsLin
+                    pop hl
+                    inc hl
+                    inc c
+                    jr EsCar
+
 ; ZXUNO A7h = A
 ; (v89i) ZXUNO A6h = A (bit 2: o Z80 a 14 MHz)
 SetA6               push bc
@@ -673,6 +758,9 @@ LeFich              push de
 TxtOk               db "FDD3000 pronta: o Timex reinicia",0
 TxtTroca            db "FDD3000: disco trocado",0
 TxtTrocaR           db "FDD3000: disco trocado, FDD reiniciada",0
+TxtSemL             db "FDD3000: disco trocado (sem /SYS/LETRA8.BIN nao pergunta)",0
+TxtPerg             db "R: reset   C: continue",0
+TxtLetra            db "/SYS/LETRA8.BIN",0
 TxtDiag             db "FDD parada 00:"
 TxtD00              db "xx 40:"
 TxtD40              db "xx FF:"
@@ -697,7 +785,6 @@ Aberto              db 0
 Pausou              db 0   ; (v87) 1 = a FDD foi posta em pausa pelo plugin
 Troca               db 0
 FddRst              db 0   ; (88h) 1 = reset da FDD no fim da troca
-OutroJ              db 0   ; (v89l) SYMBOL SHIFT + ENTER com o TOS a correr: outro jogo (no v89e-v89k era o LadoB: so' a troca)
 Ext                 db 0
 Faces               db 0
 NPist               dw 0
