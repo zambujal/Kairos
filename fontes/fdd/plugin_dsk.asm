@@ -35,6 +35,9 @@
 ; (v89i) O Z80 a 14 MHz enquanto passa o disco para a FDD (ZXUNO A6h = 4, como no v89 e no plugin TZX), a 0 no fim e
 ; nos erros, e a copia de cada sector desenrolada (25 T por byte, a do v89). A leitura do cartao fica a 3,5 MHz (o
 ; core abranda perto dos acessos ao cartao).
+; (v89j) Sem o reset do Timex outra vez (o do v89h nao fazia o mesmo que o Ctrl+Alt+AltGr a' mao).
+; (v89k) O reset volta, mas ~1 s depois de o TOS estar pronto (a 3,5 MHz) e so' a' saida do navegador (A5h): o momento
+; em que ele carrega no Ctrl+Alt+AltGr a' mao. Fica a carga do v89i.
 ; Monta-se com  sjasmplus -I../nav --raw=DSK plugin_dsk.asm
 
                     include "esxdos.inc"
@@ -356,8 +359,16 @@ ENs                 pop hl
                     jr FimSai
 FddPronta           ld a,4              ; o border verde: a FDD pronta
                     out (0FEh),a
-                    ; (v89h) o reset do Timex quando o navegador sair (A5h), como um Ctrl+Alt+AltGr a' saida: o TI
-                    ; arranca o disco. Nao o reset ja' (A7h = 0Dh do 88), com o esxDOS a meio do NMI
+                    ; (v89k) ~1 s (a 3,5 MHz: 2 x 65536 x 26 T) com o TOS pronto e so' depois o reset do Timex, quando
+                    ; o navegador sair (A5h): como ele faz a' mao (o disco na SDRAM, 1 s, Ctrl+Alt+AltGr)
+                    ld d,2
+FPw0                ld bc,0
+FPw1                dec bc
+                    ld a,b
+                    or c
+                    jr nz,FPw1
+                    dec d
+                    jr nz,FPw0
                     ld bc,0FC3Bh
                     ld a,0A5h
                     out (c),a
