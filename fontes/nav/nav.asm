@@ -5688,23 +5688,24 @@ ExecFdd             push ix
                     db 8Fh              ; M_EXECCMD
                     jp Sai
                     IF HIRES
-DFfdd               call VeFdd          ; com a FDD3000 ligada: o nome da placa
-                    jr z,DFf0
-                    ld a,(Filtro)
-                    ld hl,TxtFddZX128   ; (89p) no ZX 128K e no TIMEX 128K: a maquina + FDD (pedido dele: "128k+fdd")
-                    cp 3
-                    jr z,DFf0
-                    ld hl,TxtFddTX128
-                    cp 4
-                    jr z,DFf0
-                    ld hl,TxtFddZXb
-                    cp 5
-                    jr nz,DFf0
-                    ld hl,TxtFdd68b
+DFfdd               call VeFdd          ; com a FDD3000 ligada: (89q) o nome da maquina + "+FDD" (pedido dele: "mete so' fdd":
+                    jr z,DFf0           ; " ZX 48K+FDD", " ZX 128K+FDD"...; antes " FDD SPECTRUM" / " FDD TC2068")
+                    ld de,TxtFddBuf     ; HL = o nome da maquina (TxtFiltros)
+DFfc                ld a,(hl)
+                    or a
+                    jr z,DFfm
+                    ld (de),a
+                    inc hl
+                    inc de
+                    jr DFfc
+DFfm                ld hl,TxtMaisFdd
+                    ld bc,5
+                    ldir
+                    ld hl,TxtFddBuf
 DFf0                ld de,0
                     ret
-TxtFddZX128         db " ZX 128K+FDD",0
-TxtFddTX128         db " TIMEX 128K+FDD",0
+TxtMaisFdd          db "+FDD",0
+TxtFddBuf           ds 20
                     ENDIF
 MusOk               db 0
 MLpag               db 80h+PMUS         ; v52
@@ -6291,8 +6292,6 @@ TxtFddZX            db "FDD SPECTRUM",0      ; (v87) a FDD3000 com a placa do Sp
 TxtFdd68            db "FDD TC2068",0        ; (v87) a FDD3000 com a placa do TC2068
 TxtFddZXerr         db "FDD SPECTRUM: so' no TIMEX 2048, 48K e 128K",0
 TxtFdd68err         db "FDD TC2068: so' no TC2068",0
-TxtFddZXb           db " FDD SPECTRUM",0
-TxtFdd68b           db " FDD TC2068",0
 TxtAMudar           db "A reiniciar",0
 TxtSemRom           db "Falta a ROM",0
 TxtRom              db "/BIN/128.rom",0
