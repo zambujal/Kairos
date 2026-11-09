@@ -5646,9 +5646,9 @@ MenuIni             ld a,(Filtro)       ; a linha do menu: a maquina actual, ou 
 MIzx                ld (MenuSel),a
                     ret
 ; (v87) as placas da FDD3000: cada uma so' na sua maquina (a ROM do TI chama a ROM do computador por endereco)
-MNfddZX             ld a,(Filtro)       ; FDD SPECTRUM: TIMEX 2048 (1) e ZX 48K (2)
-                    cp 3
-                    ccf                 ; CF = a maquina errada
+MNfddZX             ld a,(Filtro)       ; FDD SPECTRUM: TIMEX 2048 (1), ZX 48K (2) e (89o) ZX 128K (3) e TIMEX 128K (4): a
+                    cp 5                ; ROM do TI da Stavi e' a "128K TOS" (no reset escolhe a ROM 1 do 128). O TC2068 (5)
+                    ccf                 ; tem a placa dele e o Pentagon (6-8) fica de fora. CF = a maquina errada
                     ld hl,TxtFddZXerr
                     ld ix,TxtGoFdd
                     jr MNfddV
@@ -6281,7 +6281,7 @@ TabPenta            db "PENTAGON 128 ",0
                     db "GENERAL SOUND",0
 TxtFddZX            db "FDD SPECTRUM",0      ; (v87) a FDD3000 com a placa do Spectrum (TIMEX 2048, ZX 48K)
 TxtFdd68            db "FDD TC2068",0        ; (v87) a FDD3000 com a placa do TC2068
-TxtFddZXerr         db "FDD SPECTRUM: so' no TIMEX 2048 e no ZX 48K",0
+TxtFddZXerr         db "FDD SPECTRUM: so' no TIMEX 2048, 48K e 128K",0
 TxtFdd68err         db "FDD TC2068: so' no TC2068",0
 TxtFddZXb           db " FDD SPECTRUM",0
 TxtFdd68b           db " FDD TC2068",0
